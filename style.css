@@ -1,0 +1,48 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&display=swap");
+@import "tailwindcss" source("./");
+
+@theme {
+  --font-sans: var(
+    --bi-font-sans,
+    "Noto Sans",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+}
+
+@plugin "daisyui" {
+  themes: "light", "dark";
+  include:
+    [ "button",
+    "card",
+    "toggle",
+    "alert",
+    "badge",
+    "loading",
+    "divider",
+    "menu",
+    "avatar" ];
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--color-base-200);
+  color: var(--color-base-content);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
