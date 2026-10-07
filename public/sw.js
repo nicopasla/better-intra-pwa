@@ -30,6 +30,7 @@ self.addEventListener("push", (event) => {
 });
 
 self.addEventListener("notificationclick", (event) => {
+  event.preventDefault(); // required for notificationclick to fire on iOS
   event.notification.close();
   const target =
     (event.notification.data && event.notification.data.url) || "/";

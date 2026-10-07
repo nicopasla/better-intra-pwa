@@ -34,6 +34,16 @@ const state: State = {
 
 const app = document.getElementById("app")!;
 
+const isIos =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  ("navigator" in window &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1 &&
+    typeof (navigator as { standalone?: boolean }).standalone === "boolean");
+
+const isStandalone =
+  (navigator as { standalone?: boolean }).standalone === true;
+
 function renderApp() {
   render(view(), app);
 }
@@ -41,7 +51,9 @@ function renderApp() {
 function view() {
   switch (state.screen) {
     case "loading":
-      return shell(html`<span class="loading loading-spinner loading-lg"></span>`);
+      return shell(
+        html`<span class="loading loading-spinner loading-lg"></span>`,
+      );
 
     case "blocked":
       return shell(html`
@@ -49,8 +61,8 @@ function view() {
           <div class="card-body items-center text-center gap-3">
             <h1 class="card-title">Not available</h1>
             <p class="text-sm opacity-70">
-              This app is only available to people who already use Better
-              Intra. Open the extension on
+              This app is only available to people who already use Better Intra.
+              Open the extension on
               <span class="whitespace-nowrap">intra.42.fr</span> and sign in
               first, then come back here.
             </p>
@@ -68,12 +80,18 @@ function view() {
       return shell(html`
         <div class="card w-full max-w-sm bg-base-100 shadow-xl">
           <div class="card-body items-center text-center gap-4">
-            <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
+            <img
+              src="/icons/icon-192.png"
+              alt=""
+              class="w-16 h-16 rounded-2xl"
+            />
             <h1 class="text-2xl font-bold">Better Intra</h1>
             <p class="text-sm opacity-70">
               Get your 42 evaluation notifications on your phone.
             </p>
-            <a class="btn btn-primary w-full" href=${loginUrl()}>Sign in with 42</a>
+            <a class="btn btn-primary w-full" href=${loginUrl()}
+              >Sign in with 42</a
+            >
           </div>
         </div>
       `);
@@ -108,63 +126,102 @@ function signedInView() {
         <div class="divider my-0"></div>
 
         ${supported
-          ? html`
-              <label class="flex items-center justify-between gap-3 cursor-pointer">
-                <span class="font-medium">Evaluation notifications</span>
-                <input
-                  type="checkbox"
-                  class="toggle toggle-primary"
-                  .checked=${state.pushEnabled}
+          ? state.pushEnabled
+            ? html`
+                <label
+                  class="flex items-center justify-between gap-3 cursor-pointer"
+                >
+                  <span class="font-medium">Evaluation notifications</span>
+                  <input
+                    type="checkbox"
+                    class="toggle toggle-primary"
+                    .checked=${true}
+                    ?disabled=${state.busy}
+                    @change=${onDisablePush}
+                  />
+                </label>
+                <button
+                  class="btn btn-sm btn-outline"
                   ?disabled=${state.busy}
-                  @change=${onTogglePush}
-                />
-              </label>
-              <button
-                class="btn btn-sm btn-outline"
-                ?disabled=${state.busy || !state.pushEnabled}
-                @click=${onTest}
-              >
-                Send test notification
-              </button>
-              <p class="text-xs opacity-60">
-                On iPhone, add this app to your Home Screen (Share → Add to Home
-                Screen) and enable notifications from there.
-              </p>
-            `
+                  @click=${onTest}
+                >
+                  Send test notification
+                </button>
+                ${isIos
+                  ? html`<p class="text-xs opacity-60">
+                      On iOS, swiping the app away (force-quit) disables push
+                      until you open it again.
+                    </p>`
+                  : ""}
+              `
+            : html`
+                <button
+                  class="btn btn-primary w-full"
+                  ?disabled=${state.busy}
+                  @click=${onEnablePush}
+                >
+                  Enable notifications
+                </button>
+                ${isIos && !isStandalone
+                  ? html`<p class="text-xs opacity-60">
+                      Install this site to your Home Screen (Share → Add to Home
+                      Screen), then open the app from the home screen to enable
+                      notifications.
+                    </p>`
+                  : ""}
+              `
           : html`<p class="text-sm opacity-70">
               This browser does not support push notifications.
             </p>`}
         ${state.message
-          ? html`<p class="text-xs text-warning">${state.message}</p>`
+          ? html`<p
+              class="text-xs ${state.message.startsWith("Delivered") ||
+              state.message === "Test sent — check your notifications."
+                ? "text-success"
+                : "text-warning"}"
+            >
+              ${state.message}
+            </p>`
           : ""}
 
         <div class="divider my-0"></div>
-        <button class="btn btn-ghost btn-sm" @click=${onLogout}>Sign out</button>
+        <button class="btn btn-ghost btn-sm" @click=${onLogout}>
+          Sign out
+        </button>
       </div>
     </div>
   `;
 }
 
-async function onTogglePush(event: Event) {
-  const target = event.target as HTMLInputElement;
-  const wantsEnabled = target.checked;
+async function onEnablePush() {
   state.busy = true;
   state.message = "";
   renderApp();
   try {
-    if (wantsEnabled) {
-      await enablePush();
-      state.pushEnabled = true;
-    } else {
-      await disablePush();
-      state.pushEnabled = false;
-    }
+    await enablePush();
+    state.pushEnabled = true;
   } catch (e) {
-    state.pushEnabled = !wantsEnabled;
     state.message =
       e instanceof Error && e.message === "permission_denied"
         ? "Notifications permission was denied."
-        : "Could not update notifications. Try again.";
+        : e instanceof Error && e.message === "no_service_worker"
+          ? "Service worker unavailable — open the installed web app."
+          : "Could not enable notifications. Try again.";
+  } finally {
+    state.busy = false;
+    renderApp();
+  }
+}
+
+async function onDisablePush() {
+  state.busy = true;
+  state.message = "";
+  renderApp();
+  try {
+    await disablePush();
+    state.pushEnabled = false;
+  } catch {
+    /* keep state as-is */
   } finally {
     state.busy = false;
     renderApp();
@@ -176,10 +233,15 @@ async function onTest() {
   state.message = "";
   renderApp();
   try {
-    await sendTest();
-    state.message = "Test sent — check your notifications.";
-  } catch {
-    state.message = "Failed to send the test notification.";
+    const result = await sendTest();
+    state.message = result.ok
+      ? `Delivered by ${result.host} (status ${result.status}).`
+      : `Push service rejected it (${result.status})${result.host ? ` via ${result.host}` : ""}${result.reason ? ` — ${result.reason}` : ""}.`;
+  } catch (e) {
+    state.message =
+      e instanceof Error && e.message === "no_subscription"
+        ? "No push subscription on this device — enable notifications first."
+        : "Failed to reach the push service.";
   } finally {
     state.busy = false;
     renderApp();

@@ -33,12 +33,15 @@ export async function getExistingSubscription(): Promise<PushSubscription | null
 }
 
 export async function enablePush(): Promise<void> {
+  // iOS requires the permission prompt to be requested from the user gesture
+  // (Apple docs: "call the push subscription method immediately from the
+  // gesture's event handler code"). Ask first, before any other async work.
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") throw new Error("permission_denied");
+
   const reg = await registerServiceWorker();
   if (!reg) throw new Error("no_service_worker");
   await navigator.serviceWorker.ready;
-
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") throw new Error("permission_denied");
 
   const keyRes = await fetch(`${WORKER_URL}/api/v1/public/push/key`);
   const { publicKey } = (await keyRes.json()) as { publicKey?: string };
@@ -75,11 +78,35 @@ export async function disablePush(): Promise<void> {
   await sub.unsubscribe();
 }
 
-export async function sendTest(): Promise<number> {
+export interface PushTestResult {
+  ok: boolean;
+  status: number;
+  host?: string;
+  reason?: string;
+}
+
+export async function sendTest(): Promise<PushTestResult> {
+  // Send to THIS device's own subscription, otherwise the worker would pick
+  // the first stored one (e.g. a desktop browser) and the test is meaningless.
+  const sub = await getExistingSubscription();
+  if (!sub) throw new Error("no_subscription");
+  const json = sub.toJSON();
+
   const res = await workerFetch("/api/v1/private/push/test", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
   });
-  return res.status;
+  let data: Partial<PushTestResult> = {};
+  try {
+    data = (await res.json()) as Partial<PushTestResult>;
+  } catch {
+    /* non-JSON response */
+  }
+  return {
+    ok: Boolean(data.ok),
+    status: typeof data.status === "number" ? data.status : res.status,
+    host: data.host,
+    reason: data.reason,
+  };
 }
