@@ -1,269 +1,121 @@
 import "./style.css";
 import { html, render } from "lit-html";
-import {
-  clearSession,
-  exchangeCode,
-  getSession,
-  loginUrl,
-  setSession,
-} from "./api.ts";
-import {
-  disablePush,
-  enablePush,
-  getExistingSubscription,
-  pushSupported,
-  registerServiceWorker,
-  sendTest,
-} from "./push.ts";
+import { exchangeCode, getSession, loginUrl, setSession } from "./api.ts";
+import { initTheme } from "./theme.ts";
+import { currentTab, renderScreen, renderShell, Tab } from "./shell.ts";
+import { setRefresh } from "./refresh.ts";
+import { dashboardView, loadDashboard } from "./views/dashboard.ts";
+import { friendsView, loadFriends } from "./views/friends.ts";
+import { settingsView, loadSettings } from "./views/settings.ts";
+import { registerServiceWorker } from "./push.ts";
+import { mockMode } from "./mock.ts";
 
-type Screen = "loading" | "blocked" | "signed_out" | "signed_in";
+const app = () => document.getElementById("app")!;
 
-interface State {
-  screen: Screen;
-  busy: boolean;
-  pushEnabled: boolean;
-  message: string;
-}
-
-const state: State = {
-  screen: "loading",
-  busy: false,
-  pushEnabled: false,
-  message: "",
-};
-
-const app = document.getElementById("app")!;
-
-const isIos =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  ("navigator" in window &&
-    typeof navigator.maxTouchPoints === "number" &&
-    navigator.maxTouchPoints > 1 &&
-    typeof (navigator as { standalone?: boolean }).standalone === "boolean");
-
-const isStandalone =
-  (navigator as { standalone?: boolean }).standalone === true;
-
-function renderApp() {
-  render(view(), app);
-}
-
-function view() {
-  switch (state.screen) {
-    case "loading":
-      return shell(
-        html`<span class="loading loading-spinner loading-lg"></span>`,
-      );
-
-    case "blocked":
-      return shell(html`
-        <div class="card w-full max-w-sm bg-base-100 shadow-xl">
-          <div class="card-body items-center text-center gap-3">
-            <h1 class="card-title">Not available</h1>
-            <p class="text-sm opacity-70">
-              This app is only available to people who already use Better Intra.
-              Open the extension on
-              <span class="whitespace-nowrap">intra.42.fr</span> and sign in
-              first, then come back here.
-            </p>
-            <button
-              class="btn btn-primary mt-2"
-              @click=${() => location.reload()}
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      `);
-
-    case "signed_out":
-      return shell(html`
-        <div class="card w-full max-w-sm bg-base-100 shadow-xl">
-          <div class="card-body items-center text-center gap-4">
-            <img
-              src="/icons/icon-192.png"
-              alt=""
-              class="w-16 h-16 rounded-2xl"
-            />
-            <h1 class="text-2xl font-bold">Better Intra</h1>
-            <p class="text-sm opacity-70">
-              Get your 42 evaluation notifications on your phone.
-            </p>
-            <a class="btn btn-primary w-full" href=${loginUrl()}
-              >Sign in with 42</a
-            >
-          </div>
-        </div>
-      `);
-
-    case "signed_in":
-      return shell(signedInView());
-  }
-}
-
-function shell(content: unknown) {
+function loadingScreen() {
   return html`
-    <div class="min-h-[100dvh] flex items-center justify-center p-4">
-      ${content}
+    <div class="min-h-[100dvh] flex items-center justify-center">
+      <span class="loading loading-spinner loading-lg"></span>
     </div>
   `;
 }
 
-function signedInView() {
-  const session = getSession();
-  const supported = pushSupported();
+function signInScreen() {
   return html`
-    <div class="card w-full max-w-sm bg-base-100 shadow-xl">
-      <div class="card-body gap-4">
-        <div class="flex items-center gap-3">
-          <img src="/icons/icon-192.png" alt="" class="w-10 h-10 rounded-xl" />
-          <div>
-            <h1 class="font-bold text-lg leading-tight">Better Intra</h1>
-            <p class="text-xs opacity-60">${session?.login ?? ""}</p>
-          </div>
+    <div class="min-h-[100dvh] flex items-center justify-center p-4">
+      <div class="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div class="card-body items-center text-center gap-4">
+          <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
+          <h1 class="text-2xl font-bold">Better Intra</h1>
+          <a class="btn btn-primary w-full" href=${loginUrl()}>Sign in with 42</a>
+          <a class="btn btn-ghost w-full" href="?mock=1">Preview with demo data</a>
         </div>
-
-        <div class="divider my-0"></div>
-
-        ${supported
-          ? state.pushEnabled
-            ? html`
-                <label
-                  class="flex items-center justify-between gap-3 cursor-pointer"
-                >
-                  <span class="font-medium">Evaluation notifications</span>
-                  <input
-                    type="checkbox"
-                    class="toggle toggle-primary"
-                    .checked=${true}
-                    ?disabled=${state.busy}
-                    @change=${onDisablePush}
-                  />
-                </label>
-                <button
-                  class="btn btn-sm btn-outline"
-                  ?disabled=${state.busy}
-                  @click=${onTest}
-                >
-                  Send test notification
-                </button>
-                ${isIos
-                  ? html`<p class="text-xs opacity-60">
-                      On iOS, swiping the app away (force-quit) disables push
-                      until you open it again.
-                    </p>`
-                  : ""}
-              `
-            : html`
-                <button
-                  class="btn btn-primary w-full"
-                  ?disabled=${state.busy}
-                  @click=${onEnablePush}
-                >
-                  Enable notifications
-                </button>
-                ${isIos && !isStandalone
-                  ? html`<p class="text-xs opacity-60">
-                      Install this site to your Home Screen (Share → Add to Home
-                      Screen), then open the app from the home screen to enable
-                      notifications.
-                    </p>`
-                  : ""}
-              `
-          : html`<p class="text-sm opacity-70">
-              This browser does not support push notifications.
-            </p>`}
-        ${state.message
-          ? html`<p
-              class="text-xs ${state.message.startsWith("Delivered") ||
-              state.message === "Test sent — check your notifications."
-                ? "text-success"
-                : "text-warning"}"
-            >
-              ${state.message}
-            </p>`
-          : ""}
-
-        <div class="divider my-0"></div>
-        <button class="btn btn-ghost btn-sm" @click=${onLogout}>
-          Sign out
-        </button>
       </div>
     </div>
   `;
 }
 
-async function onEnablePush() {
-  state.busy = true;
-  state.message = "";
-  renderApp();
-  try {
-    await enablePush();
-    state.pushEnabled = true;
-  } catch (e) {
-    state.message =
-      e instanceof Error && e.message === "permission_denied"
-        ? "Notifications permission was denied."
-        : e instanceof Error && e.message === "no_service_worker"
-          ? "Service worker unavailable — open the installed web app."
-          : "Could not enable notifications. Try again.";
-  } finally {
-    state.busy = false;
-    renderApp();
+function blockedScreen() {
+  return html`
+    <div class="min-h-[100dvh] flex items-center justify-center p-4">
+      <div class="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div class="card-body items-center text-center gap-3">
+          <h1 class="card-title">Not available</h1>
+          <p class="text-sm opacity-70">
+            This app is only available to people who already use Better Intra.
+            Open the extension on intra.42.fr and sign in first.
+          </p>
+          <button class="btn btn-primary mt-2" @click=${() => location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+const triggered = new Set<Tab>();
+
+function triggerLoad(tab: Tab): void {
+  switch (tab) {
+    case "dashboard":
+      loadDashboard();
+      break;
+    case "friends":
+      void loadFriends();
+      break;
+    case "settings":
+      void loadSettings();
+      break;
   }
 }
 
-async function onDisablePush() {
-  state.busy = true;
-  state.message = "";
-  renderApp();
-  try {
-    await disablePush();
-    state.pushEnabled = false;
-  } catch {
-    /* keep state as-is */
-  } finally {
-    state.busy = false;
-    renderApp();
+function renderBody(): void {
+  const tab = currentTab();
+  let body: unknown;
+  switch (tab) {
+    case "dashboard":
+      body = dashboardView();
+      break;
+    case "friends":
+      body = friendsView();
+      break;
+    case "settings":
+      body = settingsView();
+      break;
   }
+  renderShell(tab, body);
 }
 
-async function onTest() {
-  state.busy = true;
-  state.message = "";
-  renderApp();
-  try {
-    const result = await sendTest();
-    state.message = result.ok
-      ? `Delivered by ${result.host} (status ${result.status}).`
-      : `Push service rejected it (${result.status})${result.host ? ` via ${result.host}` : ""}${result.reason ? ` — ${result.reason}` : ""}.`;
-  } catch (e) {
-    state.message =
-      e instanceof Error && e.message === "no_subscription"
-        ? "No push subscription on this device — enable notifications first."
-        : "Failed to reach the push service.";
-  } finally {
-    state.busy = false;
-    renderApp();
+function renderRoute(): void {
+  const tab = currentTab();
+  if (!triggered.has(tab)) {
+    triggered.add(tab);
+    triggerLoad(tab);
   }
+  renderBody();
 }
 
-function onLogout() {
-  clearSession();
-  state.screen = "signed_out";
-  state.pushEnabled = false;
-  renderApp();
-}
-
-async function boot() {
+async function boot(): Promise<void> {
+  render(loadingScreen(), app());
   void registerServiceWorker();
+  initTheme();
+
+  // Mock mode: skip auth entirely and render the app with fake data.
+  if (mockMode) {
+    setRefresh(renderBody);
+    window.addEventListener("hashchange", renderRoute);
+    if (!location.hash) location.hash = "/dashboard";
+    renderRoute();
+    return;
+  }
 
   const params = new URLSearchParams(location.search);
 
   if (params.get("error") === "not_registered") {
-    state.screen = "blocked";
     history.replaceState(null, "", "/");
-    return renderApp();
+    render(blockedScreen(), app());
+    return;
   }
 
   const code = params.get("code");
@@ -272,27 +124,21 @@ async function boot() {
       const { token, login } = await exchangeCode(code);
       setSession(token, login);
     } catch {
-      /* fall through to signed_out */
+      /* fall through to sign-in */
     }
     history.replaceState(null, "", "/");
   }
 
-  const session = getSession();
-  if (!session) {
-    state.screen = "signed_out";
-    return renderApp();
+  if (!getSession()) {
+    render(signInScreen(), app());
+    return;
   }
 
-  state.screen = "signed_in";
-  renderApp();
+  if (!location.hash) location.hash = "/dashboard";
 
-  try {
-    const sub = await getExistingSubscription();
-    state.pushEnabled = Boolean(sub);
-    renderApp();
-  } catch {
-    /* ignore */
-  }
+  setRefresh(renderBody);
+  window.addEventListener("hashchange", renderRoute);
+  renderRoute();
 }
 
 void boot();

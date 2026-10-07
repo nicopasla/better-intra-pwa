@@ -1,4 +1,5 @@
 import { hashLogin } from "./lib/crypto.ts";
+import { mockMode } from "./mock.ts";
 
 export const WORKER_URL = "https://api.betterintra.com";
 
@@ -11,6 +12,7 @@ export interface Session {
 }
 
 export function getSession(): Session | null {
+  if (mockMode) return { token: "mock", login: "mock.user" };
   try {
     const token = localStorage.getItem(TOKEN_KEY) || "";
     const login = localStorage.getItem(LOGIN_KEY) || "";
