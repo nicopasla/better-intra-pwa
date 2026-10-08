@@ -1,7 +1,5 @@
 import { html, TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import LIST_SVG from "../../assets/list.svg?raw";
-import GRID_SVG from "../../assets/grid.svg?raw";
 import SKULL_SVG from "../../assets/skull.svg?raw";
 import GRADUATION_CAP_SVG from "../../assets/graduation-cap.svg?raw";
 import POOL_SVG from "../../assets/pool.svg?raw";
@@ -594,10 +592,8 @@ export function renderStudentsDialogTemplate(
   `;
 
   const renderRows = (rows: StudentEntry[]) => html`
-    <div class="${view}${view === "grid" ? " roster-students" : ""}">
-      ${rows.map((r) =>
-        view === "grid" ? renderStackedRow(r) : renderDefaultRow(r),
-      )}
+    <div class="grid roster-students">
+      ${rows.map((r) => renderStackedRow(r))}
     </div>
   `;
   return html`
@@ -935,10 +931,10 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div
-      class="students-feature flex flex-col bg-base-100 rounded-xl"
-    >
-      <div class="sticky top-0 z-10 bg-base-100 rounded-t-xl">
+    <div class="students-feature flex flex-col bg-base-100 rounded-xl">
+      <div
+        class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
+      >
         <div class="flex items-center gap-2 p-3">
           <div class="students-tabs-host">
             ${tabsOverflowing
@@ -1012,126 +1008,17 @@ export function renderStudentsDialogTemplate(
                   </div>
                 `}
           </div>
-          ${ago
-            ? html`<span class="updated-badge ml-auto"
-                >Updated ${ago === "now" ? ago : ago + " ago"}</span
-              >`
-            : ""}
         </div>
-        <div class="flex flex-wrap items-center gap-2 px-3 pb-3">
-          <input
-            class="input input-sm w-64"
-            type="search"
-            placeholder="Search..."
-            .value="${query}"
-            @input="${(e: Event) =>
-              handlers.onSearchInput((e.target as HTMLInputElement).value)}"
-          />
-          ${showPoolFilter
-            ? html`<div class="indicator">
-                  ${hasActiveFilters
-                    ? html`<span
-                        class="indicator-item badge badge-xs ${filter ===
-                        "blackhole"
-                          ? "badge-error"
-                          : filter === "alumni"
-                            ? "badge-secondary"
-                            : filter === "freeze"
-                              ? "badge-info"
-                              : "badge-error"}"
-                        style="border-radius:var(--radius-field)"
-                      ></span>`
-                    : ""}
-                  <details class="dropdown dropdown-end">
-                    <summary
-                      class="btn btn-sm btn-square list-none ${hasActiveFilters
-                        ? "btn-accent"
-                        : "btn-outline btn-accent"}"
-                      data-tip="Filters"
-                    >
-                      ${unsafeHTML(
-                        FILTER_SVG.replace(
-                          "<svg",
-                          '<svg width="16" height="16"',
-                        ),
-                      )}
-                    </summary>
-                    ${renderFilterMenu(
-                      state,
-                      handlers,
-                      tab === "new" ? intakeFiltered : entries,
-                    )}
-                  </details>
-                </div>
-                ${hasActiveFilters
-                  ? html`<button
-                      class="btn btn-sm btn-outline"
-                      data-tip="Clear filters"
-                      @click="${handlers.onClearFilters}"
-                    >
-                      ${unsafeHTML(
-                        FILTER_CLEAR_SVG.replace(
-                          "<svg",
-                          '<svg width="16" height="16"',
-                        ),
-                      )}
-                      Clear
-                    </button>`
-                  : ""}
-                <div class="mx-0.5 h-6 w-px bg-base-content/20"></div>`
-            : ""}
-          <span
-            class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold font-mono"
-            style="white-space:nowrap;border-radius:var(--radius-field)"
-            data-tip="${cursusLabel} — ${dateLabel}"
-            >${countValue} ${countLabel}</span
-          >
-          ${tab === "students"
-            ? html`<span
-                class="badge badge-sm ${activeBadgeClass} h-8 flex-shrink-0 font-bold font-mono"
-                style="white-space:nowrap;border-radius:var(--radius-field)"
-                data-tip="${activeBadgeTip}"
-                >${activeBadgeValue} ${activeBadgeLabel}</span
-              >`
-            : ""}
-          <div class="ml-auto flex items-center gap-2">
-            ${tab === "pisciners" && selectedPiscine
-              ? html`
-                  <button
-                    class="btn btn-sm btn-outline"
-                    @click="${handlers.onBackToPiscines}"
-                  >
-                    ← Piscines
-                  </button>
-                  <div class="h-6 w-px bg-base-content/20 mx-0.5"></div>
-                `
-              : ""}
-            ${showRosterControls
-              ? html`<div class="join">
-                  <button
-                    class="btn btn-sm join-item ${view === "grid"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    data-tip="Grid view"
-                    @click="${() => handlers.onSetView("grid")}"
-                  >
-                    ${unsafeHTML(
-                      GRID_SVG.replace("<svg", '<svg width="16" height="16"'),
-                    )}
-                  </button>
-                  <button
-                    class="btn btn-sm join-item ${view === "list"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    data-tip="List view"
-                    @click="${() => handlers.onSetView("list")}"
-                  >
-                    ${unsafeHTML(
-                      LIST_SVG.replace("<svg", '<svg width="16" height="16"'),
-                    )}
-                  </button>
-                </div> `
-              : ""}
+        <div class="px-3 pb-3">
+          <div class="flex flex-wrap items-center gap-2 justify-center">
+            <input
+              class="input input-sm w-44"
+              type="search"
+              placeholder="Search..."
+              .value="${query}"
+              @input="${(e: Event) =>
+                handlers.onSearchInput((e.target as HTMLInputElement).value)}"
+            />
             ${showRosterControls
               ? html`<div class="join">
                   <button
@@ -1169,6 +1056,82 @@ export function renderStudentsDialogTemplate(
                       </button>`
                     : ""}
                 </div> `
+              : ""}
+            ${showPoolFilter
+              ? html`<div class="indicator">
+                    ${hasActiveFilters
+                      ? html`<span
+                          class="indicator-item badge badge-xs ${filter ===
+                          "blackhole"
+                            ? "badge-error"
+                            : filter === "alumni"
+                              ? "badge-secondary"
+                              : filter === "freeze"
+                                ? "badge-info"
+                                : "badge-error"}"
+                          style="border-radius:var(--radius-field)"
+                        ></span>`
+                      : ""}
+                    <details class="dropdown dropdown-end">
+                      <summary
+                        class="btn btn-sm list-none ${hasActiveFilters
+                          ? "btn-primary"
+                          : "btn-outline border-base-content/20"}"
+                        data-tip="Filters"
+                      >
+                        ${unsafeHTML(
+                          FILTER_SVG.replace(
+                            "<svg",
+                            '<svg width="16" height="16"',
+                          ),
+                        )}
+                      </summary>
+                      ${renderFilterMenu(
+                        state,
+                        handlers,
+                        tab === "new" ? intakeFiltered : entries,
+                      )}
+                    </details>
+                  </div>
+                  ${hasActiveFilters
+                    ? html`<button
+                        class="btn btn-sm btn-outline"
+                        data-tip="Clear filters"
+                        @click="${handlers.onClearFilters}"
+                      >
+                        ${unsafeHTML(
+                          FILTER_CLEAR_SVG.replace(
+                            "<svg",
+                            '<svg width="16" height="16"',
+                          ),
+                        )}
+                        Clear
+                      </button>`
+                    : ""}`
+              : ""}
+            ${tab === "pisciners" && selectedPiscine
+              ? html`<button
+                  class="btn btn-sm btn-outline"
+                  @click="${handlers.onBackToPiscines}"
+                >
+                  ← Piscines
+                </button>`
+              : ""}
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2 justify-center">
+            <span
+              class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold font-mono"
+              style="white-space:nowrap;border-radius:var(--radius-field)"
+              data-tip="${cursusLabel} — ${dateLabel}"
+              >${countValue} ${countLabel}</span
+            >
+            ${tab === "students"
+              ? html`<span
+                  class="badge badge-sm ${activeBadgeClass} h-8 flex-shrink-0 font-bold font-mono"
+                  style="white-space:nowrap;border-radius:var(--radius-field)"
+                  data-tip="${activeBadgeTip}"
+                  >${activeBadgeValue} ${activeBadgeLabel}</span
+                >`
               : ""}
           </div>
         </div>
