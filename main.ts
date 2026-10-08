@@ -10,6 +10,8 @@ import { friendsView, loadFriends } from "./views/friends.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import { registerServiceWorker } from "./push.ts";
 import { mockMode } from "./mock.ts";
+import { initPullRefresh } from "./pull-refresh.ts";
+import { initSwipe } from "./swipe.ts";
 
 const app = () => document.getElementById("app")!;
 
@@ -119,6 +121,8 @@ async function boot(): Promise<void> {
   if (mockMode) {
     setRefresh(renderBody);
     window.addEventListener("hashchange", renderRoute);
+    initPullRefresh();
+    initSwipe();
     if (!location.hash) location.hash = "/dashboard";
     renderRoute();
     return;
@@ -152,6 +156,8 @@ async function boot(): Promise<void> {
 
   setRefresh(renderBody);
   window.addEventListener("hashchange", renderRoute);
+  initPullRefresh();
+  initSwipe();
   renderRoute();
 }
 

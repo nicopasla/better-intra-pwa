@@ -1,19 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&display=swap");
 @import "tailwindcss" source("./");
 
 @theme {
-  --font-sans: var(
-    --bi-font-sans,
-    "Noto Sans",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif
-  );
+  --font-sans: system-ui, ui-sans-serif, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 @plugin "daisyui" {
@@ -49,6 +38,13 @@ body {
   color: var(--color-base-content);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+}
+
+/* Keep inputs at 16px so iOS doesn't auto-zoom on focus (zoom is disabled). */
+.input {
+  font-size: 1rem;
 }
 
 #app {

@@ -251,8 +251,8 @@ async function onLogout() {
   location.reload();
 }
 
-export async function loadSettings(): Promise<void> {
-  if (loaded) return;
+export async function loadSettings(force = false): Promise<void> {
+  if (loaded && !force) return;
   loaded = true;
   try {
     const [b, s] = await Promise.all([getBlob(), sessionsList()]);

@@ -1,11 +1,55 @@
-/* Better Intra PWA service worker — Web Push only (no offline caching yet). */
+/* Better Intra PWA service worker — Web Push + offline app shell. */
 
-self.addEventListener("install", () => {
+const SHELL_CACHE = "bi-shell-v1";
+const SHELL = [
+  "/",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/sw.js",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(SHELL))
+      .catch(() => {}),
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        // Cache successful same-origin responses (hashed assets, manifest, …).
+        if (res.ok && new URL(req.url).origin === self.location.origin) {
+          const clone = res.clone();
+          caches
+            .open(SHELL_CACHE)
+            .then((cache) => cache.put(req, clone))
+            .catch(() => {});
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then(
+          (hit) =>
+            hit ||
+            // Offline fallback: serve the cached app shell for navigations.
+            caches.match(self.registration.scope + (req.mode === "navigate" ? "index.html" : "")),
+        ),
+      ),
+  );
 });
 
 self.addEventListener("push", (event) => {

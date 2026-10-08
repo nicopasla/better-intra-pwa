@@ -38,6 +38,18 @@ export function navigate(tab: Tab): void {
   location.hash = `/${tab}`;
 }
 
+const ORDER: Tab[] = TABS.map((t) => t.id);
+
+export function prevTab(): Tab | null {
+  const i = ORDER.indexOf(currentTab());
+  return i > 0 ? ORDER[i - 1] : null;
+}
+
+export function nextTab(): Tab | null {
+  const i = ORDER.indexOf(currentTab());
+  return i < ORDER.length - 1 ? ORDER[i + 1] : null;
+}
+
 const icon24 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="24" height="24"'));
 
