@@ -60,10 +60,57 @@ let filter: Filter = "none";
 let query = "";
 let poolIntake: Intake | null = null;
 let poolYear: number | null = null;
-let sentinelObserver: IntersectionObserver | null = null;
+let sentinelEl: Element | null = null;
+let scrollInit = false;
+let lastFetched = 0;
+let refreshTimer: number | null = null;
 
 const svg16 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+
+/** The API reports its own cache time (seconds); prefer it over client time. */
+function fromCachedAt(cachedAt: number | undefined): number {
+  if (typeof cachedAt === "number" && cachedAt > 0) {
+    if (cachedAt < 1e12) return cachedAt * 1000;
+    return cachedAt;
+  }
+  return Date.now();
+}
+
+function checkSentinel(): void {
+  if (!sentinelEl || !sentinelEl.isConnected) return;
+  const r = (sentinelEl as HTMLElement).getBoundingClientRect();
+  if (r.top <= window.innerHeight + 300) {
+    void loadMore();
+  }
+}
+
+function initScroll(): void {
+  if (scrollInit) return;
+  scrollInit = true;
+  window.addEventListener("scroll", checkSentinel, { passive: true });
+  window.setTimeout(checkSentinel, 300);
+}
+
+function onSentinelRef(el: Element | undefined): void {
+  sentinelEl = el ?? null;
+  if (el) checkSentinel();
+}
+
+function fmtAgo(ts: number): string {
+  if (!ts) return "never";
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 5) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+function ensureRefreshTimer(): void {
+  if (refreshTimer !== null) return;
+  refreshTimer = window.setInterval(() => refresh(), 30000);
+}
 
 const monthNumber = (name?: string | null): number | null => {
   if (!name) return null;
@@ -146,7 +193,7 @@ export function studentsView(): unknown {
         </div>`}
     ${hasMore
       ? html`<div
-          ref=${(el: Element | undefined) => observeSentinel(el)}
+          ref=${(el: Element | undefined) => onSentinelRef(el)}
           class="flex justify-center py-3"
         >
           ${loadingMore
@@ -194,7 +241,8 @@ function filtersBar(count: number) {
       class="fixed inset-x-0 z-10 border-t border-base-300 bg-base-100 px-3 py-2 flex flex-col gap-2"
       style="bottom: calc(4rem + env(safe-area-inset-bottom));"
     >
-      <div class="flex items-center gap-1.5 overflow-x-auto">
+      <div class="flex overflow-x-auto">
+        <div class="mx-auto flex items-center gap-1.5">
         <button
           class="btn btn-sm join-item ${sort === "name"
             ? "btn-primary"
@@ -243,7 +291,7 @@ function filtersBar(count: number) {
           return html`<button
             class="btn btn-sm btn-square ${filter === f
               ? "btn-primary"
-              : "btn-ghost"}"
+              : "btn-outline"}"
             title="${f} (toggle)"
             @click=${() => {
               filter = filter === f ? "none" : f;
@@ -253,9 +301,15 @@ function filtersBar(count: number) {
             ${svg16(icon)}
           </button>`;
         })}
+        <span
+          class="btn btn-sm btn-outline pointer-events-none text-xs whitespace-nowrap"
+          style="height:auto;min-height:2rem;"
+        >Updated ${fmtAgo(lastFetched)}</span>
+        </div>
       </div>
 
-      <div class="flex items-center gap-1.5 overflow-x-auto">
+      <div class="flex overflow-x-auto">
+        <div class="mx-auto flex items-center gap-1.5">
         <select
           class="select select-sm select-bordered"
           @change=${(e: Event) => {
@@ -298,7 +352,7 @@ function filtersBar(count: number) {
         </select>
         ${filter !== "none" || poolIntake || poolYear
           ? html`<button
-              class="btn btn-sm btn-ghost gap-1 whitespace-nowrap"
+              class="btn btn-sm btn-outline gap-1 whitespace-nowrap"
               @click=${() => {
                 filter = "none";
                 poolIntake = null;
@@ -309,6 +363,7 @@ function filtersBar(count: number) {
               ${svg16(X_SVG)} Clear
             </button>`
           : ""}
+        </div>
       </div>
     </div>
   `;
@@ -396,21 +451,6 @@ function renderRow(e: StudentEntry) {
   </button>`;
 }
 
-function observeSentinel(el: Element | undefined): void {
-  if (sentinelObserver) {
-    sentinelObserver.disconnect();
-    sentinelObserver = null;
-  }
-  if (!el) return;
-  sentinelObserver = new IntersectionObserver(
-    (obs) => {
-      if (obs.some((o) => o.isIntersecting)) void loadMore();
-    },
-    { rootMargin: "300px" },
-  );
-  sentinelObserver.observe(el);
-}
-
 export async function loadStudents(force = false): Promise<void> {
   if (loaded && !force) return;
   if (force) allEntries = [];
@@ -435,6 +475,9 @@ async function loadFirst(): Promise<void> {
     unauthorized = false;
     allEntries = page.data ?? [];
     total = page.total ?? allEntries.length;
+    lastFetched = fromCachedAt(page.cached_at);
+    ensureRefreshTimer();
+    initScroll();
     if (page.options?.intakes?.length || page.options?.poolYears?.length) {
       options = page.options;
     }
@@ -481,10 +524,13 @@ async function loadMore(): Promise<void> {
       allEntries = [...allEntries, ...fresh];
       total = page.total ?? allEntries.length;
     }
+    lastFetched = fromCachedAt(page.cached_at);
   } catch {
     /* keep existing rows */
   } finally {
     loadingMore = false;
     refresh();
+    // Keep the lazy loader going if the sentinel is still on screen.
+    window.setTimeout(checkSentinel, 60);
   }
 }
