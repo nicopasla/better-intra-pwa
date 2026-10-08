@@ -157,7 +157,7 @@ export function friendsView(): unknown {
       style="bottom: calc(4rem + env(safe-area-inset-bottom));"
     >
       <button
-        class="btn btn-sm btn-circle btn-primary"
+        class="btn btn-sm btn-primary"
         title="Add friend"
         @click=${openAdd}
       >

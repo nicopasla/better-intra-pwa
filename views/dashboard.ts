@@ -127,11 +127,8 @@ function evalCard() {
   const g = evalStats!.global;
   const ok = g.successPercentage !== null && g.successPercentage >= 67;
   const successColor = ok ? "rgb(34,197,94)" : "rgb(239,68,68)";
-  const months = Object.entries(evalStats!.byMonth).sort((a, b) =>
-    a[0] < b[0] ? 1 : -1,
-  );
   return card(html`
-    <div class="flex items-center gap-2">
+    <div class="flex items-center justify-end gap-2">
       ${g.successPercentage !== null
         ? html`<span
             class="text-xl font-bold px-5 py-2 rounded-xl"
@@ -141,30 +138,6 @@ function evalCard() {
         : ""}
       ${pill("total", String(g.total), "rgb(59,130,246)", true)}
       ${pill("failed", String(g.failed), "rgb(239,68,68)", true)}
-    </div>
-    <div class="divider my-1"></div>
-    <div class="max-h-52 overflow-y-auto overscroll-contain -mx-6">
-      <table class="w-full text-xs">
-        <thead>
-          <tr class="border-b border-base-300">
-            <th class="text-left font-medium pb-1 pl-6 text-primary/60 sticky top-0 bg-base-100">Month</th>
-            <th class="text-right font-medium pb-1 pr-4 text-primary/60 sticky top-0 bg-base-100">Total</th>
-            <th class="text-right font-medium pb-1 pr-4 text-primary/60 sticky top-0 bg-base-100">Failed</th>
-            <th class="text-right font-medium pb-1 pr-4 text-primary/60 sticky top-0 bg-base-100">Success</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${months.map(([ym, v]) => {
-            const pct = v.successPercentage;
-            return html`<tr class="border-b border-base-300">
-              <td class="py-1 pl-6 text-primary/50">${ym.slice(5)}/${ym.slice(0, 4)}</td>
-              <td class="py-1 pr-4 text-right font-medium">${v.total}</td>
-              <td class="py-1 pr-4 text-right font-medium ${v.failed > 0 ? "text-error" : ""}">${v.failed}</td>
-              <td class="py-1 pr-4 text-right font-medium ${pct === null ? "opacity-40" : pct >= 80 ? "text-success" : "text-error"}">${pct === null ? "—" : pct + "%"}</td>
-            </tr>`;
-          })}
-        </tbody>
-      </table>
     </div>
   `, "Evaluations");
 }
