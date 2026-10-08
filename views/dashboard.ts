@@ -59,7 +59,7 @@ function profileCard() {
           ${avatarBlock()}
           <div class="min-w-0">
             <div class="font-bold text-lg truncate">${m.displayName}</div>
-            <div class="text-sm opacity-60 truncate">@${m.login}</div>
+            <div class="text-sm opacity-60 truncate">${m.login}</div>
             ${(m.groups ?? []).length
               ? html`<div class="flex flex-wrap gap-1.5 mt-1.5">
                   ${(m.groups ?? []).map(

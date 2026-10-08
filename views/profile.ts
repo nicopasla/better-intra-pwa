@@ -339,7 +339,9 @@ const projectUrl = (slug: string | null) =>
 
 const occurrenceBadge = (n: number) =>
   n > 0
-    ? html`<span class="badge badge-sm badge-ghost font-mono">retry ${n}</span>`
+    ? html`<span class="badge badge-sm badge-ghost font-mono"
+        >${n} ${n === 1 ? "retry" : "retries"}</span
+      >`
     : "";
 
 function projectsTab(m: Me) {
