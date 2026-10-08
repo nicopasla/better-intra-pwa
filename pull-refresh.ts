@@ -21,7 +21,7 @@ function indicator(): HTMLDivElement | null {
   if (indicatorEl && indicatorEl.isConnected) return indicatorEl;
   const el = document.createElement("div");
   el.style.cssText =
-    "position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:flex-end;height:4rem;pointer-events:none;";
+    "position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:flex-end;height:4rem;pointer-events:none;";
   el.innerHTML = '<span class="loading loading-ring" style="color:var(--color-accent);"></span>';
   document.body.appendChild(el);
   indicatorEl = el;
