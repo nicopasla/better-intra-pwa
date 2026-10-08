@@ -1,9 +1,6 @@
 import { navigate, nextTab, prevTab, Tab } from "./shell.ts";
 
 const MIN_DIST = 70;
-const REDUCED =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let startX = 0;
 let startY = 0;
@@ -24,46 +21,25 @@ function clamped(value: number): number {
   return Math.sign(value) * damped;
 }
 
-function restoreBackground(): void {
-  document.body.style.background = "";
-}
-
-function slideTo(target: Tab, outDir: number): void {
+function release(target: Tab): void {
   const m = mainEl();
-  if (REDUCED || !m) {
-    navigate(target);
-    return;
+  if (m) {
+    // Snap the drag preview back; the view transition (or direct navigation)
+    // handles the actual swap without a leftover translate.
+    m.style.transition = "none";
+    m.style.transform = "";
   }
-  animating = true;
-  m.style.transition = "transform 220ms ease";
-  m.style.transform = `translateX(${outDir * 100}%)`;
-  // Blend the page background with the card color so there's no visible gap
-  // between the outgoing and incoming view during the slide.
-  document.body.style.background = "var(--color-base-100)";
-
-  window.setTimeout(() => {
-    navigate(target);
-    const next = mainEl();
-    if (next) {
-      next.style.transition = "none";
-      next.style.transform = `translateX(${-outDir * 100}%)`;
-      void next.offsetWidth; // force reflow
-      next.style.transition = "transform 220ms ease";
-      next.style.transform = "translateX(0)";
-    }
-    animating = false;
-    window.setTimeout(restoreBackground, 260);
-  }, 240);
+  animating = false;
+  navigate(target, true);
 }
 
 function cancel(): void {
   const m = mainEl();
   if (m) {
-    m.style.transition = "transform 220ms ease";
+    m.style.transition = "transform 180ms ease";
     m.style.transform = "translateX(0)";
   }
   animating = false;
-  window.setTimeout(restoreBackground, 260);
 }
 
 export function initSwipe(): void {
@@ -110,9 +86,10 @@ export function initSwipe(): void {
     () => {
       if (!engaged || animating) return;
       engaged = false;
+      animating = true;
       const target = direction < 0 ? nextTab() : prevTab();
       if (Math.abs(dx) >= MIN_DIST && target) {
-        slideTo(target, direction);
+        release(target);
       } else {
         cancel();
       }

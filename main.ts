@@ -2,7 +2,7 @@ import "./style.css";
 import { html, render } from "lit-html";
 import { exchangeCode, getSession, loginUrl, setSession } from "./api.ts";
 import { initTheme } from "./theme.ts";
-import { currentTab, renderScreen, renderShell, Tab } from "./shell.ts";
+import { currentTab, renderScreen, renderShell, Tab, setRouteRenderer } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
 import { eventsView, loadEvents } from "./views/events.ts";
@@ -144,6 +144,7 @@ async function boot(): Promise<void> {
   // Mock mode: skip auth entirely and render the app with fake data.
   if (mockMode) {
     setRefresh(renderBody);
+    setRouteRenderer(renderRoute);
     window.addEventListener("hashchange", renderRoute);
     initPullRefresh();
     initSwipe();
@@ -180,6 +181,7 @@ async function boot(): Promise<void> {
   if (!location.hash) location.hash = "/dashboard";
 
   setRefresh(renderBody);
+  setRouteRenderer(renderRoute);
   window.addEventListener("hashchange", renderRoute);
   initPullRefresh();
   initSwipe();

@@ -43,12 +43,50 @@ export function currentTab(): Tab {
   return "dashboard";
 }
 
-export function navigate(tab: Tab): void {
-  if (currentTab() === tab) return;
-  location.hash = `/${tab}`;
+const ORDER: Tab[] = TABS.map((t) => t.id);
+
+type RouteRenderer = () => void;
+let routeRenderer: RouteRenderer = () => {};
+
+/** main.ts registers its render pipeline so navigate() can render inside the
+ *  view-transition callback (the DOM swap must happen synchronously for
+ *  `startViewTransition` to capture old/new snapshots). */
+export function setRouteRenderer(fn: RouteRenderer): void {
+  routeRenderer = fn;
 }
 
-const ORDER: Tab[] = TABS.map((t) => t.id);
+const REDUCED =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+export function navigate(tab: Tab, animate = false): void {
+  if (currentTab() === tab) return;
+
+  // Dock/tab clicks pass `animate=false` (instant switch); swipe passes true
+  // so the slide direction (derived from tab order) matches the gesture.
+  const from = ORDER.indexOf(currentTab());
+  const to = ORDER.indexOf(tab);
+  const dir = to > from ? "next" : "prev";
+
+  if (
+    !animate ||
+    REDUCED ||
+    typeof document.startViewTransition !== "function"
+  ) {
+    location.hash = `/${tab}`;
+    routeRenderer();
+    return;
+  }
+
+  document.documentElement.dataset.ftDir = dir;
+  const t = document.startViewTransition(() => {
+    location.hash = `/${tab}`;
+    routeRenderer();
+  });
+  t.finished.finally(() => {
+    delete document.documentElement.dataset.ftDir;
+  });
+}
 
 export function prevTab(): Tab | null {
   const i = ORDER.indexOf(currentTab());
