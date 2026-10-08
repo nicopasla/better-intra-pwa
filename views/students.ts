@@ -474,8 +474,13 @@ async function loadMore(): Promise<void> {
     const fresh = (page.data ?? []).filter(
       (e) => !allEntries.some((x) => x.login === e.login),
     );
-    allEntries = [...allEntries, ...fresh];
-    total = page.total ?? allEntries.length;
+    if (allEntries.length > 0 && fresh.length === 0) {
+      // Nothing new to append — stop the lazy loader.
+      total = allEntries.length;
+    } else {
+      allEntries = [...allEntries, ...fresh];
+      total = page.total ?? allEntries.length;
+    }
   } catch {
     /* keep existing rows */
   } finally {
