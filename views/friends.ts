@@ -11,7 +11,7 @@ import EVAL_SVG from "../assets/eval.svg?raw";
 import GLOBE_SVG from "../assets/globe-lucide.svg?raw";
 import RELOAD_SVG from "../assets/reload.svg?raw";
 import PLUS_SVG from "../assets/plus.svg?raw";
-import X_SVG from "../assets/x.svg?raw";
+import TRASH_SVG from "../assets/trash.svg?raw";
 
 type SortMode = "name" | "level" | "wallet" | "correction";
 type SortDir = "asc" | "desc";
@@ -37,7 +37,8 @@ let onlineOnly = false;
 let customAvatars = true;
 
 function loadPrefs() {
-  sortMode = (localStorage.getItem("ft_pwa_friends_mode") as SortMode) || "level";
+  sortMode =
+    (localStorage.getItem("ft_pwa_friends_mode") as SortMode) || "level";
   sortDir = (localStorage.getItem("ft_pwa_friends_dir") as SortDir) || "desc";
   onlineOnly = localStorage.getItem("ft_pwa_friends_online") === "true";
   customAvatars = localStorage.getItem("ft_pwa_friends_custom") !== "false";
@@ -51,6 +52,8 @@ let loading = true;
 let error = "";
 let addValue = "";
 let loaded = false;
+let deleteMode = false;
+const selected = new Set<string>();
 const originalSet = new Set<string>();
 
 const svg16 = (raw: string) =>
@@ -68,7 +71,10 @@ function sorted(): Friend[] {
   const mul = sortDir === "desc" ? 1 : -1;
   switch (sortMode) {
     case "name":
-      arr.sort((a, b) => a.login.localeCompare(b.login) * (sortDir === "desc" ? -1 : 1));
+      arr.sort(
+        (a, b) =>
+          a.login.localeCompare(b.login) * (sortDir === "desc" ? -1 : 1),
+      );
       break;
     case "level":
       arr.sort((a, b) => (b.level - a.level) * mul);
@@ -88,17 +94,57 @@ export function friendsView(): unknown {
   return html`
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body gap-3">
-        <h2 class="card-title text-base">Friends${friends.length ? html`<span class="badge badge-primary badge-sm">${friends.length}</span>` : ""}</h2>
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="card-title text-base">
+            Friends${friends.length
+              ? html`<span class="badge badge-primary badge-sm"
+                  >${friends.length}</span
+                >`
+              : ""}
+          </h2>
+          <div class="flex items-center gap-1">
+            ${deleteMode
+              ? html` <button
+                    class="btn btn-error btn-sm"
+                    ?disabled=${selected.size === 0}
+                    @click=${() => void confirmDelete()}
+                  >
+                    Delete (${selected.size})
+                  </button>
+                  <button class="btn btn-ghost btn-sm" @click=${exitDeleteMode}>
+                    Cancel
+                  </button>`
+              : html`<button
+                  class="btn btn-ghost btn-sm"
+                  title="Delete friends"
+                  @click=${enterDeleteMode}
+                >
+                  ${svg16(TRASH_SVG)}
+                </button>`}
+          </div>
+        </div>
         ${loading
-          ? html`<div class="flex justify-center py-8"><span class="loading loading-spinner loading-md"></span></div>`
+          ? html`<div class="flex justify-center py-8">
+              <span class="loading loading-spinner loading-md"></span>
+            </div>`
           : error
             ? html`<div class="flex flex-col items-center gap-2 py-6">
                 <p class="text-sm opacity-70">Couldn't load friends.</p>
                 <p class="text-xs text-error">${error}</p>
-                <button class="btn btn-sm btn-outline" @click=${() => loadFriends(true)}>Retry</button>
+                <button
+                  class="btn btn-sm btn-outline"
+                  @click=${() => loadFriends(true)}
+                >
+                  Retry
+                </button>
               </div>`
             : sorted().length === 0
-              ? html`<p class="text-sm opacity-60 text-center py-6">No friends${onlineOnly ? " online" : ""}.${logins.length === 0 ? " Tap + to add one." : ""}</p>`
+              ? html`<p class="text-sm opacity-60 text-center py-6">
+                  No
+                  friends${onlineOnly ? " online" : ""}.${logins.length === 0
+                    ? " Tap + to add one."
+                    : ""}
+                </p>`
               : html`<ul class="flex flex-col gap-3">
                   ${sorted().map((f, i) => renderRow(f, i))}
                 </ul>`}
@@ -110,7 +156,13 @@ export function friendsView(): unknown {
       class="fixed inset-x-0 z-10 border-t border-base-300 bg-base-100 px-3 py-2 flex items-center gap-2"
       style="bottom: calc(4rem + env(safe-area-inset-bottom));"
     >
-      <button class="btn btn-sm btn-circle btn-primary" title="Add friend" @click=${openAdd}>${svg16(PLUS_SVG)}</button>
+      <button
+        class="btn btn-sm btn-circle btn-primary"
+        title="Add friend"
+        @click=${openAdd}
+      >
+        ${svg16(PLUS_SVG)}
+      </button>
       <div class="join join-horizontal flex-1">
         ${MODES.map((m) => {
           const active = m === sortMode;
@@ -125,7 +177,9 @@ export function friendsView(): unknown {
                   ? WALLET_SVG
                   : EVAL_SVG;
           return html`<button
-            class="btn btn-sm join-item px-2 flex-1 ${active ? "btn-primary" : ""}"
+            class="btn btn-sm join-item px-2 flex-1 ${active
+              ? "btn-primary"
+              : ""}"
             title="${LABELS[m]}${active ? ` (${sortDir})` : ""}"
             @click=${() => {
               if (active) sortDir = sortDir === "asc" ? "desc" : "asc";
@@ -136,7 +190,9 @@ export function friendsView(): unknown {
               savePreference();
               refresh();
             }}
-          >${svg16(icon)}</button>`;
+          >
+            ${svg16(icon)}
+          </button>`;
         })}
       </div>
       <button
@@ -147,82 +203,191 @@ export function friendsView(): unknown {
           savePreference();
           refresh();
         }}
-      >${svg16(GLOBE_SVG)} ${onlineCount}</button>
-      <button class="btn btn-sm btn-ghost" title="Refresh" @click=${() => loadFriends(true)}>${svg16(RELOAD_SVG)}</button>
+      >
+        ${svg16(GLOBE_SVG)} ${onlineCount}
+      </button>
+      <button
+        class="btn btn-sm btn-ghost"
+        title="Refresh"
+        @click=${() => loadFriends(true)}
+      >
+        ${svg16(RELOAD_SVG)}
+      </button>
     </div>
   `;
 }
 
 function renderRow(f: Friend, idx: number) {
   const showOriginal = originalSet.has(f.login);
-  const showCustom = customAvatars && f.customAvatar && !showOriginal;
+  const hasCustom = !!customAvatars && !!f.customAvatar;
+  const showCustom = hasCustom && !showOriginal;
   const medal =
     sortMode === "level" &&
     sortDir === "desc" &&
     (idx === 0 || idx === 1 || idx === 2)
-      ? ["0 0 18px rgba(255,215,0,.55)", "0 0 18px rgba(192,192,192,.5)", "0 0 18px rgba(205,127,50,.5)"][idx]
+      ? [
+          "0 0 18px rgba(255,215,0,.55)",
+          "0 0 18px rgba(192,192,192,.5)",
+          "0 0 18px rgba(205,127,50,.5)",
+        ][idx]
       : "";
   const whole = Math.floor(f.level);
   const pct = Math.round((f.level % 1) * 100);
+  const profile = `https://profile-v3.intra.42.fr/users/${encodeURIComponent(f.login)}`;
 
-  return html`<li class="card bg-base-100 border border-base-300 shadow-sm p-3 flex items-start gap-3">
-      <div class="flex-none relative" style="width:2.75rem;height:2.75rem;${medal ? `border-radius:9999px;box-shadow:${medal};` : ""}">
+  return html`<li
+    class="card bg-base-100 border border-base-300 shadow-sm p-3"
+    style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:repeat(3,auto);column-gap:0.75rem;row-gap:0.25rem;align-items:stretch;"
+  >
+    <!-- Avatar (rows 1-2) -->
+    <a
+      href="${profile}"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="flex"
+      style="grid-column:1;grid-row:1 / 3;align-self:center;"
+    >
+      <div class="avatar ${f.isOnline ? "avatar-online" : ""}">
         ${showCustom
           ? html`<button
-              class="w-full h-full rounded-full"
-              style="background-image:url('${f.customAvatar}');background-size:${f.avatarScale ?? 100}%;background-position:${f.avatarPosX ?? 50}% ${f.avatarPosY ?? 50}%;background-color:${f.avatarBg ?? "transparent"};background-repeat:no-repeat;"
+              class="w-14 h-14 rounded-full ${medal}"
+              style="background-image:url('${f.customAvatar}');background-size:${f.avatarScale ??
+              100}%;background-position:${f.avatarPosX ?? 50}% ${f.avatarPosY ??
+              50}%;background-color:${f.avatarBg ??
+              "transparent"};background-repeat:no-repeat;"
               title="Show original avatar"
               @click=${() => {
                 originalSet.add(f.login);
                 refresh();
               }}
             ></button>`
-          : html`<img
-              src="${f.avatar ?? "/icons/icon-192.png"}"
-              onerror="this.onerror=null;this.src='/icons/icon-192.png'"
-              class="w-full h-full rounded-full object-cover"
-              title="Show custom avatar"
-              @click=${() => {
-                originalSet.delete(f.login);
-                refresh();
-              }}
-              alt=""
-            />`}
-        ${f.isOnline
-          ? html`<span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-base-100"></span>`
+          : html`<div class="w-14 h-14 rounded-full ${medal}">
+              <img
+                src="${f.avatar ?? "/icons/icon-192.png"}"
+                onerror="this.onerror=null;this.src='/icons/icon-192.png'"
+                class="w-full h-full rounded-full object-cover cursor-pointer"
+                title="${hasCustom
+                  ? showOriginal
+                    ? "Show custom avatar"
+                    : "Show original avatar"
+                  : ""}"
+                @click=${() => {
+                  originalSet.delete(f.login);
+                  refresh();
+                }}
+                alt="${f.login}"
+              />
+            </div>`}
+      </div>
+    </a>
+
+    <!-- Level badge (row 3, under the avatar) -->
+    <span
+      class="badge badge-md badge-primary gap-1 px-2 ${medal}"
+      style="border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;grid-column:1;grid-row:3;justify-self:center;align-self:center;white-space:nowrap;"
+    >
+      <span class="text-sm font-bold font-mono">${f.level.toFixed(2)}</span>
+    </span>
+
+    <!-- Info columns -->
+    <div style="display:contents;">
+      <div
+        class="flex items-center gap-1.5 flex-wrap min-w-0"
+        style="grid-column:2;grid-row:1;"
+      >
+        <span class="font-bold text-lg text-primary truncate">${f.login}</span>
+        ${f.displayName && f.displayName !== f.login
+          ? html`<span class="text-sm opacity-80 truncate"
+              >${f.displayName}</span
+            >`
           : ""}
       </div>
-
-      <div class="flex-1 min-w-0">
-        <div class="flex items-baseline gap-2">
-          <span class="font-bold text-sm truncate">${f.login}</span>
-          ${f.displayName && f.displayName !== f.login ? html`<span class="text-xs opacity-50 truncate">${f.displayName}</span>` : ""}
-          <span class="badge badge-primary badge-sm font-mono ml-auto">${f.level.toFixed(2)}</span>
-        </div>
-        <div class="mt-1 flex items-center gap-2">
-          <progress class="progress progress-primary flex-1" max="100" value="${pct}"></progress>
-          <span class="text-xs opacity-50">${whole + 1}</span>
-        </div>
-        <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-          ${f.grade ? html`<span class="badge badge-outline badge-sm">${f.grade}</span>` : ""}
-          ${f.poolLabel ? html`<span class="badge badge-outline badge-sm">${f.poolLabel}</span>` : ""}
-          ${f.isOnline && f.lastSeen
-            ? html`<a class="badge badge-success badge-sm gap-1" href="https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(f.lastSeen)}" target="_blank" rel="noopener noreferrer">${f.lastSeen}</a>`
-            : f.lastOnlineTimestamp
-              ? html`<span class="opacity-50">seen ${fmtAgo(f.lastOnlineTimestamp)}</span>`
-              : ""}
-          <span class="ml-auto flex gap-2 font-mono">
-            ${svg16(WALLET_SVG)}${f.wallet.toLocaleString()}
-            ${svg16(EVAL_SVG)}${f.correctionPoints}
-          </span>
-          <button
-            class="btn btn-ghost btn-xs text-error"
-            title="Remove friend"
-            @click=${() => void removeFriend(f.login)}
-          >${unsafeHTML(X_SVG.replace("<svg", '<svg width="14" height="14"'))}</button>
+      <div style="grid-column:2;grid-row:2;" class="min-w-0 overflow-hidden">
+        ${metaBadges(f)}
+      </div>
+      <div
+        class="overflow-hidden w-full"
+        style="border-radius:0.75rem;grid-column:2;grid-row:3;align-self:center;"
+      >
+        <div class="flex items-center gap-1.5 w-full">
+          <progress
+            class="progress progress-primary flex-1"
+            value="${pct}"
+            max="100"
+            style="height:1rem"
+          ></progress>
+          <span
+            class="text-lg font-bold font-mono opacity-60 shrink-0 text-right"
+            style="width:2rem;"
+            >${whole + 1}</span
+          >
         </div>
       </div>
-    </li>`;
+    </div>
+
+    <!-- Delete checkbox -->
+    ${deleteMode
+      ? html`<div
+          class="shrink-0 self-center"
+          style="grid-column:3;grid-row:1 / 4;align-self:center;"
+        >
+          <input
+            type="checkbox"
+            class="checkbox checkbox-error checkbox-sm"
+            .checked=${selected.has(f.login)}
+            aria-label="Select ${f.login} for deletion"
+            @change=${() => toggleSelect(f.login)}
+          />
+        </div>`
+      : ""}
+  </li>`;
+}
+
+const accentStyle =
+  "border:3px solid color-mix(in oklab, var(--color-accent) 40%, transparent);background-color:color-mix(in oklab, var(--color-accent) 10%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+function accentBadge(text: string) {
+  return html`<span
+    class="badge badge-md gap-1 px-2 font-mono"
+    style="${accentStyle}"
+    >${text}</span
+  >`;
+}
+
+function statBadge(icon: string, value: string) {
+  return html`<span
+    class="badge badge-md gap-1 px-2 font-mono"
+    style="${accentStyle}"
+  >
+    ${svg16(icon)}<span class="text-sm font-bold">${value}</span>
+  </span>`;
+}
+
+function metaBadges(f: Friend) {
+  const parts: unknown[] = [];
+  if (f.grade) parts.push(accentBadge(f.grade));
+  if (f.poolLabel) parts.push(accentBadge(f.poolLabel));
+  if (f.isOnline && f.lastSeen) {
+    parts.push(
+      html`<a
+        class="badge badge-success badge-md gap-1 px-2 hover:brightness-110 transition-all cursor-pointer no-underline"
+        href="https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(
+          f.lastSeen,
+        )}"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+        ><span class="text-sm font-semibold">${f.lastSeen}</span></a
+      >`,
+    );
+  } else if (f.lastOnlineTimestamp) {
+    parts.push(accentBadge(fmtAgo(f.lastOnlineTimestamp)));
+  }
+  parts.push(statBadge(WALLET_SVG, f.wallet.toLocaleString()));
+  parts.push(statBadge(EVAL_SVG, String(f.correctionPoints)));
+  return html`<div class="flex items-center gap-0 flex-wrap min-w-0">
+    ${parts}
+  </div>`;
 }
 
 function fmtAgo(ts: number): string {
@@ -293,7 +458,13 @@ function ensureAddDialog(): HTMLDialogElement {
             hidden
           ></p>
           <div class="modal-action">
-            <button class="btn" type="button" @click=${() => addDialog?.close()}>Cancel</button>
+            <button
+              class="btn"
+              type="button"
+              @click=${() => addDialog?.close()}
+            >
+              Cancel
+            </button>
             <button class="btn btn-primary" type="submit">Add</button>
           </div>
         </form>
@@ -349,13 +520,34 @@ async function submitAdd(): Promise<void> {
   }
 }
 
-async function removeFriend(login: string): Promise<void> {
-  logins = logins.filter((l) => l !== login);
+function toggleSelect(login: string): void {
+  if (selected.has(login)) selected.delete(login);
+  else selected.add(login);
+  refresh();
+}
+
+function enterDeleteMode(): void {
+  deleteMode = true;
+  selected.clear();
+  refresh();
+}
+
+function exitDeleteMode(): void {
+  deleteMode = false;
+  selected.clear();
+  refresh();
+}
+
+async function confirmDelete(): Promise<void> {
+  const targets = [...selected];
+  if (targets.length === 0) return;
+  logins = logins.filter((l) => !targets.includes(l));
+  selected.clear();
+  deleteMode = false;
   try {
     await updateBlob({ FRIENDS_LIST: logins });
-    await loadFriends(true);
   } catch {
     /* keep local state */
-    refresh();
   }
+  await loadFriends(true);
 }
