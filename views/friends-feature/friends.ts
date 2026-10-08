@@ -1,5 +1,5 @@
 import { workerFetch, getSession } from "../../api.ts";
-import { updateBlob } from "../../data.ts";
+import { getBlob, updateBlob } from "../../data.ts";
 import { mock, mockMode } from "../../mock.ts";
 
 export interface FriendData {
@@ -22,19 +22,58 @@ export interface FriendData {
 }
 
 const LIST_KEY = "FRIENDS_LIST";
+const normalize = (logins: string[]) => Array.from(new Set(logins)) as string[];
+
+function readLocalList(): string[] {
+  try {
+    const raw = localStorage.getItem(LIST_KEY);
+    const val = raw ? JSON.parse(raw) : [];
+    return normalize(
+      (Array.isArray(val) ? val : []).map((l: string) =>
+        String(l).trim().toLowerCase(),
+      ),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalList(logins: string[]): void {
+  try {
+    localStorage.setItem(LIST_KEY, JSON.stringify(logins));
+  } catch {
+    /* ignore */
+  }
+}
 
 export async function getFriendsList(): Promise<string[]> {
   if (mockMode) {
     const list = mock.blob.settings.FRIENDS_LIST;
     return Array.isArray(list) ? (list as string[]) : [];
   }
+  const local = readLocalList();
+  let remote: string[] = [];
   try {
-    const raw = localStorage.getItem(LIST_KEY);
-    const val = raw ? JSON.parse(raw) : [];
-    return Array.isArray(val) ? val : [];
+    const blob = await getBlob();
+    const raw = blob.settings?.FRIENDS_LIST;
+    if (Array.isArray(raw)) {
+      remote = normalize(
+        (raw as string[]).map((l) => String(l).trim().toLowerCase()),
+      );
+    }
   } catch {
-    return [];
+    /* offline / not signed in — fall back to local */
   }
+  if (remote.length > 0) {
+    writeLocalList(remote);
+    return remote;
+  }
+  if (local.length > 0) {
+    writeLocalList(local);
+    return local;
+  }
+  if (remote.length === 0 && local.length === 0) return [];
+  return [];
 }
 
 export async function saveFriendsList(logins: string[]): Promise<void> {

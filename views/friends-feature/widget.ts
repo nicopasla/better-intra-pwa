@@ -649,7 +649,7 @@ function renderWidget(state: WidgetState) {
         position: fixed;
         right: 0.75rem;
         bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
-        z-index: 15;
+        z-index: 9999;
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -660,7 +660,14 @@ function renderWidget(state: WidgetState) {
         border: 1px solid
           color-mix(in oklab, var(--color-base-content) 10%, transparent);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-        z-index: 30;
+        pointer-events: none;
+      }
+
+      .friends-actions button,
+      .friends-actions input,
+      .friends-actions .friends-delete-bar,
+      .friends-actions p {
+        pointer-events: auto;
       }
 
       .friends-add-expand {
