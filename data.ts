@@ -13,6 +13,7 @@ export interface Me {
   correctionPoints: number;
   level: number;
   grade: string | null;
+  location: string | null;
   campusId: number | null;
   campusName: string | null;
   poolLabel: string | null;

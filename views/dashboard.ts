@@ -7,6 +7,7 @@ import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { clockTime, fullDate } from "../lib/format.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
+import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -83,10 +84,38 @@ function profileCard() {
         <div class="flex gap-2">
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
+          ${locationBadge(m.location)}
         </div>
       </div>
     </div>
   `;
+}
+
+const clusterUrl = (seat: string) =>
+  `https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(seat)}`;
+
+function locationBadge(location: string | null) {
+  const base =
+    "badge badge-lg h-auto flex-1 justify-center gap-2 py-2 no-underline";
+  if (!location) {
+    return html`<div
+      class="${base}"
+      style="border:2px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);"
+    >
+      <span class="font-semibold opacity-60">unavailable</span>
+    </div>`;
+  }
+  return html`<a
+    href="${clusterUrl(location)}"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="${base} text-success"
+    style="border:2px solid var(--color-success);"
+    data-tip="View on cluster map"
+  >
+    <span class="font-semibold font-mono">${location}</span
+    >${svg18(ARROW_SHARE_SVG)}
+  </a>`;
 }
 
 function statBadge(value: string, icon: string) {
