@@ -24,6 +24,10 @@ function clamped(value: number): number {
   return Math.sign(value) * damped;
 }
 
+function restoreBackground(): void {
+  document.body.style.background = "";
+}
+
 function slideTo(target: Tab, outDir: number): void {
   const m = mainEl();
   if (REDUCED || !m) {
@@ -33,6 +37,9 @@ function slideTo(target: Tab, outDir: number): void {
   animating = true;
   m.style.transition = "transform 220ms ease";
   m.style.transform = `translateX(${outDir * 100}%)`;
+  // Blend the page background with the card color so there's no visible gap
+  // between the outgoing and incoming view during the slide.
+  document.body.style.background = "var(--color-base-100)";
 
   window.setTimeout(() => {
     navigate(target);
@@ -45,15 +52,18 @@ function slideTo(target: Tab, outDir: number): void {
       next.style.transform = "translateX(0)";
     }
     animating = false;
+    window.setTimeout(restoreBackground, 260);
   }, 240);
 }
 
 function cancel(): void {
   const m = mainEl();
-  if (!m) return;
-  m.style.transition = "transform 220ms ease";
-  m.style.transform = "translateX(0)";
+  if (m) {
+    m.style.transition = "transform 220ms ease";
+    m.style.transform = "translateX(0)";
+  }
   animating = false;
+  window.setTimeout(restoreBackground, 260);
 }
 
 export function initSwipe(): void {
