@@ -1,5 +1,6 @@
-import { html } from "lit-html";
+import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
+import { ref } from "lit-html/directives/ref.js";
 import { Friend, friendsData, getBlob, updateBlob } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import SORT_AZ_SVG from "../assets/sort-az.svg?raw";
@@ -9,6 +10,7 @@ import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import GLOBE_SVG from "../assets/globe-lucide.svg?raw";
 import RELOAD_SVG from "../assets/reload.svg?raw";
+import PLUS_SVG from "../assets/plus.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
 
 type SortMode = "name" | "level" | "wallet" | "correction";
@@ -47,7 +49,6 @@ let friends: Friend[] = [];
 let logins: string[] = [];
 let loading = true;
 let error = "";
-let addError = "";
 let addValue = "";
 let loaded = false;
 const originalSet = new Set<string>();
@@ -87,75 +88,7 @@ export function friendsView(): unknown {
   return html`
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body gap-3">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="card-title text-base">Friends${friends.length ? html`<span class="badge badge-primary badge-sm">${friends.length}</span>` : ""}</h2>
-          <div class="flex items-center gap-2">
-            <button
-              class="btn btn-sm ${onlineOnly ? "btn-primary" : "btn-outline"} gap-1"
-              @click=${() => {
-                onlineOnly = !onlineOnly;
-                savePreference();
-                refresh();
-              }}
-            >
-              ${svg16(GLOBE_SVG)} ${onlineCount}
-            </button>
-            <button class="btn btn-sm btn-ghost gap-1" title="Refresh" @click=${() => loadFriends(true)}>
-              ${svg16(RELOAD_SVG)}
-            </button>
-          </div>
-        </div>
-
-        <div class="join join-horizontal self-start">
-          ${MODES.map((m) => {
-            const active = m === sortMode;
-            const icon =
-              m === "name"
-                ? (active ? sortDir : DEFAULTS.name) === "asc"
-                  ? SORT_AZ_SVG
-                  : SORT_ZA_SVG
-                : m === "level"
-                  ? RANKING_SVG
-                  : m === "wallet"
-                    ? WALLET_SVG
-                    : EVAL_SVG;
-            return html`<button
-              class="btn btn-sm join-item px-2 ${active ? "btn-primary" : ""}"
-              title="${LABELS[m]}${active ? ` (${sortDir})` : ""}"
-              @click=${() => {
-                if (active) sortDir = sortDir === "asc" ? "desc" : "asc";
-                else {
-                  sortMode = m;
-                  sortDir = DEFAULTS[m];
-                }
-                savePreference();
-                refresh();
-              }}
-            >${svg16(icon)}</button>`;
-          })}
-        </div>
-
-        <form
-          @submit=${(e: Event) => {
-            e.preventDefault();
-            void submitAdd();
-          }}
-          class="flex gap-2 items-center"
-        >
-          <input
-            class="input input-bordered input-sm flex-1"
-            placeholder="Add a login..."
-            .value=${addValue}
-            @input=${(e: Event) => {
-              addValue = (e.target as HTMLInputElement).value.trim();
-              addError = "";
-              refresh();
-            }}
-          />
-          <button class="btn btn-primary btn-sm" type="submit">Add</button>
-        </form>
-        ${addError ? html`<p class="text-xs text-error">${addError}</p>` : ""}
-
+        <h2 class="card-title text-base">Friends${friends.length ? html`<span class="badge badge-primary badge-sm">${friends.length}</span>` : ""}</h2>
         ${loading
           ? html`<div class="flex justify-center py-8"><span class="loading loading-spinner loading-md"></span></div>`
           : error
@@ -165,11 +98,57 @@ export function friendsView(): unknown {
                 <button class="btn btn-sm btn-outline" @click=${() => loadFriends(true)}>Retry</button>
               </div>`
             : sorted().length === 0
-              ? html`<p class="text-sm opacity-60 text-center py-6">No friends${onlineOnly ? " online" : ""}.${logins.length === 0 ? " Add a login above." : ""}</p>`
-              : html`<ul class="flex flex-col divide-y divide-base-300">
+              ? html`<p class="text-sm opacity-60 text-center py-6">No friends${onlineOnly ? " online" : ""}.${logins.length === 0 ? " Tap + to add one." : ""}</p>`
+              : html`<ul class="flex flex-col gap-3">
                   ${sorted().map((f, i) => renderRow(f, i))}
                 </ul>`}
+        <div class="h-24"></div>
       </div>
+    </div>
+
+    <div
+      class="fixed inset-x-0 z-10 border-t border-base-300 bg-base-100 px-3 py-2 flex items-center gap-2"
+      style="bottom: calc(4rem + env(safe-area-inset-bottom));"
+    >
+      <button class="btn btn-sm btn-circle btn-primary" title="Add friend" @click=${openAdd}>${svg16(PLUS_SVG)}</button>
+      <div class="join join-horizontal flex-1">
+        ${MODES.map((m) => {
+          const active = m === sortMode;
+          const icon =
+            m === "name"
+              ? (active ? sortDir : DEFAULTS.name) === "asc"
+                ? SORT_AZ_SVG
+                : SORT_ZA_SVG
+              : m === "level"
+                ? RANKING_SVG
+                : m === "wallet"
+                  ? WALLET_SVG
+                  : EVAL_SVG;
+          return html`<button
+            class="btn btn-sm join-item px-2 flex-1 ${active ? "btn-primary" : ""}"
+            title="${LABELS[m]}${active ? ` (${sortDir})` : ""}"
+            @click=${() => {
+              if (active) sortDir = sortDir === "asc" ? "desc" : "asc";
+              else {
+                sortMode = m;
+                sortDir = DEFAULTS[m];
+              }
+              savePreference();
+              refresh();
+            }}
+          >${svg16(icon)}</button>`;
+        })}
+      </div>
+      <button
+        class="btn btn-sm ${onlineOnly ? "btn-primary" : "btn-outline"} gap-1"
+        title="Online only"
+        @click=${() => {
+          onlineOnly = !onlineOnly;
+          savePreference();
+          refresh();
+        }}
+      >${svg16(GLOBE_SVG)} ${onlineCount}</button>
+      <button class="btn btn-sm btn-ghost" title="Refresh" @click=${() => loadFriends(true)}>${svg16(RELOAD_SVG)}</button>
     </div>
   `;
 }
@@ -186,7 +165,7 @@ function renderRow(f: Friend, idx: number) {
   const whole = Math.floor(f.level);
   const pct = Math.round((f.level % 1) * 100);
 
-  return html`<li class="py-3 flex items-start gap-3">
+  return html`<li class="card bg-base-100 border border-base-300 shadow-sm p-3 flex items-start gap-3">
       <div class="flex-none relative" style="width:2.75rem;height:2.75rem;${medal ? `border-radius:9999px;box-shadow:${medal};` : ""}">
         ${showCustom
           ? html`<button
@@ -276,28 +255,97 @@ export async function loadFriends(force = false): Promise<void> {
   }
 }
 
+let addDialog: HTMLDialogElement | null = null;
+let addInput: HTMLInputElement | null = null;
+let addErrEl: HTMLParagraphElement | null = null;
+
+function ensureAddDialog(): HTMLDialogElement {
+  if (addDialog && addDialog.isConnected) return addDialog;
+  addDialog = document.createElement("dialog");
+  addDialog.className = "modal";
+  render(
+    html`
+      <div class="modal-box">
+        <form
+          @submit=${(e: Event) => {
+            e.preventDefault();
+            void submitAdd();
+          }}
+        >
+          <h3 class="font-bold text-lg mb-2">Add a friend</h3>
+          <input
+            class="input input-bordered w-full"
+            placeholder="42 login"
+            autocomplete="off"
+            ref=${(el: Element | undefined) => {
+              addInput = (el as HTMLInputElement | undefined) ?? null;
+            }}
+            @input=${(e: Event) => {
+              addValue = (e.target as HTMLInputElement).value.trim();
+              if (addErrEl) addErrEl.hidden = true;
+            }}
+          />
+          <p
+            class="text-xs text-error mt-1"
+            ref=${(el: Element | undefined) => {
+              addErrEl = (el as HTMLParagraphElement | undefined) ?? null;
+            }}
+            hidden
+          ></p>
+          <div class="modal-action">
+            <button class="btn" type="button" @click=${() => addDialog?.close()}>Cancel</button>
+            <button class="btn btn-primary" type="submit">Add</button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    `,
+    addDialog,
+  );
+  document.body.appendChild(addDialog);
+  return addDialog;
+}
+
+function openAdd(): void {
+  const d = ensureAddDialog();
+  addValue = "";
+  if (addInput) addInput.value = "";
+  if (addErrEl) addErrEl.hidden = true;
+  d.showModal();
+}
+
 async function submitAdd(): Promise<void> {
   const clean = addValue.trim().toLowerCase();
-  if (!clean || logins.includes(clean)) {
-    addValue = "";
-    addError = "";
-    refresh();
+  if (!clean) {
+    if (addErrEl) {
+      addErrEl.textContent = "Enter a login.";
+      addErrEl.hidden = false;
+    }
+    return;
+  }
+  if (logins.includes(clean)) {
+    addDialog?.close();
     return;
   }
   try {
     const [candidate] = await friendsData([clean]);
     if (!candidate) {
-      addError = "User not found.";
-      refresh();
+      if (addErrEl) {
+        addErrEl.textContent = "User not found.";
+        addErrEl.hidden = false;
+      }
       return;
     }
     logins = [...logins, clean];
     await updateBlob({ FRIENDS_LIST: logins });
     addValue = "";
+    addDialog?.close();
     await loadFriends(true);
   } catch {
-    addError = "Couldn't add friend.";
-    refresh();
+    if (addErrEl) {
+      addErrEl.textContent = "Couldn't add friend.";
+      addErrEl.hidden = false;
+    }
   }
 }
 
