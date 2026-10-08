@@ -515,7 +515,7 @@ function evaluationsTab() {
                     ? "rgb(239,68,68)"
                     : "rgb(59,130,246)";
               const label = new Date(e.created_at).toLocaleDateString(
-                undefined,
+                "en-GB",
                 { day: "2-digit", month: "2-digit" },
               );
               return pill(label, String(e.sum), color);

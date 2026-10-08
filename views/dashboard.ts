@@ -216,9 +216,9 @@ const svg16 = (raw: string) =>
 function eventCard(e: CalendarEvent) {
   const start = new Date(e.beginAt);
   const end = new Date(e.endAt);
-  const weekday = start.toLocaleDateString(undefined, { weekday: "short" });
+  const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
   const day = String(start.getDate());
-  const month = start.toLocaleDateString(undefined, { month: "short" });
+  const month = start.toLocaleDateString("en-GB", { month: "short" });
   const href =
     e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
 

@@ -1,6 +1,8 @@
-/** Locale-aware Date/Time formatting helpers (Intl). */
+/** Locale-aware Date/Time formatting helpers (Intl). Always English. */
 
-const REL = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+const LOCALE = "en-GB";
+
+const REL = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 365 * 24 * 60 * 60],
@@ -37,7 +39,7 @@ export function relativeTimeCompact(tsMs: number, baseMs: number = Date.now()): 
   return `${Math.round(hours / 24)}d`;
 }
 
-const fmtClock = new Intl.DateTimeFormat(undefined, {
+const fmtClock = new Intl.DateTimeFormat(LOCALE, {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
@@ -50,10 +52,10 @@ export function clockTime(iso: string | number | Date): string {
 
 /** "Mon", "Jan", etc. */
 export function shortDatePart(date: Date, parts: Intl.DateTimeFormatOptions): string {
-  return date.toLocaleDateString(undefined, parts);
+  return date.toLocaleDateString(LOCALE, parts);
 }
 
-const fmtDay = new Intl.DateTimeFormat(undefined, {
+const fmtDay = new Intl.DateTimeFormat(LOCALE, {
   weekday: "short",
   day: "2-digit",
   month: "short",
@@ -65,7 +67,7 @@ export function fullDate(date: Date): string {
   return fmtDay.format(date);
 }
 
-const fmtDateTime = new Intl.DateTimeFormat(undefined, {
+const fmtDateTime = new Intl.DateTimeFormat(LOCALE, {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
