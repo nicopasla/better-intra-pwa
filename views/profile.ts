@@ -56,7 +56,10 @@ export function profileView(): unknown {
       <div class="card-body items-center gap-3">
         <p class="text-sm opacity-70">Couldn't load your profile.</p>
         <p class="text-xs text-error">${error}</p>
-        <button class="btn btn-sm btn-outline" @click=${() => loadProfile(true)}>
+        <button
+          class="btn btn-sm btn-outline"
+          @click=${() => loadProfile(true)}
+        >
           Retry
         </button>
       </div>
@@ -117,10 +120,7 @@ export async function loadProfile(force = false): Promise<void> {
     refresh();
   }
   try {
-    const [m, s] = await Promise.all([
-      me(),
-      profileStats().catch(() => null),
-    ]);
+    const [m, s] = await Promise.all([me(), profileStats().catch(() => null)]);
     meData = {
       ...m,
       groups: m.groups ?? [],
@@ -148,7 +148,7 @@ export async function loadProfile(force = false): Promise<void> {
         ...a,
         image: a.image ?? null,
       })),
-      achievementsCount: m.achievementsCount ?? (m.achievements?.length ?? 0),
+      achievementsCount: m.achievementsCount ?? m.achievements?.length ?? 0,
     };
     if (s) stats = s;
     error = "";
@@ -227,7 +227,9 @@ function locationBadge(location: string | null) {
     style="border:2px solid var(--color-success);"
     data-tip="View on cluster map"
   >
-    <span class="font-semibold font-mono">${location}</span>${svg18(ARROW_SHARE_SVG)}
+    <span class="font-semibold font-mono">${location}</span>${svg18(
+      ARROW_SHARE_SVG,
+    )}
   </a>`;
 }
 
@@ -236,13 +238,18 @@ function groupBadges(groups: string[]) {
   return html`<div class="flex flex-wrap gap-1.5">
     ${groups.map(
       (g) =>
-        html`<span class="badge badge-sm badge-primary font-semibold">${g}</span>`,
+        html`<span class="badge badge-sm badge-primary font-semibold"
+          >${g}</span
+        >`,
     )}
   </div>`;
 }
 
 function daysLeft(iso: string): number {
-  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000));
+  return Math.max(
+    0,
+    Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -296,9 +303,7 @@ function overviewTab(m: Me) {
           </div>
         </div>
       </div>
-      ${m.grade
-        ? html`<div class="text-sm opacity-70">${m.grade}</div>`
-        : ""}
+      ${m.grade ? html`<div class="text-sm opacity-70">${m.grade}</div>` : ""}
       ${meta.length
         ? html`<div class="text-xs opacity-60">${meta.join(" · ")}</div>`
         : ""}
@@ -308,8 +313,7 @@ function overviewTab(m: Me) {
         ${locationBadge(m.location)}
       </div>
     `)}
-    ${m.blackholedAt ? blackholeCard(m.blackholedAt) : ""}
-    ${evaluationsTab()}
+    ${m.blackholedAt ? blackholeCard(m.blackholedAt) : ""} ${evaluationsTab()}
   `;
 }
 
@@ -323,7 +327,9 @@ function blackholeCard(iso: string) {
         <div class="text-xs opacity-60">${fullDate(new Date(iso))}</div>
       </div>
       <span
-        class="badge badge-lg font-bold ${urgent ? "badge-error" : "badge-warning"}"
+        class="badge badge-lg font-bold ${urgent
+          ? "badge-error"
+          : "badge-warning"}"
         >${days} day${days === 1 ? "" : "s"} left</span
       >
     </div>
@@ -347,15 +353,6 @@ const occurrenceBadge = (n: number) =>
 function projectsTab(m: Me) {
   const p = m.projects;
   return html`
-    ${card(
-      html`<div class="flex flex-wrap gap-2">
-        ${pill("total", String(p.total), "rgb(59,130,246)")}
-        ${pill("validated", String(p.validated), "rgb(34,197,94)")}
-        ${pill("failed", String(p.failed), "rgb(239,68,68)")}
-        ${pill("in progress", String(p.inProgress), "rgb(234,179,8)")}
-      </div>`,
-      "Projects",
-    )}
     ${p.active.length
       ? card(
           html`<ul class="flex flex-col divide-y divide-base-300">
@@ -383,7 +380,7 @@ function projectsTab(m: Me) {
               </li>`;
             })}
           </ul>`,
-          "Ongoing",
+          `Ongoing (${p.active.length})`,
         )
       : ""}
     ${p.recent.length
@@ -419,7 +416,7 @@ function projectsTab(m: Me) {
               </li>`;
             })}
           </ul>`,
-          "Completed",
+          `Completed (${p.recent.length})`,
         )
       : ""}
   `;
@@ -428,7 +425,9 @@ function projectsTab(m: Me) {
 function pill(label: string, value: string, color: string) {
   return html`<span
     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-    style="color:${color};background:${color.replace(/^rgb\(/, "rgba(").replace(/\)$/, ",0.1)")};"
+    style="color:${color};background:${color
+      .replace(/^rgb\(/, "rgba(")
+      .replace(/\)$/, ",0.1)")};"
   >
     <span class="text-sm font-semibold opacity-70 uppercase tracking-wide"
       >${label}</span
@@ -495,7 +494,9 @@ function evaluationsTab() {
         ${g?.successPercentage != null
           ? html`<span
               class="text-xl font-bold px-5 py-2 rounded-xl"
-              style="color:${successColor};background:${successColor.replace(/^rgb\(/, "rgba(").replace(/\)$/, ",0.1)")};"
+              style="color:${successColor};background:${successColor
+                .replace(/^rgb\(/, "rgba(")
+                .replace(/\)$/, ",0.1)")};"
               >${g.successPercentage}%</span
             >`
           : ""}
@@ -514,10 +515,10 @@ function evaluationsTab() {
                   : e.sum < 0
                     ? "rgb(239,68,68)"
                     : "rgb(59,130,246)";
-              const label = new Date(e.created_at).toLocaleDateString(
-                "en-GB",
-                { day: "2-digit", month: "2-digit" },
-              );
+              const label = new Date(e.created_at).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+              });
               return pill(label, String(e.sum), color);
             })}
           </div>`,
