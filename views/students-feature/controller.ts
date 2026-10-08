@@ -1,5 +1,6 @@
 import type { TemplateResult } from "lit-html";
 import { loginUrl } from "../../api.ts";
+import { observeTabsOverflow } from "../../lib/segmented-tabs.ts";
 import {
   INITIAL_VISIBLE_COUNT,
   WINDOW_STEP,
@@ -27,27 +28,6 @@ import type {
   StudentsTab,
   StudentsView,
 } from "./data.ts";
-
-const TABS_OVERFLOW_TOLERANCE = 1;
-
-function measureTabsOverflow(host: HTMLElement): boolean {
-  if (host.clientWidth === 0) return false;
-  const probe = document.createElement("div");
-  probe.style.cssText =
-    "position:absolute;top:0;left:-9999px;visibility:hidden;display:flex;gap:4px;padding:4px;width:max-content;white-space:nowrap;";
-  for (const label of Object.values(STUDENTS_TAB_LABELS)) {
-    const item = document.createElement("span");
-    item.className = "tab-btn";
-    item.style.cssText = "flex:0 0 auto;white-space:nowrap;";
-    item.textContent = label;
-    probe.appendChild(item);
-  }
-  host.appendChild(probe);
-  const overflows =
-    probe.scrollWidth - host.clientWidth > TABS_OVERFLOW_TOLERANCE;
-  probe.remove();
-  return overflows;
-}
 
 let pendingView: TemplateResult | null = null;
 let initialized = false;
@@ -443,20 +423,15 @@ export function initStudentsFeature(onUpdate: () => void): void {
       tabsResizeObserver.disconnect();
       tabsResizeObserver = null;
     }
-    const tabsHost = document.querySelector<HTMLElement>(
-      ".students-feature .students-tabs-host",
+    tabsResizeObserver = observeTabsOverflow(
+      ".students-feature .segmented-tabs-host",
+      Object.values(STUDENTS_TAB_LABELS),
+      (overflowing) => {
+        if (overflowing === tabsOverflowing) return;
+        tabsOverflowing = overflowing;
+        rerender();
+      },
     );
-    if (tabsHost) {
-      tabsResizeObserver = new ResizeObserver(() => {
-        requestAnimationFrame(() => {
-          const overflowing = measureTabsOverflow(tabsHost);
-          if (overflowing === tabsOverflowing) return;
-          tabsOverflowing = overflowing;
-          rerender();
-        });
-      });
-      tabsResizeObserver.observe(tabsHost);
-    }
   };
 
   const rerender = () => {

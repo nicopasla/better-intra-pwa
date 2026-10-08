@@ -5,10 +5,54 @@ import { mock, mockMode } from "./mock.ts";
 // Types
 // ---------------------------------------------------------------------------
 
+export interface MeCursus {
+  name: string | null;
+  slug: string | null;
+  kind: string | null;
+  beginAt: string | null;
+  endAt: string | null;
+}
+
+export interface MeProject {
+  name: string;
+  slug: string | null;
+  occurrence: number;
+}
+
+export interface MeRecentProject extends MeProject {
+  finalMark: number | null;
+  validated: boolean;
+  markedAt: string | null;
+}
+
+export interface MeProjects {
+  total: number;
+  validated: number;
+  failed: number;
+  inProgress: number;
+  active: MeProject[];
+  recent: MeRecentProject[];
+}
+
+export interface MeAchievement {
+  name: string;
+  description: string;
+  tier: string | null;
+  kind: string | null;
+  nbrOfSuccess: number | null;
+  image: string | null;
+}
+
 export interface Me {
   login: string;
   displayName: string;
+  usualFullName: string;
   image: string | null;
+  kind: string | null;
+  staff: boolean;
+  alumni: boolean;
+  active: boolean;
+  memberSince: string | null;
   wallet: number;
   correctionPoints: number;
   level: number;
@@ -16,7 +60,15 @@ export interface Me {
   location: string | null;
   campusId: number | null;
   campusName: string | null;
+  poolMonth: string | null;
+  poolYear: string | null;
   poolLabel: string | null;
+  groups: string[];
+  cursus: MeCursus | null;
+  blackholedAt: string | null;
+  projects: MeProjects;
+  achievements: MeAchievement[];
+  achievementsCount: number;
   customAvatar: string | null;
   avatarBg: string;
   avatarPosX: number;

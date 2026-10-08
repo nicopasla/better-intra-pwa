@@ -5,7 +5,7 @@ import { initTheme } from "./theme.ts";
 import { currentTab, renderScreen, renderShell, Tab, setRouteRenderer } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
-import { eventsView, loadEvents } from "./views/events.ts";
+import { profileView, loadProfile, profileAttachObservers } from "./views/profile.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
 import { studentsView, loadStudents, studentsAttachObservers } from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
@@ -80,8 +80,8 @@ function triggerLoad(tab: Tab, force = false): void {
     case "dashboard":
       loadDashboard();
       break;
-    case "events":
-      void loadEvents();
+    case "profile":
+      void loadProfile();
       break;
     case "friends":
       void loadFriends();
@@ -104,8 +104,8 @@ function refreshActiveTab(force = false): void {
     case "dashboard":
       loadDashboard(true);
       break;
-    case "events":
-      void loadEvents(true);
+    case "profile":
+      void loadProfile(true);
       break;
     case "friends":
       void loadFriends(true);
@@ -147,8 +147,8 @@ function renderBody(): void {
     case "dashboard":
       body = dashboardView();
       break;
-    case "events":
-      body = eventsView();
+    case "profile":
+      body = profileView();
       break;
     case "friends":
       body = friendsView();
@@ -162,6 +162,7 @@ function renderBody(): void {
   }
   renderShell(tab, body);
   if (tab === "students") studentsAttachObservers();
+  if (tab === "profile") profileAttachObservers();
 }
 
 function gateStudents(): void {

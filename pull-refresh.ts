@@ -1,6 +1,6 @@
 import { currentTab } from "./shell.ts";
 import { loadDashboard } from "./views/dashboard.ts";
-import { loadEvents } from "./views/events.ts";
+import { loadProfile } from "./views/profile.ts";
 import { loadFriends } from "./views/friends.ts";
 import { loadSettings } from "./views/settings.ts";
 
@@ -82,8 +82,8 @@ function reloadCurrent(): void {
     case "dashboard":
       loadDashboard();
       break;
-    case "events":
-      void loadEvents(true);
+    case "profile":
+      void loadProfile(true);
       break;
     case "friends":
       void loadFriends(true);

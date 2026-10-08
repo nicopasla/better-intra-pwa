@@ -1,18 +1,19 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { me, upcomingEvals, profileStats, events, Me, UpcomingResponse, EvalStats, CalendarEvent } from "../data.ts";
+import { me, upcomingEvals, events, Me, UpcomingResponse, CalendarEvent } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
-import { clockTime, fullDate } from "../lib/format.ts";
+import { clockTime } from "../lib/format.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import CALENDAR_SVG from "../assets/calendar.svg?raw";
+import CLOCK_SVG from "../assets/clock.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
-let evalStats: EvalStats | null = null;
-let soonEvents: CalendarEvent[] = [];
+let allEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
 
@@ -32,7 +33,7 @@ export function dashboardView(): unknown {
   return html`
     ${profileCard()}
     ${upcomingCard()}
-    ${evalCard()}
+    ${eventsCard()}
   `;
 }
 
@@ -59,6 +60,16 @@ function profileCard() {
           <div class="min-w-0">
             <div class="font-bold text-lg truncate">${m.displayName}</div>
             <div class="text-sm opacity-60 truncate">@${m.login}</div>
+            ${(m.groups ?? []).length
+              ? html`<div class="flex flex-wrap gap-1.5 mt-1.5">
+                  ${(m.groups ?? []).map(
+                    (g) =>
+                      html`<span class="badge badge-sm badge-primary font-semibold"
+                        >${g}</span
+                      >`,
+                  )}
+                </div>`
+              : ""}
           </div>
         </div>
         <div class="flex items-end gap-5">
@@ -150,39 +161,6 @@ function avatarBlock() {
   />`;
 }
 
-function evalCard() {
-  const g = evalStats!.global;
-  const ok = g.successPercentage !== null && g.successPercentage >= 67;
-  const successColor = ok ? "rgb(34,197,94)" : "rgb(239,68,68)";
-  return card(html`
-    <div class="flex items-center justify-end gap-2">
-      ${g.successPercentage !== null
-        ? html`<span
-            class="text-xl font-bold px-5 py-2 rounded-xl"
-            style="color:${successColor};background:${tint(successColor)};"
-            >${g.successPercentage}%</span
-          >`
-        : ""}
-      ${pill("total", String(g.total), "rgb(59,130,246)", true)}
-      ${pill("failed", String(g.failed), "rgb(239,68,68)", true)}
-    </div>
-  `, "Evaluations");
-}
-
-function tint(rgb: string): string {
-  return rgb.replace(/^rgb\(/, "rgba(").replace(/\)$/, ",0.1)");
-}
-
-function pill(label: string, value: string, color: string, compact = false) {
-  return html`<span
-    class="inline-flex items-center gap-1.5 ${compact ? "px-3 py-1.5" : "px-4 py-2"} rounded-xl"
-    style="color:${color};background:${tint(color)};"
-  >
-    <span class="text-sm font-semibold opacity-70 uppercase tracking-wide">${label}</span>
-    <span class="text-xl font-bold">${value}</span>
-  </span>`;
-}
-
 function upcomingCard() {
   const items = upcoming.items;
   const evalPart =
@@ -207,45 +185,113 @@ function upcomingCard() {
             </li>`,
           )}
         </ul>`;
-  const soon = soonEvents
-    .filter((e) => {
-      const diff = new Date(e.beginAt).getTime() - Date.now();
-      return diff >= 0 && diff <= 48 * 3600 * 1000;
-    })
-    .sort((a, b) => a.beginAt.localeCompare(b.beginAt));
-  const eventsPart = soon.length
-    ? html`
-        <div class="divider my-1"></div>
-        <div class="flex items-center gap-1.5 mb-1">
-          <span style="width:0.6rem;height:0.6rem;border-radius:9999px;background-color:rgb(0,186,188);"></span>
-          <span class="font-semibold text-sm" style="color:rgb(0,186,188);">Events</span>
-        </div>
-        <ul class="flex flex-col gap-2">
-          ${soon.slice(0, 3).map((e) => {
-            const href =
-              e.url ??
-              (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
-            const row = html`<span class="truncate font-medium">${e.name}</span>
-              <span class="text-xs opacity-60 whitespace-nowrap">${eventWhen(e.beginAt)}</span>`;
-            return html`<li class="flex items-center justify-between gap-2 text-sm">
-              ${href
-                ? html`<a href="${href}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-2 w-full min-w-0 no-underline">${row}</a>`
-                : row}
-            </li>`;
-          })}
-        </ul>`
-    : "";
-  return card(html`${evalPart}${eventsPart}`, "Upcoming");
+  return card(evalPart, "Upcoming");
 }
 
-function eventWhen(iso: string): string {
-  const d = new Date(iso);
+function eventsCard() {
+  if (allEvents.length === 0) {
+    return card(
+      html`<div class="flex flex-col items-center text-center gap-2 py-2">
+        <p class="font-bold text-lg" style="color:${TEAL};">Calendar</p>
+        <p class="text-sm opacity-70">
+          No subscribed events yet. Open the extension hub → Calendar to sync
+          your events.
+        </p>
+      </div>`,
+      "Events",
+    );
+  }
+  return card(
+    html`<div class="flex flex-col gap-3">
+      ${allEvents.map(eventCard)}
+    </div>`,
+    "Events",
+  );
+}
+
+const TEAL = "rgb(0,186,188)";
+const svg16 = (raw: string) =>
+  unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+
+function eventCard(e: CalendarEvent) {
+  const start = new Date(e.beginAt);
+  const end = new Date(e.endAt);
+  const weekday = start.toLocaleDateString(undefined, { weekday: "short" });
+  const day = String(start.getDate());
+  const month = start.toLocaleDateString(undefined, { month: "short" });
+  const href =
+    e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
+
+  const cardEl = html`
+    <div
+      class="flex w-full h-24 rounded-2xl overflow-hidden border border-base-300 bg-base-100 shadow-sm"
+    >
+      <div
+        class="w-20 flex-none flex flex-col items-center justify-center gap-0.5 text-white font-thin"
+        style="background-color:${TEAL};"
+      >
+        <span class="text-xs">${weekday}</span>
+        <span class="font-bold text-xl leading-none">${day}</span>
+        <span class="text-xs">${month}</span>
+      </div>
+      <div class="flex-1 px-3 py-2 min-w-0 flex flex-col">
+        <div
+          class="font-bold text-base leading-snug line-clamp-2"
+          style="color:${TEAL};"
+        >
+          ${e.name}
+        </div>
+        <div
+          class="flex flex-row gap-4 flex-wrap items-center text-sm mt-auto"
+          style="color:${TEAL};"
+        >
+          <span class="flex items-center gap-0.5"
+            >${svg16(CALENDAR_SVG)}${formatDuration(start, end)}</span
+          >
+          <span class="flex items-center gap-0.5"
+            >${svg16(CLOCK_SVG)}${eventRelative(start)}</span
+          >
+          ${e.location
+            ? html`<span class="flex items-center gap-0.5">📍 ${e.location}</span>`
+            : ""}
+        </div>
+      </div>
+    </div>
+  `;
+
+  return href
+    ? html`<a
+        href="${href}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="no-underline"
+        >${cardEl}</a
+      >`
+    : cardEl;
+}
+
+function formatDuration(start: Date, end: Date): string {
+  const min = Math.round((end.getTime() - start.getTime()) / 60000);
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h}h${m}m` : `${h}h`;
+}
+
+function eventRelative(d: Date): string {
   const diff = d.getTime() - Date.now();
+  if (diff < 0) return "started";
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return clockTime(d);
+  if (days === 0) {
+    const h = Math.floor(diff / 3600000);
+    if (h === 0) {
+      const m = Math.max(1, Math.floor(diff / 60000));
+      return `in ${m}m`;
+    }
+    return `in ${h}h`;
+  }
   if (days === 1) return "tomorrow";
-  if (days > 1) return `in ${days} days`;
-  return fullDate(d);
+  return `in ${days} days`;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -268,8 +314,8 @@ export function loadDashboard(silent = false): void {
     error = "";
     refresh();
   }
-  void Promise.allSettled([me(), upcomingEvals(), profileStats(), events()]).then(
-    ([m, u, s, ev]) => {
+  void Promise.allSettled([me(), upcomingEvals(), events()]).then(
+    ([m, u, ev]) => {
       if (m.status === "fulfilled") meData = m.value;
       else if (!silent) error = friendly(m.reason);
       if (u.status === "fulfilled") {
@@ -278,9 +324,7 @@ export function loadDashboard(silent = false): void {
         if (booked > 0) setAppBadge(booked);
         else clearAppBadge();
       } else if (!silent) error ||= friendly(u.reason);
-      if (s.status === "fulfilled") evalStats = s.value.evalStats;
-      else if (!silent) error ||= friendly(s.reason);
-      if (ev.status === "fulfilled") soonEvents = ev.value;
+      if (ev.status === "fulfilled") allEvents = ev.value;
       else if (!silent) error ||= friendly(ev.reason);
       loading = false;
       refresh();

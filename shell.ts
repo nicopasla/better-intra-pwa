@@ -1,12 +1,12 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import GRID_SVG from "./assets/grid.svg?raw";
-import CALENDAR_SVG from "./assets/calendar.svg?raw";
+import HOME_SVG from "./assets/home.svg?raw";
+import USER_SVG from "./assets/user.svg?raw";
 import USERS_SVG from "./assets/users.svg?raw";
 import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
 import GEAR_SVG from "./assets/settings_gear.svg?raw";
 
-export type Tab = "dashboard" | "events" | "friends" | "students" | "settings";
+export type Tab = "dashboard" | "profile" | "friends" | "students" | "settings";
 
 interface TabDef {
   id: Tab;
@@ -15,8 +15,8 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: "dashboard", label: "Dashboard", icon: GRID_SVG },
-  { id: "events", label: "Events", icon: CALENDAR_SVG },
+  { id: "dashboard", label: "Home", icon: HOME_SVG },
+  { id: "profile", label: "Profile", icon: USER_SVG },
   { id: "friends", label: "Friends", icon: USERS_SVG },
   { id: "students", label: "Students", icon: GRADUATION_SVG },
   { id: "settings", label: "Settings", icon: GEAR_SVG },
@@ -33,7 +33,7 @@ export function currentTab(): Tab {
   const hash = location.hash.replace(/^#\/?/, "");
   if (
     hash === "dashboard" ||
-    hash === "events" ||
+    hash === "profile" ||
     hash === "friends" ||
     hash === "students" ||
     hash === "settings"

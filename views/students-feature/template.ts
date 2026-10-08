@@ -16,7 +16,10 @@ import WALLET_SVG from "../../assets/wallet.svg?raw";
 import EVAL_SVG from "../../assets/eval.svg?raw";
 import CHECK_SVG from "../../assets/check.svg?raw";
 import FORTY_TWO_SVG from "../../assets/42_Logo.svg?raw";
-import CHEVRON_DOWN_SVG from "../../assets/chevron-down.svg?raw";
+import {
+  SEGMENTED_TABS_CSS,
+  segmentedTabs,
+} from "../../lib/segmented-tabs.ts";
 import {
   formatAlumniDate,
   formatBlackholeDate,
@@ -598,6 +601,7 @@ export function renderStudentsDialogTemplate(
   `;
   return html`
     <style>
+      ${SEGMENTED_TABS_CSS}
       .students-feature {
         display: block;
       }
@@ -881,28 +885,6 @@ export function renderStudentsDialogTemplate(
         flex-direction: column;
         gap: 1px;
       }
-      .tab-btn {
-        flex: 1;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding: 0.4rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        color: var(--color-base-content);
-        background: transparent;
-        border: none;
-      }
-      .tab-btn.active {
-        background: var(--color-primary);
-        color: var(--color-primary-content);
-      }
-      .students-tabs-host {
-        flex: 1 1 auto;
-        min-width: 0;
-        display: flex;
-        align-items: center;
-      }
       .updated-badge {
         display: inline-flex;
         align-items: center;
@@ -931,85 +913,11 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div class="students-feature flex flex-col bg-base-100 rounded-xl">
+    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-24">
       <div
         class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
       >
-        <div class="flex items-center gap-2 p-3">
-          <div class="students-tabs-host">
-            ${tabsOverflowing
-              ? html`
-                  <details class="dropdown dropdown-start">
-                    <summary
-                      class="btn btn-sm btn-ghost gap-1.5 list-none"
-                      data-tip="Select tab"
-                      data-tip-size="14px"
-                    >
-                      <span
-                        class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
-                        >${STUDENTS_TAB_LABELS[tab]}</span
-                      >
-                      <span
-                        class="size-3 flex-shrink-0 flex items-center justify-center"
-                      >
-                        ${unsafeHTML(
-                          CHEVRON_DOWN_SVG.replace(
-                            "<svg",
-                            '<svg width="12" height="12"',
-                          ),
-                        )}
-                      </span>
-                    </summary>
-                    <ul
-                      class="menu menu-sm dropdown-content z-50 mt-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
-                      style="width:max-content;min-width:12rem;"
-                    >
-                      ${STUDENTS_TAB_ORDER.map(
-                        (t) => html`
-                          <li>
-                            <button
-                              type="button"
-                              class="${t === tab
-                                ? "menu-active"
-                                : ""} whitespace-nowrap"
-                              @click="${() => handlers.onSwitchTab(t)}"
-                            >
-                              ${STUDENTS_TAB_LABELS[t]}
-                            </button>
-                          </li>
-                        `,
-                      )}
-                    </ul>
-                  </details>
-                `
-              : html`
-                  <div
-                    class="flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
-                    style="border-radius:var(--radius-field)"
-                  >
-                    <button
-                      class="tab-btn ${tab === "students" ? "active" : ""}"
-                      @click="${() => handlers.onSwitchTab("students")}"
-                    >
-                      Students
-                    </button>
-                    <button
-                      class="tab-btn ${tab === "new" ? "active" : ""}"
-                      @click="${() => handlers.onSwitchTab("new")}"
-                    >
-                      Future students
-                    </button>
-                    <button
-                      class="tab-btn ${tab === "pisciners" ? "active" : ""}"
-                      @click="${() => handlers.onSwitchTab("pisciners")}"
-                    >
-                      Pisciners
-                    </button>
-                  </div>
-                `}
-          </div>
-        </div>
-        <div class="px-3 pb-3">
+        <div class="px-3 pt-3 pb-3">
           <div class="flex flex-wrap items-center gap-2 justify-center">
             <input
               class="input input-sm w-44"
@@ -1196,6 +1104,22 @@ export function renderStudentsDialogTemplate(
                         <span class="loading loading-spinner loading-md"></span>
                       </div>`
                     : ""}`}
+      </div>
+      <div
+        class="fixed left-0 right-0 z-40 px-4"
+        style="bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);"
+      >
+        <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
+          ${segmentedTabs({
+            tabs: STUDENTS_TAB_ORDER.map((t) => ({
+              id: t,
+              label: STUDENTS_TAB_LABELS[t],
+            })),
+            active: tab,
+            overflowing: tabsOverflowing,
+            onSwitch: handlers.onSwitchTab,
+          })}
+        </div>
       </div>
     </div>
   `;
