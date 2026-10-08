@@ -45,7 +45,14 @@ export interface EvalStats {
 }
 
 export interface ProfileStats {
-  roulette: { entries: { historic_id: number; sum: number; total: number; created_at: string }[] };
+  roulette: {
+    entries: {
+      historic_id: number;
+      sum: number;
+      total: number;
+      created_at: string;
+    }[];
+  };
   evalStats: EvalStats;
 }
 
@@ -98,7 +105,9 @@ export const me = () =>
   mockMode ? Promise.resolve(mock.me) : json<Me>("/api/v1/private/me");
 
 export const upcomingEvals = () =>
-  mockMode ? Promise.resolve(mock.upcoming) : json<UpcomingResponse>("/api/v1/private/evaluations?action=upcoming");
+  mockMode
+    ? Promise.resolve(mock.upcoming)
+    : json<UpcomingResponse>("/api/v1/private/evaluations?action=upcoming");
 
 export const profileStats = () => {
   if (mockMode) return Promise.resolve(mock.profileStats);
@@ -122,10 +131,14 @@ export async function friendsData(logins: string[]): Promise<Friend[]> {
 }
 
 export const getBlob = () =>
-  mockMode ? Promise.resolve(mock.blob) : json<BlobSettings>("/api/v1/private/settings");
+  mockMode
+    ? Promise.resolve(mock.blob)
+    : json<BlobSettings>("/api/v1/private/settings");
 
 /** Patches the cloud settings blob. Throws "conflict" on 409. */
-export async function updateBlob(patch: Record<string, unknown>): Promise<void> {
+export async function updateBlob(
+  patch: Record<string, unknown>,
+): Promise<void> {
   if (mockMode) return;
   const blob = await getBlob();
   const res = await workerFetch("/api/v1/private/settings", {
@@ -140,7 +153,9 @@ export async function updateBlob(patch: Record<string, unknown>): Promise<void> 
 export const sessionsList = () =>
   mockMode
     ? Promise.resolve(mock.sessions)
-    : json<{ sessions: SessionItem[]; max: number }>("/api/v1/private/sessions");
+    : json<{ sessions: SessionItem[]; max: number }>(
+        "/api/v1/private/sessions",
+      );
 
 export async function revokeSession(id: string): Promise<void> {
   if (mockMode) return;
@@ -154,6 +169,24 @@ export async function revokeSession(id: string): Promise<void> {
 /** Logs out the current PWA session server-side. */
 export async function logout(): Promise<void> {
   if (mockMode) return;
-  const res = await workerFetch("/api/v1/private/settings", { method: "DELETE" });
+  const res = await workerFetch("/api/v1/private/settings", {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error("HTTP " + res.status);
 }
+
+export interface CalendarEvent {
+  id: number | null;
+  name: string;
+  beginAt: string;
+  endAt: string;
+  location: string | null;
+  url: string | null;
+}
+
+export const events = () =>
+  mockMode
+    ? Promise.resolve(mock.events)
+    : json<{ events: CalendarEvent[] }>("/api/v1/private/events").then(
+        (d) => d.events,
+      );

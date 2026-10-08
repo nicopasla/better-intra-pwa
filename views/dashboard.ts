@@ -1,6 +1,6 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { me, upcomingEvals, profileStats, Me, UpcomingResponse, EvalStats } from "../data.ts";
+import { me, upcomingEvals, profileStats, events, Me, UpcomingResponse, EvalStats, CalendarEvent } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import RELOAD_SVG from "../assets/reload.svg?raw";
 import WALLET_SVG from "../assets/wallet.svg?raw";
@@ -10,6 +10,7 @@ import POOL_SVG from "../assets/pool.svg?raw";
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
 let evalStats: EvalStats | null = null;
+let soonEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
 
@@ -67,27 +68,23 @@ function profileCard() {
         <div class="flex items-end gap-5">
           <h1
             class="text-5xl font-bold drop-shadow-md leading-none shrink-0"
-            style="transform: scale(1.2); transform-origin: left center; color: rgb(82,255,82);"
+            style="transform: scale(1.2); transform-origin: left center; color: var(--color-accent);"
           >
             ${whole}
           </h1>
           <div class="w-full flex flex-col justify-between gap-1">
             <div class="flex items-center justify-between font-bold text-sm">
-              <span style="color: rgb(82,255,82);">${pct}%</span>
+              <span style="color: var(--color-accent);">${pct}%</span>
               <span class="opacity-70 truncate">${m.grade ?? "42cursus"}</span>
             </div>
             <div class="w-full h-2.5 rounded overflow-hidden bg-base-300">
               <div
                 class="h-full rounded transition-all duration-1000 ease-out"
-                style="width:${pct}%;background-color:rgb(82,255,82);"
+                style="width:${pct}%;background-color:var(--color-accent);"
               ></div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body">
         <div class="flex gap-2">
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
@@ -101,9 +98,9 @@ function profileCard() {
 function statBadge(value: string, icon: string) {
   return html`<div
     class="badge badge-lg h-auto flex-1 justify-center gap-2 py-2"
-    style="border:2px solid var(--color-primary);"
+    style="border:2px solid var(--color-accent);"
   >
-    ${svg18(icon)}<span class="font-mono font-semibold">${value}</span>
+    ${svg18(icon)}<span class="font-semibold">${value}</span>
   </div>`;
 }
 
@@ -158,7 +155,7 @@ function pill(label: string, value: string, color: string, compact = false) {
 
 function upcomingCard() {
   const items = upcoming.items;
-  const body =
+  const evalPart =
     items.length === 0
       ? html`<p class="text-sm opacity-60">
           ${upcoming.tracked
@@ -180,7 +177,45 @@ function upcomingCard() {
             </li>`,
           )}
         </ul>`;
-  return card(body, "Upcoming");
+  const soon = soonEvents
+    .filter((e) => {
+      const diff = new Date(e.beginAt).getTime() - Date.now();
+      return diff >= 0 && diff <= 48 * 3600 * 1000;
+    })
+    .sort((a, b) => a.beginAt.localeCompare(b.beginAt));
+  const eventsPart = soon.length
+    ? html`
+        <div class="divider my-1"></div>
+        <div class="flex items-center gap-1.5 mb-1">
+          <span style="width:0.6rem;height:0.6rem;border-radius:9999px;background-color:rgb(0,186,188);"></span>
+          <span class="font-semibold text-sm" style="color:rgb(0,186,188);">Events</span>
+        </div>
+        <ul class="flex flex-col gap-2">
+          ${soon.slice(0, 3).map((e) => {
+            const href =
+              e.url ??
+              (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
+            const row = html`<span class="truncate font-medium">${e.name}</span>
+              <span class="text-xs opacity-60 whitespace-nowrap">${eventWhen(e.beginAt)}</span>`;
+            return html`<li class="flex items-center justify-between gap-2 text-sm">
+              ${href
+                ? html`<a href="${href}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-2 w-full min-w-0 no-underline">${row}</a>`
+                : row}
+            </li>`;
+          })}
+        </ul>`
+    : "";
+  return card(html`${evalPart}${eventsPart}`, "Upcoming");
+}
+
+function eventWhen(iso: string): string {
+  const d = new Date(iso);
+  const diff = d.getTime() - Date.now();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (days === 1) return "tomorrow";
+  if (days > 1) return `in ${days} days`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function pad(n: number): string {
@@ -208,16 +243,20 @@ export function loadDashboard(): void {
   loading = true;
   error = "";
   refresh();
-  void Promise.allSettled([me(), upcomingEvals(), profileStats()]).then(([m, u, s]) => {
-    if (m.status === "fulfilled") meData = m.value;
-    else error = friendly(m.reason);
-    if (u.status === "fulfilled") upcoming = u.value;
-    else error ||= friendly(u.reason);
-    if (s.status === "fulfilled") evalStats = s.value.evalStats;
-    else error ||= friendly(s.reason);
-    loading = false;
-    refresh();
-  });
+  void Promise.allSettled([me(), upcomingEvals(), profileStats(), events()]).then(
+    ([m, u, s, ev]) => {
+      if (m.status === "fulfilled") meData = m.value;
+      else error = friendly(m.reason);
+      if (u.status === "fulfilled") upcoming = u.value;
+      else error ||= friendly(u.reason);
+      if (s.status === "fulfilled") evalStats = s.value.evalStats;
+      else error ||= friendly(s.reason);
+      if (ev.status === "fulfilled") soonEvents = ev.value;
+      else error ||= friendly(ev.reason);
+      loading = false;
+      refresh();
+    },
+  );
 }
 
 function friendly(e: unknown): string {

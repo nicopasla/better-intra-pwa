@@ -5,6 +5,7 @@ import { initTheme } from "./theme.ts";
 import { currentTab, renderScreen, renderShell, Tab } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
+import { eventsView, loadEvents } from "./views/events.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import { registerServiceWorker } from "./push.ts";
@@ -14,7 +15,7 @@ const app = () => document.getElementById("app")!;
 
 function loadingScreen() {
   return html`
-    <div class="min-h-[100dvh] flex items-center justify-center">
+    <div class="min-h-dvh flex items-center justify-center">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
   `;
@@ -22,13 +23,17 @@ function loadingScreen() {
 
 function signInScreen() {
   return html`
-    <div class="min-h-[100dvh] flex items-center justify-center p-4">
+    <div class="min-h-dvh flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-base-100 shadow-xl">
         <div class="card-body items-center text-center gap-4">
           <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
           <h1 class="text-2xl font-bold">Better Intra</h1>
-          <a class="btn btn-primary w-full" href=${loginUrl()}>Sign in with 42</a>
-          <a class="btn btn-ghost w-full" href="?mock=1">Preview with demo data</a>
+          <a class="btn btn-primary w-full" href=${loginUrl()}
+            >Sign in with 42</a
+          >
+          <a class="btn btn-ghost w-full" href="?mock=1"
+            >Preview with demo data</a
+          >
         </div>
       </div>
     </div>
@@ -37,7 +42,7 @@ function signInScreen() {
 
 function blockedScreen() {
   return html`
-    <div class="min-h-[100dvh] flex items-center justify-center p-4">
+    <div class="min-h-dvh flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-base-100 shadow-xl">
         <div class="card-body items-center text-center gap-3">
           <h1 class="card-title">Not available</h1>
@@ -45,7 +50,10 @@ function blockedScreen() {
             This app is only available to people who already use Better Intra.
             Open the extension on intra.42.fr and sign in first.
           </p>
-          <button class="btn btn-primary mt-2" @click=${() => location.reload()}>
+          <button
+            class="btn btn-primary mt-2"
+            @click=${() => location.reload()}
+          >
             Retry
           </button>
         </div>
@@ -60,6 +68,9 @@ function triggerLoad(tab: Tab): void {
   switch (tab) {
     case "dashboard":
       loadDashboard();
+      break;
+    case "events":
+      void loadEvents();
       break;
     case "friends":
       void loadFriends();
@@ -76,6 +87,9 @@ function renderBody(): void {
   switch (tab) {
     case "dashboard":
       body = dashboardView();
+      break;
+    case "events":
+      body = eventsView();
       break;
     case "friends":
       body = friendsView();
