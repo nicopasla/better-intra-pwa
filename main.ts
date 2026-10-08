@@ -15,6 +15,7 @@ import { initPullRefresh } from "./pull-refresh.ts";
 import { initSwipe } from "./swipe.ts";
 import { setTabHidden } from "./shell.ts";
 import { me } from "./data.ts";
+import { requestPersistentStorage } from "./lib/persist.ts";
 
 const app = () => document.getElementById("app")!;
 
@@ -68,8 +69,13 @@ function blockedScreen() {
 }
 
 const triggered = new Set<Tab>();
+const lastLoadedAt: Partial<Record<Tab, number>> = {};
+const FRESH_MS = 30_000;
 
-function triggerLoad(tab: Tab): void {
+function triggerLoad(tab: Tab, force = false): void {
+  if (!force && triggered.has(tab)) return;
+  triggered.add(tab);
+  lastLoadedAt[tab] = Date.now();
   switch (tab) {
     case "dashboard":
       loadDashboard();
@@ -87,6 +93,51 @@ function triggerLoad(tab: Tab): void {
       void loadSettings();
       break;
   }
+}
+
+/** Re-fetch the active tab's data (used by visibility/storage sync). */
+function refreshActiveTab(force = false): void {
+  const tab = currentTab();
+  if (!force && Date.now() - (lastLoadedAt[tab] ?? 0) < FRESH_MS) return;
+  lastLoadedAt[tab] = Date.now();
+  switch (tab) {
+    case "dashboard":
+      loadDashboard(true);
+      break;
+    case "events":
+      void loadEvents(true);
+      break;
+    case "friends":
+      void loadFriends(true);
+      break;
+    case "students":
+      void loadStudents(true);
+      break;
+  }
+}
+
+function onStorage(e: StorageEvent): void {
+  if (!e.key) return;
+  if (e.key === "ft_pwa_token" || e.key === "ft_pwa_login") {
+    if (!getSession()) location.reload();
+    else refreshActiveTab(true);
+    return;
+  }
+  if (
+    e.key === "FRIENDS_LIST" ||
+    e.key === "SHOW_CUSTOM_AVATARS_IN_FRIENDS" ||
+    e.key === "ft_pwa_friends_custom"
+  ) {
+    refreshActiveTab(true);
+  }
+}
+
+function initAppListeners(): void {
+  if (!mockMode) void requestPersistentStorage();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshActiveTab();
+  });
+  window.addEventListener("storage", onStorage);
 }
 
 function renderBody(): void {
@@ -128,11 +179,7 @@ function gateStudents(): void {
 }
 
 function renderRoute(): void {
-  const tab = currentTab();
-  if (!triggered.has(tab)) {
-    triggered.add(tab);
-    triggerLoad(tab);
-  }
+  triggerLoad(currentTab());
   renderBody();
 }
 
@@ -140,6 +187,7 @@ async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
   initTheme();
+  initAppListeners();
 
   // Mock mode: skip auth entirely and render the app with fake data.
   if (mockMode) {

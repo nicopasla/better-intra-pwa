@@ -1,5 +1,6 @@
 import { workerFetch, getSession } from "../../api.ts";
 import { mock, mockMode } from "../../mock.ts";
+import { relativeTimeCompact } from "../../lib/format.ts";
 
 
 export const INITIAL_VISIBLE_COUNT = 60;
@@ -125,13 +126,7 @@ export function poolIntakes(
 }
 
 export function formatTimeAgo(ts: number): string {
-  const secs = Date.now() / 1000 - ts;
-  if (secs < 3) return "now";
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.round(hours / 24)}d`;
+  return relativeTimeCompact(ts * 1000);
 }
 
 export function formatMonthYear(iso?: string | null): string {

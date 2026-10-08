@@ -2,6 +2,9 @@ import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { me, upcomingEvals, profileStats, events, Me, UpcomingResponse, EvalStats, CalendarEvent } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import { saveData } from "../lib/network.ts";
+import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
+import { clockTime, fullDate } from "../lib/format.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import POOL_SVG from "../assets/pool.svg?raw";
@@ -22,7 +25,7 @@ export function dashboardView(): unknown {
       <div class="card bg-base-100 shadow-xl"><div class="card-body items-center gap-3">
         <p class="text-sm opacity-70">Couldn't load your dashboard.</p>
         <p class="text-xs text-error">${error}</p>
-        <button class="btn btn-sm btn-outline" @click=${loadDashboard}>Retry</button>
+        <button class="btn btn-sm btn-outline" @click=${() => loadDashboard()}>Retry</button>
       </div></div>
     `;
   }
@@ -99,6 +102,13 @@ function statBadge(value: string, icon: string) {
 
 function avatarBlock() {
   const m = meData!;
+  if (saveData) {
+    return html`<div
+      class="w-16 h-16 rounded-2xl shadow-lg flex-none bg-base-300 flex items-center justify-center text-xl font-bold"
+    >
+      ${m.login[0]?.toUpperCase() ?? "?"}
+    </div>`;
+  }
   if (m.customAvatar) {
     return html`<div
       class="w-16 h-16 rounded-2xl shadow-lg flex-none"
@@ -205,20 +215,13 @@ function eventWhen(iso: string): string {
   const d = new Date(iso);
   const diff = d.getTime() - Date.now();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (days === 0) return clockTime(d);
   if (days === 1) return "tomorrow";
   if (days > 1) return `in ${days} days`;
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return fullDate(d);
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-function clockTime(iso: string): string {
-  const d = new Date(iso);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 function countdown(iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
@@ -227,25 +230,31 @@ function countdown(iso: string): string {
   if (totalMin < 60) return `in ${totalMin} min`;
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  if (h < 24) return m ? `in ${h}h ${pad(m)}m` : `in ${h}h`;
+  if (h < 24) return m ? `in ${h}h ${pad2(m)}m` : `in ${h}h`;
   const d = Math.floor(h / 24);
   return `in ${d}d ${h % 24}h`;
 }
 
-export function loadDashboard(): void {
-  loading = true;
-  error = "";
-  refresh();
+export function loadDashboard(silent = false): void {
+  if (!silent) {
+    loading = true;
+    error = "";
+    refresh();
+  }
   void Promise.allSettled([me(), upcomingEvals(), profileStats(), events()]).then(
     ([m, u, s, ev]) => {
       if (m.status === "fulfilled") meData = m.value;
-      else error = friendly(m.reason);
-      if (u.status === "fulfilled") upcoming = u.value;
-      else error ||= friendly(u.reason);
+      else if (!silent) error = friendly(m.reason);
+      if (u.status === "fulfilled") {
+        upcoming = u.value;
+        const booked = u.value.items.filter((i) => i.state === "booked").length;
+        if (booked > 0) setAppBadge(booked);
+        else clearAppBadge();
+      } else if (!silent) error ||= friendly(u.reason);
       if (s.status === "fulfilled") evalStats = s.value.evalStats;
-      else error ||= friendly(s.reason);
+      else if (!silent) error ||= friendly(s.reason);
       if (ev.status === "fulfilled") soonEvents = ev.value;
-      else error ||= friendly(ev.reason);
+      else if (!silent) error ||= friendly(ev.reason);
       loading = false;
       refresh();
     },

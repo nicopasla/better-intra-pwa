@@ -11,6 +11,8 @@ import {
   removeFriend,
 } from "./friends.ts";
 import { loginUrl, getSession } from "../../api.ts";
+import { saveData } from "../../lib/network.ts";
+import { relativeTime } from "../../lib/format.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -62,14 +64,18 @@ function renderFriendRow(
 ) {
   const medalClass = rank >= 0 && rank < MEDALS.length ? MEDALS[rank] : "";
   const hasCustom = !!(
+    !saveData &&
     showCustomAvatars &&
     friend.customAvatar &&
     friend.customAvatar !== friend.avatar
   );
   const showingOriginal = showingOriginalAvatars.get(friend.login) ?? false;
   const showCustom = hasCustom && !showingOriginal;
-  const currentSrc =
-    hasCustom && !showingOriginal ? friend.customAvatar : friend.avatar;
+  const currentSrc = saveData
+    ? null
+    : hasCustom && !showingOriginal
+      ? friend.customAvatar
+      : friend.avatar;
   const toggleTitle = hasCustom
     ? showingOriginal
       ? "Click to view custom avatar"
@@ -257,7 +263,7 @@ function renderFriendRow(
               ? html`<span
                   class="badge badge-md gap-1 px-2 font-mono"
                   style="${accentStyle}"
-                  >${formatTimeAgo(friend.lastOnlineTimestamp)}</span
+                  >${relativeTime(friend.lastOnlineTimestamp)}</span
                 >`
               : "",
         ].filter((p) => p)}
@@ -289,17 +295,6 @@ function renderFriendRow(
         </label>`
       : ""}
   `;
-}
-
-function formatTimeAgo(ts: number): string {
-  const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h}h ${min % 60}m ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ${h % 24}h ago`;
 }
 
 function clusterUrl(location: string): string {
@@ -648,7 +643,9 @@ function renderWidget(state: WidgetState) {
       .friends-actions {
         position: fixed;
         right: 0.75rem;
-        bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+        bottom: calc(
+          4rem + env(safe-area-inset-bottom) + 0.75rem + var(--kbd-h, 0px)
+        );
         z-index: 9999;
         display: flex;
         flex-direction: column;
@@ -661,6 +658,7 @@ function renderWidget(state: WidgetState) {
           color-mix(in oklab, var(--color-base-content) 10%, transparent);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
         pointer-events: none;
+        transition: bottom 0.2s ease;
       }
 
       .friends-actions button,
@@ -1121,12 +1119,27 @@ function renderWidgetUI(): void {
   if (_state) pendingView = renderWidget(_state);
 }
 
+/** Lift the floating actions above the on-screen keyboard (iOS visual viewport). */
+function initKeyboardOffset(): void {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const update = () => {
+    const kbd = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty("--kbd-h", `${kbd}px`);
+  };
+  vv.addEventListener("resize", update);
+  vv.addEventListener("scroll", update);
+  update();
+}
+
 
 export async function initFriendsFeature(
   onUpdate: () => void,
 ): Promise<void> {
   if (initialized) return;
   initialized = true;
+
+  initKeyboardOffset();
 
   const storedSort = localStorage.getItem("FRIENDS_SORT_MODE");
   const sortBy: SortMode = SORT_MODES.includes(storedSort as SortMode)

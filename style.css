@@ -90,6 +90,15 @@ html[data-ft-dir="prev"]::view-transition-new(app-main) {
   animation-name: ft-in-back;
 }
 
+/* Typed transitions (preferred; falls back to the data-attribute form above). */
+::view-transition-old(app-main):active-view-transition-type(ft-prev) {
+  animation-name: ft-out-back;
+}
+
+::view-transition-new(app-main):active-view-transition-type(ft-prev) {
+  animation-name: ft-in-back;
+}
+
 @keyframes ft-out {
   from {
     transform: translateX(0);

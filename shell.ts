@@ -59,6 +59,22 @@ const REDUCED =
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+const supportsViewTransition =
+  typeof document !== "undefined" &&
+  typeof document.startViewTransition === "function";
+
+const supportsViewTransitionTypes =
+  supportsViewTransition &&
+  typeof (globalThis as { ViewTransition?: { prototype: object } }).ViewTransition !==
+    "undefined" &&
+  "types" in
+    (globalThis as { ViewTransition: { prototype: object } }).ViewTransition
+      .prototype;
+
+type StartViewTransition = (
+  arg: (() => void) | { update: () => void; types?: string[] },
+) => ViewTransition;
+
 export function navigate(tab: Tab, animate = false): void {
   if (currentTab() === tab) return;
 
@@ -68,24 +84,36 @@ export function navigate(tab: Tab, animate = false): void {
   const to = ORDER.indexOf(tab);
   const dir = to > from ? "next" : "prev";
 
-  if (
-    !animate ||
-    REDUCED ||
-    typeof document.startViewTransition !== "function"
-  ) {
+  if (!animate || REDUCED || !supportsViewTransition) {
     location.hash = `/${tab}`;
     routeRenderer();
     return;
   }
 
-  document.documentElement.dataset.ftDir = dir;
-  const t = document.startViewTransition(() => {
+  const update = () => {
     location.hash = `/${tab}`;
     routeRenderer();
-  });
-  t.finished.finally(() => {
-    delete document.documentElement.dataset.ftDir;
-  });
+  };
+  const start = document.startViewTransition.bind(
+    document,
+  ) as unknown as StartViewTransition;
+
+  // Set the direction before starting; it only affects ::view-transition-*
+  // pseudo-elements (which exist only during a transition) so it is safe to
+  // leave in place and simply overwrite on the next navigation. Clearing it on
+  // `finished` would race with a newer transition started by a rapid swipe.
+  document.documentElement.dataset.ftDir = dir;
+
+  if (supportsViewTransitionTypes) {
+    try {
+      start({ update, types: [dir === "next" ? "ft-next" : "ft-prev"] });
+      return;
+    } catch {
+      /* fall through to the untyped form */
+    }
+  }
+
+  start(update);
 }
 
 export function prevTab(): Tab | null {

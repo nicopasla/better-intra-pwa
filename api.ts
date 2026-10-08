@@ -1,5 +1,6 @@
 import { hashLogin } from "./lib/crypto.ts";
 import { mockMode } from "./mock.ts";
+import { refresh } from "./refresh.ts";
 
 export const WORKER_URL = "https://api.betterintra.com";
 
@@ -30,6 +31,7 @@ export function setSession(token: string, login: string): void {
 export function clearSession(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(LOGIN_KEY);
+  refresh();
 }
 
 /** Full-page OAuth entry point on the worker. */

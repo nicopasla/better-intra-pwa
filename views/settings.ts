@@ -22,15 +22,15 @@ import {
 } from "../push.ts";
 import { refresh } from "../refresh.ts";
 import { mockMode } from "../mock.ts";
+import { hasPersistentStorage } from "../lib/persist.ts";
+import { dateTime } from "../lib/format.ts";
 import GITHUB_SVG from "../assets/github.svg?raw";
 
 const svg16 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
 
 function format24h(ts: number): string {
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return dateTime(ts);
 }
 
 let blob: BlobSettings | null = null;
@@ -139,6 +139,7 @@ function aboutSection() {
       <div class="flex justify-between"><dt>Endpoint</dt><dd class="font-mono">${endpointHost()}</dd></div>
       <div class="flex justify-between"><dt>Standalone</dt><dd class="font-mono">${(navigator as { standalone?: boolean }).standalone ? "yes" : "no"}</dd></div>
       <div class="flex justify-between"><dt>Service worker</dt><dd class="font-mono">${navigator.serviceWorker.controller ? "controlling" : "idle"}</dd></div>
+      <div class="flex justify-between"><dt>Storage</dt><dd class="font-mono">${persistentStorage === null ? "—" : persistentStorage ? "persistent" : "best-effort"}</dd></div>
       <div class="flex justify-between"><dt>Login</dt><dd class="font-mono">${session?.login ?? "—"}</dd></div>
     </dl>
     <p class="text-xs opacity-50">MIT License · by <span class="italic">nicopasla</span></p>
@@ -148,6 +149,7 @@ function aboutSection() {
 let workerOk: boolean | null = null;
 let workerOkChecked = false;
 let subHost = "";
+let persistentStorage: boolean | null = null;
 
 function workerStatus(): string {
   if (!workerOkChecked) return "checking…";
@@ -294,5 +296,6 @@ export async function loadSettings(force = false): Promise<void> {
     workerOk = true;
   }
   workerOkChecked = true;
+  if (!mockMode) persistentStorage = await hasPersistentStorage();
   refresh();
 }
