@@ -240,7 +240,8 @@ function renderFriendRow(
             ></span
           >`,
           html`<span class="badge badge-md gap-1 px-2" style="${accentStyle}"
-            >${unsafeHTML(svgIcon(WALLET_SVG))}<span class="text-sm font-semibold"
+            >${unsafeHTML(svgIcon(WALLET_SVG))}<span
+              class="text-sm font-semibold"
               >${friend.wallet}</span
             ></span
           >`,
@@ -303,7 +304,9 @@ function clusterUrl(location: string): string {
 
 function renderEmpty() {
   return html`
-    <div class="flex flex-col items-center gap-2 py-16 opacity-40">
+    <div
+      class="flex flex-1 flex-col items-center justify-center gap-2 py-16 opacity-40"
+    >
       <span
         class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
         >${unsafeHTML(GHOST_SVG)}</span
@@ -316,7 +319,9 @@ function renderEmpty() {
 
 function renderLoadError(onRefresh: () => void) {
   return html`
-    <div class="flex flex-col items-center gap-2 py-16 px-6 text-center">
+    <div
+      class="flex flex-1 flex-col items-center justify-center gap-2 py-16 px-6 text-center"
+    >
       <span
         class="w-16 h-16 opacity-40 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
         >${unsafeHTML(FRIENDS_SVG)}</span
@@ -635,6 +640,8 @@ function renderWidget(state: WidgetState) {
       .friends-list {
         overflow-y: auto;
         flex: 1;
+        display: flex;
+        flex-direction: column;
         scrollbar-width: thin;
         scrollbar-gutter: stable;
         padding-bottom: 4rem;
@@ -902,7 +909,7 @@ function renderWidget(state: WidgetState) {
           <div class="friends-list">
             ${state.notConnected
               ? html`<div
-                  class="flex flex-col items-center gap-4 py-12 px-6 text-center"
+                  class="flex flex-1 flex-col items-center justify-center gap-4 py-12 px-6 text-center"
                 >
                   <span
                     class="w-16 h-16 opacity-40 mb-2 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
@@ -928,7 +935,7 @@ function renderWidget(state: WidgetState) {
                 </div>`
               : state.needsReconnect
                 ? html`<div
-                    class="flex flex-col items-center gap-3 py-12 px-6 text-center"
+                    class="flex flex-1 flex-col items-center justify-center gap-3 py-12 px-6 text-center"
                   >
                     <span class="text-lg font-bold opacity-60"
                       >Session expired</span
@@ -943,7 +950,9 @@ function renderWidget(state: WidgetState) {
                     </button>
                   </div>`
                 : state.loading && state.friends.length === 0
-                  ? html`<div class="flex justify-center py-12">
+                  ? html`<div
+                      class="flex flex-1 items-center justify-center py-12"
+                    >
                       <span class="loading loading-spinner loading-md"></span>
                     </div>`
                   : state.loadError && state.friends.length === 0
@@ -952,7 +961,7 @@ function renderWidget(state: WidgetState) {
                       ? renderEmpty()
                       : sorted.length === 0
                         ? html`<div
-                            class="flex flex-col items-center gap-2 py-16 opacity-40"
+                            class="flex flex-1 flex-col items-center justify-center gap-2 py-16 opacity-40"
                           >
                             <span
                               class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
@@ -1132,10 +1141,7 @@ function initKeyboardOffset(): void {
   update();
 }
 
-
-export async function initFriendsFeature(
-  onUpdate: () => void,
-): Promise<void> {
+export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
   if (initialized) return;
   initialized = true;
 
