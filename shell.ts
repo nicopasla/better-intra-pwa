@@ -3,9 +3,10 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import GRID_SVG from "./assets/grid.svg?raw";
 import CALENDAR_SVG from "./assets/calendar.svg?raw";
 import USERS_SVG from "./assets/users.svg?raw";
+import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
 import GEAR_SVG from "./assets/settings_gear.svg?raw";
 
-export type Tab = "dashboard" | "events" | "friends" | "settings";
+export type Tab = "dashboard" | "events" | "friends" | "students" | "settings";
 
 interface TabDef {
   id: Tab;
@@ -17,8 +18,16 @@ const TABS: TabDef[] = [
   { id: "dashboard", label: "Dashboard", icon: GRID_SVG },
   { id: "events", label: "Events", icon: CALENDAR_SVG },
   { id: "friends", label: "Friends", icon: USERS_SVG },
+  { id: "students", label: "Students", icon: GRADUATION_SVG },
   { id: "settings", label: "Settings", icon: GEAR_SVG },
 ];
+
+const hidden = new Set<Tab>();
+
+export function setTabHidden(tab: Tab, isHidden: boolean): void {
+  if (isHidden) hidden.add(tab);
+  else hidden.delete(tab);
+}
 
 export function currentTab(): Tab {
   const hash = location.hash.replace(/^#\/?/, "");
@@ -26,9 +35,10 @@ export function currentTab(): Tab {
     hash === "dashboard" ||
     hash === "events" ||
     hash === "friends" ||
+    hash === "students" ||
     hash === "settings"
   ) {
-    return hash;
+    return hash as Tab;
   }
   return "dashboard";
 }
@@ -64,7 +74,7 @@ export function renderShell(active: Tab, body: unknown): void {
           class="dock dock-md z-20 bg-base-100 border-t border-base-300"
           style="padding-bottom: env(safe-area-inset-bottom);"
         >
-          ${TABS.map(
+          ${TABS.filter((t) => !hidden.has(t.id)).map(
             (t) => html`
               <button
                 class="${active === t.id ? "dock-active" : ""}"

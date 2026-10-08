@@ -7,11 +7,14 @@ import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
 import { eventsView, loadEvents } from "./views/events.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
+import { studentsView, loadStudents } from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import { registerServiceWorker } from "./push.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
 import { initSwipe } from "./swipe.ts";
+import { setTabHidden } from "./shell.ts";
+import { me } from "./data.ts";
 
 const app = () => document.getElementById("app")!;
 
@@ -77,6 +80,9 @@ function triggerLoad(tab: Tab): void {
     case "friends":
       void loadFriends();
       break;
+    case "students":
+      void loadStudents();
+      break;
     case "settings":
       void loadSettings();
       break;
@@ -96,11 +102,28 @@ function renderBody(): void {
     case "friends":
       body = friendsView();
       break;
+    case "students":
+      body = studentsView();
+      break;
     case "settings":
       body = settingsView();
       break;
   }
   renderShell(tab, body);
+}
+
+function gateStudents(): void {
+  void me()
+    .then((m) => {
+      setTabHidden("students", Boolean(m && m.campusId !== 12));
+      if (m && m.campusId !== 12 && currentTab() === "students") {
+        location.hash = "/dashboard";
+      }
+      renderBody();
+    })
+    .catch(() => {
+      /* campus unknown — keep the tab visible */
+    });
 }
 
 function renderRoute(): void {
@@ -123,6 +146,7 @@ async function boot(): Promise<void> {
     window.addEventListener("hashchange", renderRoute);
     initPullRefresh();
     initSwipe();
+    gateStudents();
     if (!location.hash) location.hash = "/dashboard";
     renderRoute();
     return;
@@ -158,6 +182,7 @@ async function boot(): Promise<void> {
   window.addEventListener("hashchange", renderRoute);
   initPullRefresh();
   initSwipe();
+  gateStudents();
   renderRoute();
 }
 

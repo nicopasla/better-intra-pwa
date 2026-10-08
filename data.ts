@@ -190,3 +190,70 @@ export const events = () =>
     : json<{ events: CalendarEvent[] }>("/api/v1/private/events").then(
         (d) => d.events,
       );
+
+export interface StudentEntry {
+  login: string;
+  displayname: string;
+  image_url: string;
+  begin_at?: string | null;
+  blackholed_at?: string | null;
+  active?: boolean;
+  alumni?: boolean;
+  pool_month?: string | null;
+  pool_year?: string | null;
+  alumnized_at?: string;
+  level?: number;
+  correction_point?: number;
+  wallet?: number;
+}
+
+export interface Intake {
+  month: number;
+  year: number;
+  label: string;
+}
+
+export interface StudentsPageResponse {
+  cached_at?: number;
+  total?: number;
+  active?: number;
+  filtered?: number;
+  offset?: number;
+  limit?: number;
+  options?: { intakes: Intake[]; poolYears: number[] };
+  data?: StudentEntry[];
+}
+
+export interface StudentsPageParams {
+  offset: number;
+  limit: number;
+  sort: "name" | "date";
+  dir: "asc" | "desc";
+  filter: "none" | "blackhole" | "alumni" | "freeze";
+  poolIntake: Intake | null;
+  poolYear: number | null;
+  query: string;
+}
+
+export async function studentsPage(
+  params: StudentsPageParams,
+): Promise<StudentsPageResponse> {
+  if (mockMode) return mock.studentsPage(params.offset);
+  const search = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+    sort: params.sort,
+    dir: params.dir,
+    filter: params.filter,
+  });
+  if (params.poolIntake) {
+    search.set("pool_month", String(params.poolIntake.month));
+    search.set("pool_year", String(params.poolIntake.year));
+  } else if (params.poolYear != null) {
+    search.set("pool_year", String(params.poolYear));
+  }
+  if (params.query.trim()) search.set("q", params.query.trim());
+  const res = await workerFetch(`/api/v1/students?${search.toString()}`);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return (await res.json()) as StudentsPageResponse;
+}

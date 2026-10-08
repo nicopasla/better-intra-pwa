@@ -2,7 +2,6 @@ import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { me, upcomingEvals, profileStats, events, Me, UpcomingResponse, EvalStats, CalendarEvent } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import RELOAD_SVG from "../assets/reload.svg?raw";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import POOL_SVG from "../assets/pool.svg?raw";
@@ -14,7 +13,6 @@ let soonEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
 
-const svg16 = (raw: string) => unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
 const svg18 = (raw: string) => unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
 
 export function dashboardView(): unknown {
@@ -32,11 +30,6 @@ export function dashboardView(): unknown {
     ${profileCard()}
     ${upcomingCard()}
     ${evalCard()}
-    <div class="flex justify-center mt-2">
-      <button class="btn btn-ghost btn-sm gap-1" @click=${loadDashboard}>
-        ${svg16(RELOAD_SVG)} Refresh
-      </button>
-    </div>
   `;
 }
 
