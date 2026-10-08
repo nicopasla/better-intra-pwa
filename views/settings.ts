@@ -1,9 +1,6 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import {
-  clearSession,
-  getSession,
-} from "../api.ts";
+import { clearSession, getSession } from "../api.ts";
 import {
   BlobSettings,
   SessionItem,
@@ -24,6 +21,11 @@ import { refresh } from "../refresh.ts";
 import { mockMode } from "../mock.ts";
 import { hasPersistentStorage } from "../lib/persist.ts";
 import { dateTime } from "../lib/format.ts";
+import {
+  getThemePreference,
+  setThemePreference,
+  ThemePreference,
+} from "../theme.ts";
 import GITHUB_SVG from "../assets/github.svg?raw";
 
 const svg16 = (raw: string) =>
@@ -44,30 +46,24 @@ let quietEnabled = false;
 let quietStart = "22:00";
 let quietEnd = "08:00";
 let discordEnabled = false;
-let customAvatars = localStorage.getItem("ft_pwa_friends_custom") !== "false";
+let themeMode: ThemePreference = getThemePreference();
+
+const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
+  { id: "system", label: "System" },
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+];
 
 export function settingsView(): unknown {
   const session = getSession();
   return html`
     ${section("Notifications", notificationsSection())}
-
-    ${section("Friends", html`
-      <label class="flex items-center justify-between gap-3 cursor-pointer">
-        <span>Custom avatars</span>
-        <input type="checkbox" class="toggle toggle-primary" .checked=${customAvatars} @change=${(e: Event) => {
-          customAvatars = (e.target as HTMLInputElement).checked;
-          localStorage.setItem("ft_pwa_friends_custom", String(customAvatars));
-          void updateBlob({ SHOW_CUSTOM_AVATARS_IN_FRIENDS: customAvatars }).catch(() => undefined);
-          refresh();
-        }} />
-      </label>
-      <p class="text-xs opacity-60">Friend avatars and their look come from each person's Better Intra settings.</p>
-    `)}
-
+    ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("About & Debug", aboutSection())}
-
-    ${logmeError ? html`<p class="text-xs text-error text-center">${logmeError}</p>` : ""}
+    ${logmeError
+      ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
+      : ""}
   `;
 }
 
@@ -82,27 +78,113 @@ function section(title: string, content: unknown) {
   `;
 }
 
+function themeSection() {
+  return html`
+    <div class="join">
+      ${THEME_OPTIONS.map(
+        (o) =>
+          html`<button
+            type="button"
+            class="btn btn-sm join-item ${themeMode === o.id
+              ? "btn-primary"
+              : ""}"
+            @click="${() => {
+              themeMode = o.id;
+              setThemePreference(o.id);
+              refresh();
+            }}"
+          >
+            ${o.label}
+          </button>`,
+      )}
+    </div>
+  `;
+}
+
 function notificationsSection() {
-  if (!pushSupported()) return html`<p class="text-sm opacity-70">This browser does not support push notifications.</p>`;
+  if (!pushSupported())
+    return html`<p class="text-sm opacity-70">
+      This browser does not support push notifications.
+    </p>`;
+
+  // iOS and Android deliver push most reliably to installed (standalone) apps.
+  const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((navigator as { standalone?: boolean }).standalone);
+  if (isMobile && !standalone) {
+    return html`<div class="flex flex-col gap-2">
+      <p class="text-sm opacity-70">
+        Add this app to your Home Screen (Share → Add to Home Screen), then open
+        it and enable notifications here.
+      </p>
+      <p class="text-xs opacity-60">
+        iOS and Android deliver push notifications most reliably to installed
+        (standalone) web apps.
+      </p>
+    </div>`;
+  }
+
   return html`
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span>Evaluation push</span>
-      <input type="checkbox" class="toggle toggle-primary" .checked=${pushEnabled} ?disabled=${busy} @change=${onTogglePush} />
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${pushEnabled}
+        ?disabled=${busy}
+        @change=${onTogglePush}
+      />
     </label>
-    <button class="btn btn-sm btn-outline self-start" ?disabled=${busy || !pushEnabled} @click=${onTest}>Send test</button>
-    ${pushMessage ? html`<p class="text-xs ${pushMessage.startsWith("Delivered") ? "text-success" : "text-warning"}">${pushMessage}</p>` : ""}
+    <button
+      class="btn btn-sm btn-outline self-start"
+      ?disabled=${busy || !pushEnabled}
+      @click=${onTest}
+    >
+      Send test
+    </button>
+    ${pushMessage
+      ? html`<p
+          class="text-xs ${pushMessage.startsWith("Delivered")
+            ? "text-success"
+            : "text-warning"}"
+        >
+          ${pushMessage}
+        </p>`
+      : ""}
     <div class="divider my-0"></div>
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span>Quiet hours</span>
-      <input type="checkbox" class="toggle toggle-primary" .checked=${quietEnabled} @change=${(e: Event) => void setQuietToggle(e)} />
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${quietEnabled}
+        @change=${(e: Event) => void setQuietToggle(e)}
+      />
     </label>
     <div class="flex gap-2 items-center">
-      <input type="time" class="input input-bordered input-sm" .value=${quietStart} @change=${(e: Event) => void setQuietTimes({ DISCORD_QUIET_START: (e.target as HTMLInputElement).value })} />
+      <input
+        type="time"
+        class="input input-bordered input-sm"
+        .value=${quietStart}
+        @change=${(e: Event) =>
+          void setQuietTimes({
+            DISCORD_QUIET_START: (e.target as HTMLInputElement).value,
+          })}
+      />
       <span>to</span>
-      <input type="time" class="input input-bordered input-sm" .value=${quietEnd} @change=${(e: Event) => void setQuietTimes({ DISCORD_QUIET_END: (e.target as HTMLInputElement).value })} />
+      <input
+        type="time"
+        class="input input-bordered input-sm"
+        .value=${quietEnd}
+        @change=${(e: Event) =>
+          void setQuietTimes({
+            DISCORD_QUIET_END: (e.target as HTMLInputElement).value,
+          })}
+      />
     </div>
     ${discordEnabled
-      ? html`<p class="text-xs opacity-60">Discord DMs are also enabled${blob?.discordUsername ? ` for ${blob.discordUsername}` : ""}.</p>`
+      ? html`<p class="text-xs opacity-60">Discord DMs are also enabled.</p>`
       : ""}
   `;
 }
@@ -112,37 +194,103 @@ function accountSection(login: string) {
     <p class="text-sm">Signed in as <span class="font-bold">${login}</span></p>
     <div class="flex flex-col gap-1">
       ${sessions.map(
-        (s) => html`<div class="flex items-center justify-between gap-2 text-sm">
-          <div class="min-w-0">
-            <div class="truncate">${s.name ?? s.label}${s.current ? html` <span class="badge badge-primary badge-sm">this phone</span>` : ""}</div>
-            ${s.createdAt ? html`<div class="text-xs opacity-50">${format24h(s.createdAt)}</div>` : ""}
-          </div>
-          ${s.current ? "" : html`<button class="btn btn-xs btn-ghost text-error" @click=${() => void doRevoke(s.id)}>Revoke</button>`}
-        </div>`,
+        (s) =>
+          html`<div class="flex items-center justify-between gap-2 text-sm">
+            <div class="min-w-0">
+              <div class="truncate">
+                ${s.name ?? s.label}${s.current
+                  ? html` <span class="badge badge-primary badge-sm"
+                      >this phone</span
+                    >`
+                  : ""}
+              </div>
+              ${s.createdAt
+                ? html`<div class="text-xs opacity-50">
+                    ${format24h(s.createdAt)}
+                  </div>`
+                : ""}
+            </div>
+            ${s.current
+              ? ""
+              : html`<button
+                  class="btn btn-xs btn-ghost text-error"
+                  @click=${() => void doRevoke(s.id)}
+                >
+                  Revoke
+                </button>`}
+          </div>`,
       )}
     </div>
-    <button class="btn btn-sm btn-error self-start" ?disabled=${busy} @click=${onLogout}>Sign out</button>
+    <button
+      class="btn btn-sm btn-error self-start"
+      ?disabled=${busy}
+      @click=${onLogout}
+    >
+      Sign out
+    </button>
   `;
 }
 
 function aboutSection() {
   const session = getSession();
-  const version = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+  const version =
+    typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   return html`
-    <a class="link text-sm inline-flex items-center gap-1" href="https://github.com/nicopasla/better-intra" target="_blank" rel="noopener noreferrer">
+    <a
+      class="link text-sm inline-flex items-center gap-1"
+      href="https://github.com/nicopasla/better-intra"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       ${svg16(GITHUB_SVG)} github.com/nicopasla/better-intra
     </a>
     <dl class="text-sm flex flex-col gap-1 opacity-80">
-      <div class="flex justify-between"><dt>App version</dt><dd class="font-mono">${version}</dd></div>
-      <div class="flex justify-between"><dt>Worker</dt><dd class="font-mono">${workerStatus()}</dd></div>
-      <div class="flex justify-between"><dt>Push permission</dt><dd class="font-mono">${Notification.permission}</dd></div>
-      <div class="flex justify-between"><dt>Endpoint</dt><dd class="font-mono">${endpointHost()}</dd></div>
-      <div class="flex justify-between"><dt>Standalone</dt><dd class="font-mono">${(navigator as { standalone?: boolean }).standalone ? "yes" : "no"}</dd></div>
-      <div class="flex justify-between"><dt>Service worker</dt><dd class="font-mono">${navigator.serviceWorker.controller ? "controlling" : "idle"}</dd></div>
-      <div class="flex justify-between"><dt>Storage</dt><dd class="font-mono">${persistentStorage === null ? "—" : persistentStorage ? "persistent" : "best-effort"}</dd></div>
-      <div class="flex justify-between"><dt>Login</dt><dd class="font-mono">${session?.login ?? "—"}</dd></div>
+      <div class="flex justify-between">
+        <dt>App version</dt>
+        <dd class="font-mono">${version}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Worker</dt>
+        <dd class="font-mono">${workerStatus()}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Push permission</dt>
+        <dd class="font-mono">${Notification.permission}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Endpoint</dt>
+        <dd class="font-mono">${endpointHost()}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Standalone</dt>
+        <dd class="font-mono">
+          ${(navigator as { standalone?: boolean }).standalone ? "yes" : "no"}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Service worker</dt>
+        <dd class="font-mono">
+          ${navigator.serviceWorker.controller ? "controlling" : "idle"}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Storage</dt>
+        <dd class="font-mono">
+          ${persistentStorage === null
+            ? "—"
+            : persistentStorage
+              ? "persistent"
+              : "best-effort"}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Login</dt>
+        <dd class="font-mono">${session?.login ?? "—"}</dd>
+      </div>
     </dl>
-    <p class="text-xs opacity-50">MIT License · by <span class="italic">nicopasla</span></p>
+    <p class="text-xs opacity-50">
+      MIT License · by <span class="italic">nicopasla</span>
+    </p>
   `;
 }
 
@@ -169,6 +317,7 @@ async function onTogglePush(e: Event) {
     if (on) {
       await enablePush();
       pushEnabled = true;
+      void onTest();
     } else {
       await disablePush();
       pushEnabled = false;
@@ -287,7 +436,9 @@ export async function loadSettings(force = false): Promise<void> {
   }
   if (!mockMode) {
     try {
-      const res = await fetch("https://api.betterintra.com/api/v1/public/push/key");
+      const res = await fetch(
+        "https://api.betterintra.com/api/v1/public/push/key",
+      );
       workerOk = res.ok;
     } catch {
       workerOk = false;

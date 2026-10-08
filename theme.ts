@@ -1,4 +1,19 @@
+export type ThemePreference = "system" | "dark" | "light";
+
+const THEME_KEY = "ft_theme";
 const media = () => window.matchMedia("(prefers-color-scheme: dark)");
+
+export function getThemePreference(): ThemePreference {
+  const stored = localStorage.getItem(THEME_KEY);
+  return stored === "dark" || stored === "light" || stored === "system"
+    ? stored
+    : "system";
+}
+
+export function setThemePreference(mode: ThemePreference): void {
+  localStorage.setItem(THEME_KEY, mode);
+  applyTheme();
+}
 
 function themeColor(): string {
   const value = getComputedStyle(document.documentElement)
@@ -8,7 +23,9 @@ function themeColor(): string {
 }
 
 function setMetaThemeColor(color: string): void {
-  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  let meta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"]',
+  );
   if (!meta) {
     meta = document.createElement("meta");
     meta.name = "theme-color";
@@ -17,8 +34,15 @@ function setMetaThemeColor(color: string): void {
   meta.content = color;
 }
 
+function effectiveDark(pref: ThemePreference): boolean {
+  return pref === "dark" || (pref === "system" && media().matches);
+}
+
 function applyTheme(): void {
-  document.documentElement.dataset.theme = media().matches ? "dark" : "light";
+  const pref = getThemePreference();
+  document.documentElement.dataset.theme = effectiveDark(pref)
+    ? "dark"
+    : "light";
   setMetaThemeColor(themeColor());
 }
 

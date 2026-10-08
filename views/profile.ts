@@ -245,13 +245,6 @@ function groupBadges(groups: string[]) {
   </div>`;
 }
 
-function daysLeft(iso: string): number {
-  return Math.max(
-    0,
-    Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Overview
 // ---------------------------------------------------------------------------
@@ -313,27 +306,8 @@ function overviewTab(m: Me) {
         ${locationBadge(m.location)}
       </div>
     `)}
-    ${m.blackholedAt ? blackholeCard(m.blackholedAt) : ""} ${evaluationsTab()}
+    ${evaluationsTab()}
   `;
-}
-
-function blackholeCard(iso: string) {
-  const days = daysLeft(iso);
-  const urgent = days <= 15;
-  return card(html`
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <div class="font-bold">Blackhole</div>
-        <div class="text-xs opacity-60">${fullDate(new Date(iso))}</div>
-      </div>
-      <span
-        class="badge badge-lg font-bold ${urgent
-          ? "badge-error"
-          : "badge-warning"}"
-        >${days} day${days === 1 ? "" : "s"} left</span
-      >
-    </div>
-  `);
 }
 
 // ---------------------------------------------------------------------------
