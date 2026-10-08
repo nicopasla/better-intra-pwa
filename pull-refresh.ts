@@ -73,6 +73,16 @@ function settle(y: number): void {
   if (m) {
     m.style.transition = "transform 240ms ease";
     m.style.transform = `translateY(${y}px)`;
+    if (y === 0) {
+      // Once the pull settles, drop the transform entirely: a non-none
+      // transform makes <main> the containing block for `position: fixed`
+      // descendants, which unpins the bottom sub-tab bars.
+      window.setTimeout(() => {
+        if (mainEl() !== m || m.style.transform !== "translateY(0px)") return;
+        m.style.transform = "";
+        m.style.transition = "";
+      }, 260);
+    }
   }
   if (y === 0) document.body.style.background = "";
 }

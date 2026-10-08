@@ -38,6 +38,14 @@ function cancel(): void {
   if (m) {
     m.style.transition = "transform 180ms ease";
     m.style.transform = "translateX(0)";
+    // Drop the transform once the spring-back ends — a lingering transform
+    // makes <main> the containing block for fixed descendants (unpins the
+    // bottom sub-tab bars).
+    window.setTimeout(() => {
+      if (mainEl() !== m || m.style.transform !== "translateX(0)") return;
+      m.style.transform = "";
+      m.style.transition = "";
+    }, 200);
   }
   animating = false;
 }
