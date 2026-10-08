@@ -7,7 +7,7 @@ import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
 import { eventsView, loadEvents } from "./views/events.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
-import { studentsView, loadStudents } from "./views/students.ts";
+import { studentsView, loadStudents, studentsAttachObservers } from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import { registerServiceWorker } from "./push.ts";
 import { mockMode } from "./mock.ts";
@@ -110,6 +110,7 @@ function renderBody(): void {
       break;
   }
   renderShell(tab, body);
+  if (tab === "students") studentsAttachObservers();
 }
 
 function gateStudents(): void {

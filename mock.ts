@@ -542,4 +542,49 @@ export const mock = {
       data: list.slice(start, start + 60),
     };
   },
+  piscines: [
+    { year: 2025, month: 7 },
+    { year: 2025, month: 10 },
+    { year: 2024, month: 7 },
+  ],
+  future: [
+    {
+      login: "znew",
+      displayname: "Zoë New",
+      image_url: "https://cdn.intra.42.fr/users/small_znew.jpg",
+      begin_at: mins(45 * 24 * 60),
+      active: true,
+      pool_month: "october",
+      pool_year: "2026",
+    },
+    {
+      login: "yfresh",
+      displayname: "Yann Fresh",
+      image_url: "https://cdn.intra.42.fr/users/small_yfresh.jpg",
+      begin_at: mins(80 * 24 * 60),
+      active: true,
+      pool_month: "january",
+      pool_year: "2027",
+    },
+  ],
+  piscinerRoster: [
+    {
+      login: "pprep",
+      displayname: "Piscine Prep",
+      image_url: "https://cdn.intra.42.fr/users/small_pprep.jpg",
+      begin_at: mins(-2 * 24 * 60),
+      active: true,
+      pool_month: "july",
+      pool_year: "2025",
+    },
+    {
+      login: "qquiz",
+      displayname: "Quinn Quiz",
+      image_url: "https://cdn.intra.42.fr/users/small_qquiz.jpg",
+      begin_at: mins(-3 * 24 * 60),
+      active: true,
+      pool_month: "july",
+      pool_year: "2025",
+    },
+  ],
 };
