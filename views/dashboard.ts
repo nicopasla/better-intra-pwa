@@ -7,7 +7,6 @@ import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { clockTime, fullDate } from "../lib/format.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
-import POOL_SVG from "../assets/pool.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -84,7 +83,6 @@ function profileCard() {
         <div class="flex gap-2">
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
-          ${statBadge(m.poolLabel ?? "—", POOL_SVG)}
         </div>
       </div>
     </div>
