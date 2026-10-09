@@ -1,12 +1,19 @@
 /* Better Intra PWA service worker — Web Push + offline app shell. */
 
-const SHELL_CACHE = "bi-shell-v1";
+const SHELL_CACHE = "bi-shell-v3";
 const SHELL = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
+  "/favicon.ico",
+  "/favicon.svg",
+  "/favicon-16x16.png",
+  "/favicon-32x32.png",
+  "/apple-touch-icon.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/icons/icon-192-maskable.png",
+  "/icons/icon-512-maskable.png",
   "/sw.js",
 ];
 
