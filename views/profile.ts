@@ -12,7 +12,6 @@ import { saveData } from "../lib/network.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
-import STAR_SVG from "../assets/star-lucide.svg?raw";
 
 type SubTab = "overview" | "projects" | "achievements";
 
@@ -336,7 +335,7 @@ const outstandingBadge = (n: number) =>
     ? html`<span
         class="badge badge-lg badge-warning gap-1 font-mono"
         title="Outstanding corrector"
-        >${svg18(STAR_SVG)}${n}</span
+        >⭐ ${n}</span
       >`
     : "";
 
