@@ -241,10 +241,10 @@ function locationBadge(location: string | null) {
 
 function groupBadges(groups: string[]) {
   if (groups.length === 0) return "";
-  return html`<div class="flex flex-wrap gap-1.5">
+  return html`<div class="flex flex-wrap gap-2">
     ${groups.map(
       (g) =>
-        html`<span class="badge badge-sm badge-primary font-semibold"
+        html`<span class="badge badge-lg badge-primary font-semibold"
           >${g}</span
         >`,
     )}

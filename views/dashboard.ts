@@ -61,10 +61,10 @@ function profileCard() {
             <div class="font-bold text-lg truncate">${m.displayName}</div>
             <div class="text-sm opacity-60 truncate">${m.login}</div>
             ${(m.groups ?? []).length
-              ? html`<div class="flex flex-wrap gap-1.5 mt-1.5">
+              ? html`<div class="flex flex-wrap gap-2 mt-1.5">
                   ${(m.groups ?? []).map(
                     (g) =>
-                      html`<span class="badge badge-sm badge-primary font-semibold"
+                      html`<span class="badge badge-lg badge-primary font-semibold"
                         >${g}</span
                       >`,
                   )}
