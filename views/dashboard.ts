@@ -92,7 +92,7 @@ function profileCard() {
             </div>
           </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
           ${locationBadge(m.location)}
@@ -107,7 +107,7 @@ const clusterUrl = (seat: string) =>
 
 function locationBadge(location: string | null) {
   const base =
-    "badge badge-lg h-auto flex-1 min-w-0 justify-center gap-2 py-2 no-underline";
+    "badge badge-lg h-auto flex-1 justify-center gap-2 py-2 no-underline";
   if (!location) {
     return html`<div
       class="${base}"
@@ -124,7 +124,7 @@ function locationBadge(location: string | null) {
     style="border:2px solid var(--color-success);"
     data-tip="View on cluster map"
   >
-    <span class="font-semibold font-mono truncate min-w-0">${location}</span
+    <span class="font-semibold font-mono whitespace-nowrap">${location}</span
     >${svg18(ARROW_SHARE_SVG)}
   </a>`;
 }
