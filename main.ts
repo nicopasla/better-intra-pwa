@@ -35,7 +35,7 @@ const app = () => document.getElementById("app")!;
 
 function loadingScreen() {
   return html`
-    <div class="min-h-dvh flex items-center justify-center">
+    <div class="flex-1 flex items-center justify-center">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
   `;
@@ -43,7 +43,7 @@ function loadingScreen() {
 
 function signInScreen() {
   return html`
-    <div class="min-h-dvh flex items-center justify-center p-4">
+    <div class="flex-1 flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-base-100 shadow-xl">
         <div class="card-body items-center text-center gap-4">
           <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
@@ -59,7 +59,7 @@ function signInScreen() {
 
 function blockedScreen() {
   return html`
-    <div class="min-h-dvh flex items-center justify-center p-4">
+    <div class="flex-1 flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-base-100 shadow-xl">
         <div class="card-body items-center text-center gap-3">
           <h1 class="card-title">Not available</h1>
