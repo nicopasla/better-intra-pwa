@@ -10,7 +10,7 @@ import {
   CalendarEvent,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { enablePush, pushSupported } from "../push.ts";
+import { enablePush, getExistingSubscription, pushSupported } from "../push.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
@@ -29,6 +29,7 @@ let loading = true;
 let error = "";
 let pushBusy = false;
 let pushError = "";
+let pushSubscribed: boolean | null = null;
 
 const svg18 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
@@ -187,15 +188,16 @@ function avatarBlock() {
 function upcomingCard() {
   const done = new Set(getDoneEvals());
   const items = upcoming.items.filter((e) => !done.has(e.id));
+  const needsPush = pushSupported() && pushSubscribed !== true;
   const evalPart =
     items.length === 0
       ? html`<div class="flex flex-col items-start gap-2">
           <p class="text-sm opacity-60">
-            ${upcoming.tracked
-              ? "Nothing planned right now."
-              : "Enable notifications to start tracking evaluations."}
+            ${needsPush
+              ? "Enable notifications to start tracking evaluations."
+              : "Nothing planned right now."}
           </p>
-          ${upcoming.tracked ? "" : enablePushBlock()}
+          ${needsPush ? enablePushBlock() : ""}
         </div>`
       : html`<ul class="flex flex-col divide-y divide-base-300">
           ${items.map(evalRow)}
@@ -261,6 +263,7 @@ async function onEnableNotifications() {
   refresh();
   try {
     await enablePush();
+    pushSubscribed = true;
     loadDashboard(true);
   } catch (err) {
     pushError =
@@ -271,6 +274,16 @@ async function onEnableNotifications() {
     pushBusy = false;
     refresh();
   }
+}
+
+async function refreshPushState(): Promise<void> {
+  if (!pushSupported()) {
+    pushSubscribed = false;
+    return;
+  }
+  const sub = await getExistingSubscription();
+  pushSubscribed = Boolean(sub);
+  refresh();
 }
 
 function eventsCard() {
@@ -406,6 +419,7 @@ export function loadDashboard(silent = false): void {
     error = "";
     refresh();
   }
+  void refreshPushState();
   void Promise.allSettled([me(), upcomingEvals(), events()]).then(
     ([m, u, ev]) => {
       if (m.status === "fulfilled") meData = m.value;
