@@ -10,6 +10,7 @@ import {
   CalendarEvent,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import { enablePush, pushSupported } from "../push.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
@@ -26,6 +27,8 @@ let upcoming: UpcomingResponse = { items: [], tracked: false };
 let allEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
+let pushBusy = false;
+let pushError = "";
 
 const svg18 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
@@ -186,11 +189,14 @@ function upcomingCard() {
   const items = upcoming.items.filter((e) => !done.has(e.id));
   const evalPart =
     items.length === 0
-      ? html`<p class="text-sm opacity-60">
-          ${upcoming.tracked
-            ? "Nothing planned right now."
-            : "Enable notifications to start tracking evaluations."}
-        </p>`
+      ? html`<div class="flex flex-col items-start gap-2">
+          <p class="text-sm opacity-60">
+            ${upcoming.tracked
+              ? "Nothing planned right now."
+              : "Enable notifications to start tracking evaluations."}
+          </p>
+          ${upcoming.tracked ? "" : enablePushBlock()}
+        </div>`
       : html`<ul class="flex flex-col divide-y divide-base-300">
           ${items.map(evalRow)}
         </ul>`;
@@ -208,7 +214,9 @@ function evalRow(e: UpcomingEval) {
   return html`<li class="flex items-center justify-between gap-3 py-2">
     <div class="min-w-0">
       <div class="font-medium truncate">${e.project ?? ""}</div>
-      <div class="text-xs opacity-60">${label} · ${dateTimeShort(e.beginAt)}</div>
+      <div class="text-xs opacity-60">
+        ${label} · ${dateTimeShort(e.beginAt)}
+      </div>
     </div>
     <div class="flex items-center gap-1 flex-none">
       <span
@@ -231,6 +239,38 @@ function evalRow(e: UpcomingEval) {
         : ""}
     </div>
   </li>`;
+}
+
+function enablePushBlock() {
+  if (!pushSupported()) return "";
+  return html`
+    <button
+      class="btn btn-sm btn-primary ${pushBusy ? "loading" : ""}"
+      ?disabled=${pushBusy}
+      @click=${() => void onEnableNotifications()}
+    >
+      Enable notifications
+    </button>
+    ${pushError ? html`<p class="text-xs text-warning">${pushError}</p>` : ""}
+  `;
+}
+
+async function onEnableNotifications() {
+  pushBusy = true;
+  pushError = "";
+  refresh();
+  try {
+    await enablePush();
+    loadDashboard(true);
+  } catch (err) {
+    pushError =
+      err instanceof Error && err.message === "permission_denied"
+        ? "Notifications permission was denied."
+        : "Could not enable notifications.";
+  } finally {
+    pushBusy = false;
+    refresh();
+  }
 }
 
 function eventsCard() {
