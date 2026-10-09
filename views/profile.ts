@@ -334,7 +334,7 @@ const occurrenceBadge = (n: number) =>
 const outstandingBadge = (n: number) =>
   n > 0
     ? html`<span
-        class="badge badge-sm badge-warning gap-1 font-mono"
+        class="badge badge-lg badge-warning gap-1 font-mono"
         title="Outstanding corrector"
         >${svg18(STAR_SVG)}${n}</span
       >`
