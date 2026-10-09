@@ -75,7 +75,7 @@ export interface StudentsTemplateState {
   activeCount: number;
   filterOptions: StudentsFilterOptions | null;
   currentYear: number;
-  copiedLogin: string | null;
+  friendToast: { ok: boolean; message: string } | null;
   isMaximized: boolean;
   tabsOverflowing: boolean;
 }
@@ -101,7 +101,9 @@ export interface StudentsTemplateHandlers {
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
   onLoadMore: () => void;
-  onCopyLogin: (login: string) => void;
+  onRowPointerDown: (e: PointerEvent, login: string) => void;
+  onRowPointerUp: () => void;
+  onRowClick: (login: string) => void;
   onConnect: () => void;
   onToggleMaximize: () => void;
 }
@@ -339,7 +341,7 @@ export function renderStudentsDialogTemplate(
     filteredTotal,
     activeCount,
     currentYear,
-    copiedLogin,
+    friendToast,
     isMaximized,
     tabsOverflowing,
   } = state;
@@ -442,9 +444,6 @@ export function renderStudentsDialogTemplate(
           ? futureGroups.map((i) => i.label).join(" · ")
           : "future students"
         : "all students";
-  const openProfile = (login: string) =>
-    window.open(`https://profile.intra.42.fr/users/${login}`, "_blank");
-
   const renderAvatar = (r: StudentEntry) => html`
     <img class="avatar" src="${r.image_url}" alt="${r.login}" loading="lazy" />
   `;
@@ -483,16 +482,7 @@ export function renderStudentsDialogTemplate(
       : ""}`;
 
   const renderLogin = (r: StudentEntry) => html`
-    <span
-      class="login ${r.login === copiedLogin ? "copied" : ""}"
-      data-tip="Copy login"
-      @click="${(e: Event) => {
-        e.stopPropagation();
-        handlers.onCopyLogin(r.login);
-      }}"
-    >
-      ${r.login === copiedLogin ? "Copied ✓" : r.login}
-    </span>
+    <span class="login">${r.login}</span>
   `;
 
   const renderInfo = (r: StudentEntry) => html`
@@ -566,7 +556,13 @@ export function renderStudentsDialogTemplate(
     return html`
       <div
         class="row ${isPaged && r.active === false ? "inactive" : ""}"
-        @click="${() => openProfile(r.login)}"
+        @click="${() => handlers.onRowClick(r.login)}"
+        @pointerdown="${(e: PointerEvent) =>
+          handlers.onRowPointerDown(e, r.login)}"
+        @pointerup="${handlers.onRowPointerUp}"
+        @pointerleave="${handlers.onRowPointerUp}"
+        @pointercancel="${handlers.onRowPointerUp}"
+        @contextmenu="${(e: Event) => e.preventDefault()}"
       >
         <div class="row-head">${renderAvatar(r)} ${renderLogin(r)}</div>
         <div class="fullname">
@@ -584,7 +580,13 @@ export function renderStudentsDialogTemplate(
   const renderDefaultRow = (r: StudentEntry) => html`
     <div
       class="row ${tab === "students" && r.active === false ? "inactive" : ""}"
-      @click="${() => openProfile(r.login)}"
+      @click="${() => handlers.onRowClick(r.login)}"
+      @pointerdown="${(e: PointerEvent) =>
+        handlers.onRowPointerDown(e, r.login)}"
+      @pointerup="${handlers.onRowPointerUp}"
+      @pointerleave="${handlers.onRowPointerUp}"
+      @pointercancel="${handlers.onRowPointerUp}"
+      @contextmenu="${(e: Event) => e.preventDefault()}"
     >
       ${renderAvatar(r)} ${renderInfo(r)}
       <div class="row-meta">
@@ -609,6 +611,9 @@ export function renderStudentsDialogTemplate(
         border-radius: 0.5rem;
         cursor: pointer;
         min-width: 0;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
       .row:hover {
         background: var(--color-base-200);
@@ -715,21 +720,10 @@ export function renderStudentsDialogTemplate(
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        cursor: copy;
         border-radius: 0.25rem;
         display: inline-block;
         max-width: 100%;
         vertical-align: bottom;
-      }
-      .login:hover {
-        opacity: 1;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-      .login.copied {
-        color: var(--color-success);
-        font-weight: 700;
-        opacity: 1;
       }
       .row-meta {
         display: flex;
@@ -913,7 +907,7 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-24">
+    <div class="students-feature relative flex flex-col bg-base-100 rounded-xl pb-24">
       <div
         class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
       >
@@ -1121,6 +1115,20 @@ export function renderStudentsDialogTemplate(
           })}
         </div>
       </div>
+      ${friendToast
+        ? html`<div
+            class="absolute left-1/2 z-50 -translate-x-1/2"
+            style="bottom: calc(8rem + env(safe-area-inset-bottom) + 0.5rem);"
+          >
+            <div
+              class="alert ${friendToast.ok
+                ? "alert-success"
+                : "alert-error"} py-2 text-sm shadow-lg"
+            >
+              <span>${friendToast.message}</span>
+            </div>
+          </div>`
+        : ""}
     </div>
   `;
 }

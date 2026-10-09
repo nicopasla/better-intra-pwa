@@ -2,6 +2,11 @@ import type { TemplateResult } from "lit-html";
 import { loginUrl } from "../../api.ts";
 import { observeTabsOverflow } from "../../lib/segmented-tabs.ts";
 import {
+  addFriend,
+  clearFriendsCache,
+  isFriend,
+} from "../friends-feature/friends.ts";
+import {
   INITIAL_VISIBLE_COUNT,
   WINDOW_STEP,
   fetchPiscines,
@@ -34,6 +39,8 @@ let initialized = false;
 let sentinelObserver: IntersectionObserver | null = null;
 let tabsResizeObserver: ResizeObserver | null = null;
 let syncObserversFn: (() => void) | null = null;
+
+const LONG_PRESS_MS = 500;
 
 export function getStudentsView(): TemplateResult | null {
   return pendingView;
@@ -136,8 +143,10 @@ export function initStudentsFeature(onUpdate: () => void): void {
   let activeCount = 0;
   let filterOptions: StudentsFilterOptions | null = null;
   let searchTimeout: number | null = null;
-  let copiedLogin: string | null = null;
-  let copiedLoginTimeout: number | null = null;
+  let pressTimer: number | null = null;
+  let longPressFired = false;
+  let friendToast: { ok: boolean; message: string } | null = null;
+  let friendToastTimer: number | null = null;
   let isMaximized = false;
   let tabsOverflowing = false;
   let disposed = false;
@@ -276,6 +285,57 @@ export function initStudentsFeature(onUpdate: () => void): void {
     await load();
   };
 
+  const showFriendToast = (ok: boolean, message: string) => {
+    friendToast = { ok, message };
+    if (friendToastTimer !== null) window.clearTimeout(friendToastTimer);
+    friendToastTimer = window.setTimeout(() => {
+      friendToastTimer = null;
+      friendToast = null;
+      rerender();
+    }, 2500);
+    rerender();
+  };
+
+  const addStudentFriend = async (login: string) => {
+    try {
+      if (await isFriend(login)) {
+        showFriendToast(true, `${login} is already a friend`);
+        return;
+      }
+      await addFriend(login);
+      await clearFriendsCache();
+      showFriendToast(true, `Added ${login} to friends`);
+    } catch {
+      showFriendToast(false, `Could not add ${login}`);
+    }
+  };
+
+  const startRowPress = (e: PointerEvent, login: string) => {
+    if (e.button !== 0) return;
+    longPressFired = false;
+    if (pressTimer !== null) window.clearTimeout(pressTimer);
+    pressTimer = window.setTimeout(() => {
+      pressTimer = null;
+      longPressFired = true;
+      void addStudentFriend(login);
+    }, LONG_PRESS_MS);
+  };
+
+  const cancelRowPress = () => {
+    if (pressTimer !== null) {
+      window.clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+  };
+
+  const openRow = (login: string) => {
+    if (longPressFired) {
+      longPressFired = false;
+      return;
+    }
+    window.open(`https://profile.intra.42.fr/users/${login}`, "_blank");
+  };
+
   const handlers: StudentsTemplateHandlers = {
     onSwitchTab: (t) => {
       void switchTab(t);
@@ -348,17 +408,9 @@ export function initStudentsFeature(onUpdate: () => void): void {
       }
       rerender();
     },
-    onCopyLogin: (login) => {
-      void navigator.clipboard.writeText(login);
-      copiedLogin = login;
-      if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
-      copiedLoginTimeout = window.setTimeout(() => {
-        copiedLoginTimeout = null;
-        copiedLogin = null;
-        rerender();
-      }, 1500);
-      rerender();
-    },
+    onRowPointerDown: startRowPress,
+    onRowPointerUp: cancelRowPress,
+    onRowClick: openRow,
     onConnect: () => {
       window.location.href = loginUrl();
     },
@@ -389,7 +441,7 @@ export function initStudentsFeature(onUpdate: () => void): void {
     activeCount,
     filterOptions,
     currentYear,
-    copiedLogin,
+    friendToast,
     isMaximized,
     tabsOverflowing,
   });
