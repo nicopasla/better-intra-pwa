@@ -57,10 +57,10 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "Better Intra", body: event.data ? event.data.text() : "" };
+    data = { title: "Notification", body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "Better Intra";
+  const title = data.title || "Notification";
   let body = data.body || "";
   // Render the eval time in the device's local timezone when provided.
   if (data.beginAt && (data.kind === "booked" || data.kind === "revealed")) {
@@ -87,9 +87,9 @@ self.addEventListener("push", (event) => {
         detail.push("Evaluating someone");
       }
       if (stamp) detail.push(`at ${stamp}`);
-      body = `${
-        data.kind === "revealed" ? "Evaluation in 15 min" : "Evaluation Booked"
-      }\n${detail.join(" ")}`;
+      title =
+        data.kind === "revealed" ? "Evaluation in 15 min" : "Evaluation Booked";
+      body = detail.join(" ");
     } catch {
       /* keep the fallback body */
     }
