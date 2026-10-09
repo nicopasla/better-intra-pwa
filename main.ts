@@ -33,6 +33,8 @@ import { initConnectivityBanner } from "./lib/connectivity.ts";
 import {
   canInstall,
   initInstall,
+  isIOS,
+  isMobileOS,
   isStandalone,
   onInstallAvailability,
   promptInstall,
@@ -100,6 +102,48 @@ function signInScreen() {
 
 function renderSignIn(): void {
   render(signInScreen(), app());
+}
+
+function installGateScreen() {
+  const ios = isIOS();
+  return html`
+    <div class="flex-1 flex items-center justify-center p-4">
+      <div class="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div class="card-body items-center text-center gap-4">
+          <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
+          <h1 class="text-2xl font-bold">Install Better Intra</h1>
+          <p class="text-sm opacity-70">
+            ${ios
+              ? "Better Intra only works as an installed app on iPhone and iPad. Tap the Share button, then choose “Add to Home Screen”."
+              : "Better Intra only works as an installed app on Android. Open your browser menu and choose “Install app” or “Add to Home Screen”."}
+          </p>
+          ${canInstall()
+            ? html`<button
+                class="btn btn-primary w-full"
+                @click=${() => void promptInstall()}
+              >
+                Install app
+              </button>`
+            : ""}
+          <p class="text-xs opacity-60">
+            Then open Better Intra from your Home Screen.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderGate(): void {
+  render(installGateScreen(), app());
+}
+
+/** The last pre-app screen shown (gate/sign-in), so install availability can
+ *  repaint it. Cleared once the app itself is running. */
+let preAppScreen: (() => void) | null = null;
+
+function refreshPreApp(): void {
+  if (preAppScreen) preAppScreen();
 }
 
 function blockedScreen() {
@@ -256,7 +300,7 @@ async function boot(): Promise<void> {
   initTheme();
   initConnectivityBanner();
   initInstall();
-  onInstallAvailability(renderSignIn);
+  onInstallAvailability(refreshPreApp);
   onPushSubscriptionChange(() => void syncPushSubscription());
   initAppListeners();
 
@@ -273,10 +317,19 @@ async function boot(): Promise<void> {
     return;
   }
 
+  // On phones/tablets the app must be installed (standalone) to be usable —
+  // this also avoids signing in twice (browser, then installed app).
+  if (isMobileOS() && !isStandalone()) {
+    preAppScreen = renderGate;
+    renderGate();
+    return;
+  }
+
   const params = new URLSearchParams(location.search);
 
   if (params.get("error") === "not_registered") {
     history.replaceState(null, "", "/");
+    preAppScreen = null;
     render(blockedScreen(), app());
     return;
   }
@@ -293,10 +346,12 @@ async function boot(): Promise<void> {
   }
 
   if (!getSession()) {
+    preAppScreen = renderSignIn;
     renderSignIn();
     return;
   }
 
+  preAppScreen = null;
   if (!location.hash) location.hash = "/dashboard";
 
   setRefresh(renderBody);

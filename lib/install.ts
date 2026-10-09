@@ -19,6 +19,22 @@ export function isStandalone(): boolean {
   );
 }
 
+export function isIOS(): boolean {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPadOS 13+ reports itself as "Macintosh" but has touch points.
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+export function isAndroid(): boolean {
+  return /Android/i.test(navigator.userAgent);
+}
+
+/** Mobile platforms where the app requires installation to be usable. */
+export function isMobileOS(): boolean {
+  return isIOS() || isAndroid();
+}
+
 export function canInstall(): boolean {
   return deferred !== null && !installed && !isStandalone();
 }
