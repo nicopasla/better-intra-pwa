@@ -233,9 +233,8 @@ function locationBadge(location: string | null) {
     style="border:2px solid var(--color-success);"
     data-tip="View on cluster map"
   >
-    <span class="font-semibold font-mono">${location}</span>${svg18(
-      ARROW_SHARE_SVG,
-    )}
+    <span class="font-semibold font-mono whitespace-nowrap">${location}</span
+    >${svg18(ARROW_SHARE_SVG)}
   </a>`;
 }
 
@@ -306,7 +305,7 @@ function overviewTab(m: Me) {
       ${meta.length
         ? html`<div class="text-xs opacity-60">${meta.join(" · ")}</div>`
         : ""}
-      <div class="flex gap-2 mt-1">
+      <div class="flex flex-wrap gap-2 mt-1">
         ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
         ${statBadge(String(m.correctionPoints), EVAL_SVG)}
         ${locationBadge(m.location)}
