@@ -20,6 +20,12 @@ import {
 import { refresh } from "../refresh.ts";
 import { mockMode } from "../mock.ts";
 import { hasPersistentStorage } from "../lib/persist.ts";
+import {
+  canInstall,
+  isStandalone,
+  onInstallAvailability,
+  promptInstall,
+} from "../lib/install.ts";
 import { dateTime } from "../lib/format.ts";
 import {
   getThemePreference,
@@ -48,6 +54,28 @@ let quietStart = "22:00";
 let quietEnd = "08:00";
 let discordEnabled = false;
 let themeMode: ThemePreference = getThemePreference();
+let storageUsed: number | null = null;
+let storageQuota: number | null = null;
+
+function formatBytes(n: number | null): string {
+  if (n == null) return "—";
+  if (n < 1024) return `${n} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(1)} ${units[i]}`;
+}
+
+function storageLabel(): string {
+  if (storageUsed == null) return "—";
+  return storageQuota != null
+    ? `${formatBytes(storageUsed)} / ${formatBytes(storageQuota)}`
+    : formatBytes(storageUsed);
+}
 
 const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
   { id: "system", label: "System" },
@@ -59,6 +87,7 @@ export function settingsView(): unknown {
   const session = getSession();
   return html`
     ${section("Notifications", notificationsSection())}
+    ${section("Install", installSection())}
     ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("About & Debug", aboutSection())}
@@ -66,6 +95,37 @@ export function settingsView(): unknown {
       ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
       : ""}
   `;
+}
+
+function installSection() {
+  if (isStandalone())
+    return html`<p class="text-sm opacity-70">
+      Installed — running as an app.
+    </p>`;
+  if (canInstall())
+    return html`
+      <p class="text-sm opacity-70">
+        Add Better Intra to your home screen for a full-screen, app-like
+        experience.
+      </p>
+      <button
+        class="btn btn-primary btn-sm self-start"
+        @click=${onInstall}
+      >
+        Install app
+      </button>
+    `;
+  const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+  return html`<p class="text-sm opacity-70">
+    ${isMobile
+      ? "To install, open your browser menu and choose Share → Add to Home Screen."
+      : "Use your browser's install option to add this app."}
+  </p>`;
+}
+
+async function onInstall() {
+  const accepted = await promptInstall();
+  if (accepted) refresh();
 }
 
 function section(title: string, content: unknown) {
@@ -301,6 +361,10 @@ function aboutSection() {
         </dd>
       </div>
       <div class="flex justify-between">
+        <dt>Storage used</dt>
+        <dd class="font-mono">${storageLabel()}</dd>
+      </div>
+      <div class="flex justify-between">
         <dt>Login</dt>
         <dd class="font-mono">${session?.login ?? "—"}</dd>
       </div>
@@ -466,5 +530,13 @@ export async function loadSettings(force = false): Promise<void> {
   }
   workerOkChecked = true;
   if (!mockMode) persistentStorage = await hasPersistentStorage();
+  try {
+    const est = await navigator.storage?.estimate?.();
+    storageUsed = est?.usage ?? null;
+    storageQuota = est?.quota ?? null;
+  } catch {
+    /* ignore */
+  }
+  onInstallAvailability(refresh);
   refresh();
 }

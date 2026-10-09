@@ -113,6 +113,80 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+/* --- Push subscription self-heal -----------------------------------------
+   iOS/Safari can rotate or expire push endpoints while the app is closed. When
+   that happens the server keeps pushing to a dead endpoint and notifications
+   silently stop. We re-subscribe here and hand the new subscription to the page
+   (via IndexedDB) so it can re-register it with auth. The SW has no access to
+   the session token (localStorage), hence the hand-off. */
+function urlBase64ToUint8Array(base64) {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const normalized = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(normalized);
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+function openStore() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("bi-store", 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains("kv")) {
+        req.result.createObjectStore("kv");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function storePendingSubscription(sub) {
+  const db = await openStore();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(sub, "pendingPushSubscription");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        let key = event.oldSubscription?.options?.applicationServerKey;
+        if (!key) {
+          const res = await fetch(
+            "https://api.betterintra.com/api/v1/public/push/key",
+          );
+          const { publicKey } = await res.json();
+          if (!publicKey) return;
+          key = urlBase64ToUint8Array(publicKey);
+        }
+        const sub = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        await storePendingSubscription(sub.toJSON());
+        const clients = await self.clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        for (const client of clients) {
+          client.postMessage({ type: "push-subscription-changed" });
+        }
+      } catch {
+        /* best effort — the page also heals on next load */
+      }
+    })(),
+  );
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.preventDefault(); // required for notificationclick to fire on iOS
   event.notification.close();

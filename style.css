@@ -61,6 +61,12 @@ body {
    Only `main` is named, so its snapshot slides while the dock stays put.
    Direction comes from `html[data-ft-dir]`, set by shell.navigate().
 --------------------------------------------------------------------------- */
+/* Cross-document view transitions: smooths full page loads (e.g. returning
+   from the OAuth redirect). Ignored by browsers without support. */
+@view-transition {
+  navigation: auto;
+}
+
 main {
   view-transition-name: app-main;
 }

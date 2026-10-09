@@ -1,4 +1,5 @@
 import { WORKER_URL, workerFetch } from "./api.ts";
+import { clearPendingPush, readPendingPush } from "./lib/push-store.ts";
 
 export function pushSupported(): boolean {
   return (
@@ -76,6 +77,54 @@ export async function disablePush(): Promise<void> {
     /* best effort */
   }
   await sub.unsubscribe();
+}
+
+async function postSubscription(sub: {
+  endpoint?: string;
+  keys?: { p256dh?: string; auth?: string };
+}): Promise<void> {
+  await workerFetch("/api/v1/private/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.keys }),
+  });
+}
+
+/** Re-registers a subscription the service worker rotated while we were closed. */
+export async function syncPushSubscription(): Promise<void> {
+  if (!pushSupported()) return;
+  const pending = await readPendingPush();
+  if (!pending) return;
+  try {
+    await postSubscription(pending);
+    await clearPendingPush();
+  } catch {
+    /* keep it pending for the next attempt */
+  }
+}
+
+/** Idempotently re-registers the current subscription with the worker. */
+export async function ensurePushSubscription(): Promise<void> {
+  if (!pushSupported()) return;
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  const sub = await getExistingSubscription();
+  if (!sub) return;
+  try {
+    await postSubscription(sub.toJSON());
+  } catch {
+    /* best effort */
+  }
+}
+
+/** Fires when the service worker re-subscribed and the page should re-sync. */
+export function onPushSubscriptionChange(cb: () => void): void {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("message", (e: MessageEvent) => {
+    if ((e.data as { type?: string } | null)?.type === "push-subscription-changed") {
+      cb();
+    }
+  });
 }
 
 export interface PushTestResult {

@@ -23,7 +23,21 @@ import {
   studentsAttachObservers,
 } from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
-import { registerServiceWorker } from "./push.ts";
+import {
+  ensurePushSubscription,
+  onPushSubscriptionChange,
+  registerServiceWorker,
+  syncPushSubscription,
+} from "./push.ts";
+import { initConnectivityBanner } from "./lib/connectivity.ts";
+import {
+  canInstall,
+  initInstall,
+  isStandalone,
+  onInstallAvailability,
+  promptInstall,
+} from "./lib/install.ts";
+import { initRouter } from "./lib/router.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
 import { initSwipe } from "./swipe.ts";
@@ -41,6 +55,32 @@ function loadingScreen() {
   `;
 }
 
+function installCallout() {
+  if (isStandalone()) return "";
+  if (canInstall()) {
+    return html`
+      <button
+        class="btn btn-outline w-full"
+        @click=${() => void promptInstall()}
+      >
+        Install app
+      </button>
+      <p class="text-xs opacity-60">
+        Install Better Intra as an app to enable notifications and a full-screen
+        experience.
+      </p>
+    `;
+  }
+  const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    return html`<p class="text-xs opacity-60">
+      Add to Home Screen (Share → Add to Home Screen) to install and enable
+      notifications.
+    </p>`;
+  }
+  return "";
+}
+
 function signInScreen() {
   return html`
     <div class="flex-1 flex items-center justify-center p-4">
@@ -51,10 +91,15 @@ function signInScreen() {
           <a class="btn btn-primary w-full" href=${loginUrl()}
             >Sign in with 42</a
           >
+          ${installCallout()}
         </div>
       </div>
     </div>
   `;
+}
+
+function renderSignIn(): void {
+  render(signInScreen(), app());
 }
 
 function blockedScreen() {
@@ -146,9 +191,19 @@ function onStorage(e: StorageEvent): void {
 function initAppListeners(): void {
   if (!mockMode) void requestPersistentStorage();
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") refreshActiveTab();
+    if (document.visibilityState === "visible") {
+      refreshActiveTab();
+      healPush();
+    }
   });
   window.addEventListener("storage", onStorage);
+}
+
+/** Re-registers a rotated push subscription with the worker. */
+function healPush(): void {
+  if (mockMode || !getSession()) return;
+  void syncPushSubscription();
+  void ensurePushSubscription();
 }
 
 function renderBody(): void {
@@ -199,13 +254,17 @@ async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
   initTheme();
+  initConnectivityBanner();
+  initInstall();
+  onInstallAvailability(renderSignIn);
+  onPushSubscriptionChange(() => void syncPushSubscription());
   initAppListeners();
 
   // Mock mode: skip auth entirely and render the app with fake data.
   if (mockMode) {
     setRefresh(renderBody);
     setRouteRenderer(renderRoute);
-    window.addEventListener("hashchange", renderRoute);
+    initRouter(renderRoute);
     initPullRefresh();
     initSwipe();
     gateStudents();
@@ -234,7 +293,7 @@ async function boot(): Promise<void> {
   }
 
   if (!getSession()) {
-    render(signInScreen(), app());
+    renderSignIn();
     return;
   }
 
@@ -242,10 +301,11 @@ async function boot(): Promise<void> {
 
   setRefresh(renderBody);
   setRouteRenderer(renderRoute);
-  window.addEventListener("hashchange", renderRoute);
+  initRouter(renderRoute);
   initPullRefresh();
   initSwipe();
   gateStudents();
+  healPush();
   renderRoute();
 }
 
