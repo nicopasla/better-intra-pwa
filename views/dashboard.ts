@@ -1,15 +1,25 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { me, upcomingEvals, events, Me, UpcomingResponse, CalendarEvent } from "../data.ts";
+import {
+  me,
+  upcomingEvals,
+  events,
+  Me,
+  UpcomingEval,
+  UpcomingResponse,
+  CalendarEvent,
+} from "../data.ts";
 import { refresh } from "../refresh.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { clockTime } from "../lib/format.ts";
+import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
+import CHECK_SVG from "../assets/check.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -17,24 +27,33 @@ let allEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
 
-const svg18 = (raw: string) => unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
+const svg18 = (raw: string) =>
+  unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
 
 export function dashboardView(): unknown {
-  if (loading) return card(html`<div class="flex justify-center py-10"><span class="loading loading-spinner loading-lg"></span></div>`);
+  if (loading)
+    return card(
+      html`<div class="flex justify-center py-10">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>`,
+    );
   if (error) {
     return html`
-      <div class="card bg-base-100 shadow-xl"><div class="card-body items-center gap-3">
-        <p class="text-sm opacity-70">Couldn't load your dashboard.</p>
-        <p class="text-xs text-error">${error}</p>
-        <button class="btn btn-sm btn-outline" @click=${() => loadDashboard()}>Retry</button>
-      </div></div>
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body items-center gap-3">
+          <p class="text-sm opacity-70">Couldn't load your dashboard.</p>
+          <p class="text-xs text-error">${error}</p>
+          <button
+            class="btn btn-sm btn-outline"
+            @click=${() => loadDashboard()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     `;
   }
-  return html`
-    ${profileCard()}
-    ${upcomingCard()}
-    ${eventsCard()}
-  `;
+  return html` ${profileCard()} ${upcomingCard()} ${eventsCard()} `;
 }
 
 function card(content: unknown, title?: string) {
@@ -64,7 +83,8 @@ function profileCard() {
               ? html`<div class="flex flex-wrap gap-2 mt-1.5">
                   ${(m.groups ?? []).map(
                     (g) =>
-                      html`<span class="badge badge-lg badge-primary font-semibold"
+                      html`<span
+                        class="badge badge-lg badge-primary font-semibold"
                         >${g}</span
                       >`,
                   )}
@@ -162,7 +182,8 @@ function avatarBlock() {
 }
 
 function upcomingCard() {
-  const items = upcoming.items;
+  const done = new Set(getDoneEvals());
+  const items = upcoming.items.filter((e) => !done.has(e.id));
   const evalPart =
     items.length === 0
       ? html`<p class="text-sm opacity-60">
@@ -171,21 +192,45 @@ function upcomingCard() {
             : "Enable notifications to start tracking evaluations."}
         </p>`
       : html`<ul class="flex flex-col divide-y divide-base-300">
-          ${items.map(
-            (e) => html`<li class="flex items-center justify-between gap-3 py-2">
-              <div class="min-w-0">
-                <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
-                <div class="text-xs opacity-60">
-                  ${e.state === "revealed" ? "Correctors revealed" : "Booked"} · ${clockTime(e.beginAt)}
-                </div>
-              </div>
-              <span
-                class="badge badge-lg whitespace-nowrap ${e.state === "revealed" ? "badge-success" : "badge-warning"}"
-              >${countdown(e.beginAt)}</span>
-            </li>`,
-          )}
+          ${items.map(evalRow)}
         </ul>`;
   return card(evalPart, "Upcoming");
+}
+
+function evalRow(e: UpcomingEval) {
+  const started = new Date(e.beginAt).getTime() <= Date.now();
+  const label =
+    e.state === "revealed" && e.correcteds?.length
+      ? e.correcteds.join(", ")
+      : e.state === "revealed"
+        ? "Revealed"
+        : "Booked";
+  return html`<li class="flex items-center justify-between gap-3 py-2">
+    <div class="min-w-0">
+      <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
+      <div class="text-xs opacity-60">${label} · ${clockTime(e.beginAt)}</div>
+    </div>
+    <div class="flex items-center gap-1 flex-none">
+      <span
+        class="badge badge-lg whitespace-nowrap ${e.state === "revealed"
+          ? "badge-success"
+          : "badge-warning"}"
+        >${countdown(e.beginAt)}</span
+      >
+      ${started
+        ? html`<button
+            class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
+            title="Mark as done"
+            @click=${() => {
+              markEvalDone(e.id);
+              refresh();
+            }}
+          >
+            ${svg18(CHECK_SVG)}
+          </button>`
+        : ""}
+    </div>
+  </li>`;
 }
 
 function eventsCard() {
@@ -202,9 +247,7 @@ function eventsCard() {
     );
   }
   return card(
-    html`<div class="flex flex-col gap-3">
-      ${allEvents.map(eventCard)}
-    </div>`,
+    html`<div class="flex flex-col gap-3">${allEvents.map(eventCard)}</div>`,
     "Events",
   );
 }
@@ -252,7 +295,9 @@ function eventCard(e: CalendarEvent) {
             >${svg16(CLOCK_SVG)}${eventRelative(start)}</span
           >
           ${e.location
-            ? html`<span class="flex items-center gap-0.5">📍 ${e.location}</span>`
+            ? html`<span class="flex items-center gap-0.5"
+                >📍 ${e.location}</span
+              >`
             : ""}
         </div>
       </div>
@@ -298,7 +343,14 @@ const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 function countdown(iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return "starting now";
+  if (diff <= 0) {
+    const totalMin = Math.floor(-diff / 60000);
+    if (totalMin < 1) return "now";
+    if (totalMin < 60) return `${totalMin}m ago`;
+    const h = Math.floor(totalMin / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
   const totalMin = Math.floor(diff / 60000);
   if (totalMin < 60) return `in ${totalMin} min`;
   const h = Math.floor(totalMin / 60);
@@ -319,8 +371,11 @@ export function loadDashboard(silent = false): void {
       if (m.status === "fulfilled") meData = m.value;
       else if (!silent) error = friendly(m.reason);
       if (u.status === "fulfilled") {
-        upcoming = u.value;
-        const booked = u.value.items.filter((i) => i.state === "booked").length;
+        upcoming = { ...u.value, items: mergeEvals(u.value.items) };
+        const now = Date.now();
+        const booked = upcoming.items.filter(
+          (i) => i.state === "booked" && new Date(i.beginAt).getTime() > now,
+        ).length;
         if (booked > 0) setAppBadge(booked);
         else clearAppBadge();
       } else if (!silent) error ||= friendly(u.reason);

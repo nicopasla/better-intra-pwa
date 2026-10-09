@@ -128,11 +128,20 @@ export const mock = {
     tracked: true,
     items: [
       {
+        id: 4,
+        beginAt: mins(-5),
+        state: "revealed" as const,
+        project: "Shrek's Swamp",
+        slug: "shreks-swamp",
+        correcteds: ["donkey"],
+      },
+      {
         id: 1,
         beginAt: mins(35),
         state: "revealed" as const,
         project: "Swamp Defense",
         slug: "swamp-defense",
+        correcteds: ["donkey", "fiona"],
       },
       {
         id: 2,

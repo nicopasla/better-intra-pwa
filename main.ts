@@ -2,12 +2,26 @@ import "./style.css";
 import { html, render } from "lit-html";
 import { exchangeCode, getSession, loginUrl, setSession } from "./api.ts";
 import { initTheme } from "./theme.ts";
-import { currentTab, renderScreen, renderShell, Tab, setRouteRenderer } from "./shell.ts";
+import {
+  currentTab,
+  renderScreen,
+  renderShell,
+  Tab,
+  setRouteRenderer,
+} from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import { dashboardView, loadDashboard } from "./views/dashboard.ts";
-import { profileView, loadProfile, profileAttachObservers } from "./views/profile.ts";
+import {
+  profileView,
+  loadProfile,
+  profileAttachObservers,
+} from "./views/profile.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
-import { studentsView, loadStudents, studentsAttachObservers } from "./views/students.ts";
+import {
+  studentsView,
+  loadStudents,
+  studentsAttachObservers,
+} from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import { registerServiceWorker } from "./push.ts";
 import { mockMode } from "./mock.ts";
@@ -36,9 +50,6 @@ function signInScreen() {
           <h1 class="text-2xl font-bold">Better Intra</h1>
           <a class="btn btn-primary w-full" href=${loginUrl()}
             >Sign in with 42</a
-          >
-          <a class="btn btn-ghost w-full" href="?mock=1"
-            >Preview with demo data</a
           >
         </div>
       </div>
