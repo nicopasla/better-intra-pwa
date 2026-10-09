@@ -481,7 +481,7 @@ function evaluationsTab() {
   const successColor = ok ? "rgb(34,197,94)" : "rgb(239,68,68)";
   return html`
     ${card(
-      html`<div class="flex items-center justify-end gap-2">
+      html`<div class="flex flex-wrap items-center justify-center gap-2">
         ${g?.successPercentage != null
           ? html`<span
               class="text-xl font-bold px-5 py-2 rounded-xl"
