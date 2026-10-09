@@ -65,15 +65,25 @@ self.addEventListener("push", (event) => {
   // Render the eval time in the device's local timezone when provided.
   if (data.beginAt) {
     try {
-      const time = new Date(data.beginAt).toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const project = data.project || "Evaluation";
+      const d = new Date(data.beginAt);
+      const now = new Date();
+      const sameDay =
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+      const p = (n) => String(n).padStart(2, "0");
+      const time = `${p(d.getHours())}:${p(d.getMinutes())}`;
+      const stamp = sameDay
+        ? time
+        : `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(
+            d.getFullYear(),
+          ).slice(2)} ${time}`;
       const names = Array.isArray(data.correcteds) ? data.correcteds : [];
-      body = names.length
-        ? `Correcting ${names.join(", ")} · ${project} · ${time}`
-        : `${project} · ${time}`;
+      const parts = [];
+      if (names.length) parts.push(`Correcting ${names.join(", ")}`);
+      if (data.project) parts.push(data.project);
+      if (stamp) parts.push(stamp);
+      body = parts.join(" · ");
     } catch {
       /* keep the fallback body */
     }

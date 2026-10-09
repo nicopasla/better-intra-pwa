@@ -80,3 +80,28 @@ const fmtDateTime = new Intl.DateTimeFormat(LOCALE, {
 export function dateTime(iso: string | number | Date): string {
   return fmtDateTime.format(new Date(iso));
 }
+
+const fmtTimeShort = new Intl.DateTimeFormat(LOCALE, {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const fmtDateShort = new Intl.DateTimeFormat(LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+});
+
+/** "14:05" when today, else "05/01/26 14:05" (device locale/tz). */
+export function dateTimeShort(iso: string | number | Date): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  return sameDay
+    ? fmtTimeShort.format(date)
+    : `${fmtDateShort.format(date)} ${fmtTimeShort.format(date)}`;
+}

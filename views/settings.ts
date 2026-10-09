@@ -39,6 +39,7 @@ let blob: BlobSettings | null = null;
 let sessions: SessionItem[] = [];
 let loaded = false;
 let busy = false;
+let testing: "generic" | "booked" | "revealed" | null = null;
 let logmeError = "";
 let pushEnabled = false;
 let pushMessage = "";
@@ -136,24 +137,24 @@ function notificationsSection() {
         @change=${onTogglePush}
       />
     </label>
-    <div class="flex flex-wrap gap-2 self-start">
+    <div class="join self-start">
       <button
-        class="btn btn-sm btn-outline"
-        ?disabled=${busy || !pushEnabled}
+        class="btn btn-sm btn-outline join-item ${testing === "generic" ? "loading" : ""}"
+        ?disabled=${!pushEnabled || testing === "generic"}
         @click=${() => onTest()}
       >
         Send test
       </button>
       <button
-        class="btn btn-sm btn-outline"
-        ?disabled=${busy || !pushEnabled}
+        class="btn btn-sm btn-outline join-item ${testing === "booked" ? "loading" : ""}"
+        ?disabled=${!pushEnabled || testing === "booked"}
         @click=${() => onTest("booked")}
       >
         Evaluation Booked
       </button>
       <button
-        class="btn btn-sm btn-outline"
-        ?disabled=${busy || !pushEnabled}
+        class="btn btn-sm btn-outline join-item ${testing === "revealed" ? "loading" : ""}"
+        ?disabled=${!pushEnabled || testing === "revealed"}
         @click=${() => onTest("revealed")}
       >
         Evaluation in 15 min
@@ -350,7 +351,8 @@ async function onTogglePush(e: Event) {
 }
 
 async function onTest(variant?: "booked" | "revealed") {
-  busy = true;
+  const mine = variant ?? "generic";
+  testing = mine;
   pushMessage = "";
   refresh();
   try {
@@ -361,7 +363,7 @@ async function onTest(variant?: "booked" | "revealed") {
   } catch {
     pushMessage = "Failed to reach the push service.";
   } finally {
-    busy = false;
+    if (testing === mine) testing = null;
     refresh();
   }
 }

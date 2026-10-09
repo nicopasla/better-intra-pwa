@@ -12,7 +12,7 @@ import {
 import { refresh } from "../refresh.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
-import { clockTime } from "../lib/format.ts";
+import { dateTimeShort } from "../lib/format.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
@@ -207,8 +207,8 @@ function evalRow(e: UpcomingEval) {
         : "Booked";
   return html`<li class="flex items-center justify-between gap-3 py-2">
     <div class="min-w-0">
-      <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
-      <div class="text-xs opacity-60">${label} · ${clockTime(e.beginAt)}</div>
+      <div class="font-medium truncate">${e.project ?? ""}</div>
+      <div class="text-xs opacity-60">${label} · ${dateTimeShort(e.beginAt)}</div>
     </div>
     <div class="flex items-center gap-1 flex-none">
       <span
