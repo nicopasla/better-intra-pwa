@@ -1,6 +1,6 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { Me, ProfileStats, me, profileStats } from "../data.ts";
+import { Me, ProfileStats, me, outstandingIds, profileStats } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import {
   SEGMENTED_TABS_CSS,
@@ -12,6 +12,7 @@ import { saveData } from "../lib/network.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import STAR_SVG from "../assets/star-lucide.svg?raw";
 
 type SubTab = "overview" | "projects" | "achievements";
 
@@ -121,6 +122,9 @@ export async function loadProfile(force = false): Promise<void> {
   }
   try {
     const [m, s] = await Promise.all([me(), profileStats().catch(() => null)]);
+    const outstanding = await outstandingIds(
+      m.projects?.recent?.length ?? 0,
+    ).catch(() => ({}) as Record<number, number>);
     meData = {
       ...m,
       groups: m.groups ?? [],
@@ -129,11 +133,14 @@ export async function loadProfile(force = false): Promise<void> {
             ...m.projects,
             active: (m.projects.active ?? []).map((p) => ({
               ...p,
+              id: p.id ?? null,
               occurrence: p.occurrence ?? 0,
             })),
             recent: (m.projects.recent ?? []).map((p) => ({
               ...p,
+              id: p.id ?? null,
               occurrence: p.occurrence ?? 0,
+              outstanding: outstanding[p.id ?? -1] ?? 0,
             })),
           }
         : {
@@ -324,6 +331,15 @@ const occurrenceBadge = (n: number) =>
       >`
     : "";
 
+const outstandingBadge = (n: number) =>
+  n > 0
+    ? html`<span
+        class="badge badge-sm badge-warning gap-1 font-mono"
+        title="Outstanding corrector"
+        >${svg18(STAR_SVG)}${n}</span
+      >`
+    : "";
+
 function projectsTab(m: Me) {
   const p = m.projects;
   return html`
@@ -369,12 +385,15 @@ function projectsTab(m: Me) {
                     ${occurrenceBadge(proj.occurrence)}
                   </div>
                 </div>
-                <span
-                  class="badge badge-lg font-bold ${proj.validated
-                    ? "badge-success"
-                    : "badge-error"}"
-                  >${proj.finalMark ?? "—"}</span
-                >`;
+                <span class="flex items-center gap-1.5 shrink-0">
+                  ${outstandingBadge(proj.outstanding)}
+                  <span
+                    class="badge badge-lg font-bold ${proj.validated
+                      ? "badge-success"
+                      : "badge-error"}"
+                    >${proj.finalMark ?? "—"}</span
+                  >
+                </span>`;
               return html`<li class="py-2">
                 ${href
                   ? html`<a

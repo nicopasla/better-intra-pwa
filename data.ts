@@ -14,6 +14,7 @@ export interface MeCursus {
 }
 
 export interface MeProject {
+  id: number | null;
   name: string;
   slug: string | null;
   occurrence: number;
@@ -23,6 +24,7 @@ export interface MeRecentProject extends MeProject {
   finalMark: number | null;
   validated: boolean;
   markedAt: string | null;
+  outstanding: number;
 }
 
 export interface MeProjects {
@@ -170,6 +172,24 @@ export const profileStats = () => {
     `/api/v1/private/profile-stats?target=${encodeURIComponent(session.login)}`,
   );
 };
+
+/** Outstanding-corrector counts keyed by projects_user id. Triggers a sync. */
+export async function outstandingIds(
+  count: number,
+): Promise<Record<number, number>> {
+  if (mockMode) return mock.outstanding;
+  const session = getSession();
+  if (!session) return {};
+  const res = await workerFetch(
+    `/api/v1/private/outstanding?target=${encodeURIComponent(session.login)}&count=${count}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = (await res.json()) as { ids?: Record<string, number> };
+  const ids: Record<number, number> = {};
+  for (const [k, v] of Object.entries(data.ids ?? {})) ids[Number(k)] = v;
+  return ids;
+}
 
 export async function friendsData(logins: string[]): Promise<Friend[]> {
   if (mockMode) return Promise.resolve(mock.friends);
