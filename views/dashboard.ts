@@ -10,7 +10,12 @@ import {
   CalendarEvent,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { enablePush, getExistingSubscription, pushSupported } from "../push.ts";
+import {
+  disablePush,
+  enablePush,
+  getExistingSubscription,
+  pushSupported,
+} from "../push.ts";
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
@@ -191,14 +196,14 @@ function upcomingCard() {
   const needsPush = pushSupported() && pushSubscribed !== true;
   const evalPart =
     items.length === 0
-      ? html`<div class="flex flex-col items-start gap-2">
-          <p class="text-sm opacity-60">
-            ${needsPush
-              ? "Enable notifications to start tracking evaluations."
-              : "Nothing planned right now."}
-          </p>
-          ${needsPush ? enablePushBlock() : ""}
-        </div>`
+      ? needsPush
+        ? html`<div class="flex flex-col items-start gap-2 w-full">
+            <p class="text-sm opacity-60">
+              Enable notifications to start tracking evaluations.
+            </p>
+            ${enablePushBlock()}
+          </div>`
+        : html`<p class="text-sm opacity-60">Nothing planned right now.</p>`
       : html`<ul class="flex flex-col divide-y divide-base-300">
           ${items.map(evalRow)}
         </ul>`;
@@ -246,30 +251,41 @@ function evalRow(e: UpcomingEval) {
 function enablePushBlock() {
   if (!pushSupported()) return "";
   return html`
-    <button
-      class="btn btn-sm btn-primary ${pushBusy ? "loading" : ""}"
-      ?disabled=${pushBusy}
-      @click=${() => void onEnableNotifications()}
+    <label
+      class="flex items-center justify-between gap-3 cursor-pointer w-full"
     >
-      Enable notifications
-    </button>
+      <span>Enable notifications</span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${pushSubscribed === true}
+        ?disabled=${pushBusy}
+        @change=${onTogglePush}
+      />
+    </label>
     ${pushError ? html`<p class="text-xs text-warning">${pushError}</p>` : ""}
   `;
 }
 
-async function onEnableNotifications() {
+async function onTogglePush(e: Event) {
+  const on = (e.target as HTMLInputElement).checked;
   pushBusy = true;
   pushError = "";
   refresh();
   try {
-    await enablePush();
-    pushSubscribed = true;
-    loadDashboard(true);
+    if (on) {
+      await enablePush();
+      pushSubscribed = true;
+      loadDashboard(true);
+    } else {
+      await disablePush();
+      pushSubscribed = false;
+    }
   } catch (err) {
     pushError =
       err instanceof Error && err.message === "permission_denied"
         ? "Notifications permission was denied."
-        : "Could not enable notifications.";
+        : "Could not update notifications.";
   } finally {
     pushBusy = false;
     refresh();
