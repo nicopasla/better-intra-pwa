@@ -29,7 +29,7 @@ export const mock = {
     correctionPoints: 42,
     level: 8.47,
     grade: "Ogre at 42cursus",
-    location: "c3r1p2",
+    location: "shi-r12-p2",
     campusId: 12,
     campusName: "Duloc",
     poolMonth: "june",
