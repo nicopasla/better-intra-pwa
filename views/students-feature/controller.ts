@@ -2,11 +2,6 @@ import type { TemplateResult } from "lit-html";
 import { loginUrl } from "../../api.ts";
 import { observeTabsOverflow } from "../../lib/segmented-tabs.ts";
 import {
-  addFriend,
-  clearFriendsCache,
-  isFriend,
-} from "../friends-feature/friends.ts";
-import {
   INITIAL_VISIBLE_COUNT,
   WINDOW_STEP,
   fetchPiscines,
@@ -39,8 +34,6 @@ let initialized = false;
 let sentinelObserver: IntersectionObserver | null = null;
 let tabsResizeObserver: ResizeObserver | null = null;
 let syncObserversFn: (() => void) | null = null;
-
-const LONG_PRESS_MS = 500;
 
 export function getStudentsView(): TemplateResult | null {
   return pendingView;
@@ -143,15 +136,6 @@ export function initStudentsFeature(onUpdate: () => void): void {
   let activeCount = 0;
   let filterOptions: StudentsFilterOptions | null = null;
   let searchTimeout: number | null = null;
-  let pressTimer: number | null = null;
-  let pressStartX = 0;
-  let pressStartY = 0;
-  let pressArmed = false;
-  let pressFired = false;
-  let lastPointerType = "";
-  let longPressFired = false;
-  let friendToast: { ok: boolean; message: string } | null = null;
-  let friendToastTimer: number | null = null;
   let isMaximized = false;
   let tabsOverflowing = false;
   let disposed = false;
@@ -290,87 +274,7 @@ export function initStudentsFeature(onUpdate: () => void): void {
     await load();
   };
 
-  const showFriendToast = (ok: boolean, message: string) => {
-    friendToast = { ok, message };
-    if (friendToastTimer !== null) window.clearTimeout(friendToastTimer);
-    friendToastTimer = window.setTimeout(() => {
-      friendToastTimer = null;
-      friendToast = null;
-      rerender();
-    }, 2500);
-    rerender();
-  };
-
-  const addStudentFriend = async (login: string) => {
-    try {
-      if (await isFriend(login)) {
-        showFriendToast(true, `${login} is already a friend`);
-        return;
-      }
-      await addFriend(login);
-      await clearFriendsCache();
-      showFriendToast(true, `Added ${login} to friends`);
-    } catch {
-      showFriendToast(false, `Could not add ${login}`);
-    }
-  };
-
-  const clearPress = () => {
-    if (pressTimer !== null) {
-      window.clearTimeout(pressTimer);
-      pressTimer = null;
-    }
-    pressArmed = false;
-  };
-
-  const triggerLongPress = (login: string) => {
-    if (pressFired) return;
-    pressFired = true;
-    longPressFired = true;
-    clearPress();
-    try {
-      navigator.vibrate?.(15);
-    } catch {
-      /* unsupported */
-    }
-    void addStudentFriend(login);
-  };
-
-  const startRowPress = (e: PointerEvent, login: string) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    lastPointerType = e.pointerType || "";
-    pressArmed = true;
-    pressFired = false;
-    longPressFired = false;
-    pressStartX = e.clientX;
-    pressStartY = e.clientY;
-    if (pressTimer !== null) window.clearTimeout(pressTimer);
-    pressTimer = window.setTimeout(() => {
-      pressTimer = null;
-      triggerLongPress(login);
-    }, LONG_PRESS_MS);
-  };
-
-  const moveRowPress = (e: PointerEvent) => {
-    if (!pressArmed || pressTimer === null) return;
-    const dx = e.clientX - pressStartX;
-    const dy = e.clientY - pressStartY;
-    if (dx * dx + dy * dy > 144) clearPress();
-  };
-
-  const rowContextMenu = (e: Event, login: string) => {
-    e.preventDefault();
-    if (lastPointerType === "touch" || lastPointerType === "pen") {
-      pressArmed = true;
-      triggerLongPress(login);
-    }
-  };
-
   const openRow = (login: string) => {
-    if (longPressFired) {
-      longPressFired = false;
-      return;
-    }
     window.open(`https://profile.intra.42.fr/users/${login}`, "_blank");
   };
 
@@ -446,10 +350,6 @@ export function initStudentsFeature(onUpdate: () => void): void {
       }
       rerender();
     },
-    onRowPointerDown: startRowPress,
-    onRowPointerMove: moveRowPress,
-    onRowPointerUp: clearPress,
-    onRowContextMenu: rowContextMenu,
     onRowClick: openRow,
     onConnect: () => {
       window.location.href = loginUrl();
@@ -481,7 +381,6 @@ export function initStudentsFeature(onUpdate: () => void): void {
     activeCount,
     filterOptions,
     currentYear,
-    friendToast,
     isMaximized,
     tabsOverflowing,
   });

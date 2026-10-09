@@ -75,7 +75,6 @@ export interface StudentsTemplateState {
   activeCount: number;
   filterOptions: StudentsFilterOptions | null;
   currentYear: number;
-  friendToast: { ok: boolean; message: string } | null;
   isMaximized: boolean;
   tabsOverflowing: boolean;
 }
@@ -101,10 +100,6 @@ export interface StudentsTemplateHandlers {
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
   onLoadMore: () => void;
-  onRowPointerDown: (e: PointerEvent, login: string) => void;
-  onRowPointerMove: (e: PointerEvent) => void;
-  onRowPointerUp: () => void;
-  onRowContextMenu: (e: Event, login: string) => void;
   onRowClick: (login: string) => void;
   onConnect: () => void;
   onToggleMaximize: () => void;
@@ -343,7 +338,6 @@ export function renderStudentsDialogTemplate(
     filteredTotal,
     activeCount,
     currentYear,
-    friendToast,
     isMaximized,
     tabsOverflowing,
   } = state;
@@ -559,12 +553,6 @@ export function renderStudentsDialogTemplate(
       <div
         class="row ${isPaged && r.active === false ? "inactive" : ""}"
         @click="${() => handlers.onRowClick(r.login)}"
-        @pointerdown="${(e: PointerEvent) =>
-          handlers.onRowPointerDown(e, r.login)}"
-        @pointermove="${handlers.onRowPointerMove}"
-        @pointerup="${handlers.onRowPointerUp}"
-        @pointercancel="${handlers.onRowPointerUp}"
-        @contextmenu="${(e: Event) => handlers.onRowContextMenu(e, r.login)}"
       >
         <div class="row-head">${renderAvatar(r)} ${renderLogin(r)}</div>
         <div class="fullname">
@@ -583,12 +571,6 @@ export function renderStudentsDialogTemplate(
     <div
       class="row ${tab === "students" && r.active === false ? "inactive" : ""}"
       @click="${() => handlers.onRowClick(r.login)}"
-      @pointerdown="${(e: PointerEvent) =>
-        handlers.onRowPointerDown(e, r.login)}"
-      @pointermove="${handlers.onRowPointerMove}"
-      @pointerup="${handlers.onRowPointerUp}"
-      @pointercancel="${handlers.onRowPointerUp}"
-      @contextmenu="${(e: Event) => handlers.onRowContextMenu(e, r.login)}"
     >
       ${renderAvatar(r)} ${renderInfo(r)}
       <div class="row-meta">
@@ -613,9 +595,6 @@ export function renderStudentsDialogTemplate(
         border-radius: 0.5rem;
         cursor: pointer;
         min-width: 0;
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
       }
       .row:hover {
         background: var(--color-base-200);
@@ -909,7 +888,7 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div class="students-feature relative flex flex-col bg-base-100 rounded-xl pb-24">
+    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-24">
       <div
         class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
       >
@@ -1117,20 +1096,6 @@ export function renderStudentsDialogTemplate(
           })}
         </div>
       </div>
-      ${friendToast
-        ? html`<div
-            class="absolute left-1/2 z-50 -translate-x-1/2"
-            style="bottom: calc(8rem + env(safe-area-inset-bottom) + 0.5rem);"
-          >
-            <div
-              class="alert ${friendToast.ok
-                ? "alert-success"
-                : "alert-error"} py-2 text-sm shadow-lg"
-            >
-              <span>${friendToast.message}</span>
-            </div>
-          </div>`
-        : ""}
     </div>
   `;
 }
