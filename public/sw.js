@@ -61,8 +61,25 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title || "Better Intra";
+  let body = data.body || "";
+  // Render the eval time in the device's local timezone when provided.
+  if (data.beginAt) {
+    try {
+      const time = new Date(data.beginAt).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const project = data.project || "Evaluation";
+      const names = Array.isArray(data.correcteds) ? data.correcteds : [];
+      body = names.length
+        ? `Correcting ${names.join(", ")} · ${project} · ${time}`
+        : `${project} · ${time}`;
+    } catch {
+      /* keep the fallback body */
+    }
+  }
   const options = {
-    body: data.body || "",
+    body,
     tag: data.tag,
     renotify: Boolean(data.tag),
     icon: "/icons/icon-192.png",

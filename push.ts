@@ -85,7 +85,9 @@ export interface PushTestResult {
   reason?: string;
 }
 
-export async function sendTest(): Promise<PushTestResult> {
+export async function sendTest(
+  variant?: "booked" | "revealed",
+): Promise<PushTestResult> {
   // Send to THIS device's own subscription, otherwise the worker would pick
   // the first stored one (e.g. a desktop browser) and the test is meaningless.
   const sub = await getExistingSubscription();
@@ -95,7 +97,7 @@ export async function sendTest(): Promise<PushTestResult> {
   const res = await workerFetch("/api/v1/private/push/test", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, variant }),
   });
   let data: Partial<PushTestResult> = {};
   try {

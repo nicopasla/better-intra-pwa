@@ -136,13 +136,29 @@ function notificationsSection() {
         @change=${onTogglePush}
       />
     </label>
-    <button
-      class="btn btn-sm btn-outline self-start"
-      ?disabled=${busy || !pushEnabled}
-      @click=${onTest}
-    >
-      Send test
-    </button>
+    <div class="flex flex-wrap gap-2 self-start">
+      <button
+        class="btn btn-sm btn-outline"
+        ?disabled=${busy || !pushEnabled}
+        @click=${() => onTest()}
+      >
+        Send test
+      </button>
+      <button
+        class="btn btn-sm btn-outline"
+        ?disabled=${busy || !pushEnabled}
+        @click=${() => onTest("booked")}
+      >
+        Evaluation Booked
+      </button>
+      <button
+        class="btn btn-sm btn-outline"
+        ?disabled=${busy || !pushEnabled}
+        @click=${() => onTest("revealed")}
+      >
+        Evaluation in 15 min
+      </button>
+    </div>
     ${pushMessage
       ? html`<p
           class="text-xs ${pushMessage.startsWith("Delivered")
@@ -333,12 +349,12 @@ async function onTogglePush(e: Event) {
   }
 }
 
-async function onTest() {
+async function onTest(variant?: "booked" | "revealed") {
   busy = true;
   pushMessage = "";
   refresh();
   try {
-    const res = await sendTest();
+    const res = await sendTest(variant);
     pushMessage = res.ok
       ? `Delivered by ${res.host} (${res.status}).`
       : `Rejected (${res.status})${res.host ? ` by ${res.host}` : ""}${res.reason ? ` — ${res.reason}` : ""}.`;
