@@ -63,7 +63,7 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Better Intra";
   let body = data.body || "";
   // Render the eval time in the device's local timezone when provided.
-  if (data.beginAt) {
+  if (data.beginAt && (data.kind === "booked" || data.kind === "revealed")) {
     try {
       const d = new Date(data.beginAt);
       const now = new Date();
@@ -79,11 +79,17 @@ self.addEventListener("push", (event) => {
             d.getFullYear(),
           ).slice(2)} ${time}`;
       const names = Array.isArray(data.correcteds) ? data.correcteds : [];
-      const parts = [];
-      if (names.length) parts.push(`Correcting ${names.join(", ")}`);
-      if (data.project) parts.push(data.project);
-      if (stamp) parts.push(stamp);
-      body = parts.join(" · ");
+      const detail = [];
+      if (data.kind === "revealed") {
+        if (names.length) detail.push(`Correcting ${names.join(", ")}`);
+        if (data.project) detail.push(data.project);
+      } else {
+        detail.push("Evaluating someone");
+      }
+      if (stamp) detail.push(`at ${stamp}`);
+      body = `${
+        data.kind === "revealed" ? "Evaluation in 15 min" : "Evaluation Booked"
+      }\n${detail.join(" ")}`;
     } catch {
       /* keep the fallback body */
     }

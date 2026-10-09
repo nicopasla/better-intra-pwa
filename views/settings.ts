@@ -137,23 +137,23 @@ function notificationsSection() {
         @change=${onTogglePush}
       />
     </label>
-    <div class="join self-start">
+    <div class="flex flex-wrap gap-2 self-start">
       <button
-        class="btn btn-sm btn-outline join-item ${testing === "generic" ? "loading" : ""}"
+        class="btn btn-sm btn-outline ${testing === "generic" ? "loading" : ""}"
         ?disabled=${!pushEnabled || testing === "generic"}
         @click=${() => onTest()}
       >
         Send test
       </button>
       <button
-        class="btn btn-sm btn-outline join-item ${testing === "booked" ? "loading" : ""}"
+        class="btn btn-sm btn-outline ${testing === "booked" ? "loading" : ""}"
         ?disabled=${!pushEnabled || testing === "booked"}
         @click=${() => onTest("booked")}
       >
         Evaluation Booked
       </button>
       <button
-        class="btn btn-sm btn-outline join-item ${testing === "revealed" ? "loading" : ""}"
+        class="btn btn-sm btn-outline ${testing === "revealed" ? "loading" : ""}"
         ?disabled=${!pushEnabled || testing === "revealed"}
         @click=${() => onTest("revealed")}
       >
