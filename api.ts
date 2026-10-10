@@ -1,3 +1,4 @@
+import generateRandomUsername from "generate-random-username";
 import { hashLogin } from "./lib/crypto.ts";
 import { mockMode } from "./mock.ts";
 import { refresh } from "./refresh.ts";
@@ -6,6 +7,20 @@ export const WORKER_URL = "https://api.betterintra.com";
 
 const TOKEN_KEY = "ft_pwa_token";
 const LOGIN_KEY = "ft_pwa_login";
+const DEVICE_KEY = "ft_pwa_device";
+
+/** Stable per-device name so repeated phone logins collapse into one session. */
+export function getDeviceName(): string {
+  try {
+    const existing = localStorage.getItem(DEVICE_KEY);
+    if (existing) return existing;
+    const name = generateRandomUsername({ capitalize: true, separator: " " });
+    localStorage.setItem(DEVICE_KEY, name);
+    return name;
+  } catch {
+    return "";
+  }
+}
 
 export interface Session {
   token: string;
@@ -36,8 +51,10 @@ export function clearSession(): void {
 
 /** Full-page OAuth entry point on the worker. */
 export function loginUrl(): string {
-  const redirect = `${location.origin}/`;
-  return `${WORKER_URL}/login?redirect_uri=${encodeURIComponent(redirect)}`;
+  const redirect = new URL(`${location.origin}/`);
+  const device = getDeviceName();
+  if (device) redirect.searchParams.set("ft_device", device);
+  return `${WORKER_URL}/login?redirect_uri=${encodeURIComponent(redirect.toString())}`;
 }
 
 export async function exchangeCode(

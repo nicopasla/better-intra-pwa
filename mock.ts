@@ -290,14 +290,17 @@ export const mock = {
       {
         id: "1",
         label: "Safari · iOS 27",
+        name: "Blue Fox",
         current: true,
         createdAt: now - 3600 * 1000,
+        lastUsedAt: now - 30 * 1000,
       },
       {
         id: "2",
         label: "Firefox 131",
         current: false,
         createdAt: now - 3 * 86400000,
+        lastUsedAt: now - 2 * 3600 * 1000,
       },
     ],
   },

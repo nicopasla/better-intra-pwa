@@ -26,7 +26,7 @@ import {
   onInstallAvailability,
   promptInstall,
 } from "../lib/install.ts";
-import { dateTime } from "../lib/format.ts";
+import { dateTime, relativeTime } from "../lib/format.ts";
 import {
   getThemePreference,
   setThemePreference,
@@ -39,6 +39,36 @@ const svg16 = (raw: string) =>
 
 function format24h(ts: number): string {
   return dateTime(ts);
+}
+
+interface SessionGroup {
+  key: string;
+  sessions: SessionItem[];
+  primary: SessionItem;
+  current: boolean;
+}
+
+function sessionRecency(s: SessionItem): number {
+  return s.lastUsedAt ?? s.createdAt ?? 0;
+}
+
+/** Collapses sessions from the same device into one row. */
+function groupSessions(items: SessionItem[]): SessionGroup[] {
+  const map = new Map<string, SessionGroup>();
+  for (const s of items) {
+    const key = (s.name || s.label || "").trim().toLowerCase() || `id:${s.id}`;
+    let group = map.get(key);
+    if (!group) {
+      group = { key, sessions: [], primary: s, current: false };
+      map.set(key, group);
+    }
+    group.sessions.push(s);
+    if (s.current) group.current = true;
+    if (sessionRecency(s) > sessionRecency(group.primary)) group.primary = s;
+  }
+  return [...map.values()].sort(
+    (a, b) => sessionRecency(b.primary) - sessionRecency(a.primary),
+  );
 }
 
 let blob: BlobSettings | null = null;
@@ -87,8 +117,7 @@ export function settingsView(): unknown {
   const session = getSession();
   return html`
     ${section("Notifications", notificationsSection())}
-    ${section("Install", installSection())}
-    ${section("Theme", themeSection())}
+    ${section("Install", installSection())} ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("About & Debug", aboutSection())}
     ${logmeError
@@ -108,10 +137,7 @@ function installSection() {
         Add Better Intra to your home screen for a full-screen, app-like
         experience.
       </p>
-      <button
-        class="btn btn-primary btn-sm self-start"
-        @click=${onInstall}
-      >
+      <button class="btn btn-primary btn-sm self-start" @click=${onInstall}>
         Install app
       </button>
     `;
@@ -213,7 +239,9 @@ function notificationsSection() {
         Evaluation Booked
       </button>
       <button
-        class="btn btn-sm btn-outline ${testing === "revealed" ? "loading" : ""}"
+        class="btn btn-sm btn-outline ${testing === "revealed"
+          ? "loading"
+          : ""}"
         ?disabled=${!pushEnabled || testing === "revealed"}
         @click=${() => onTest("revealed")}
       >
@@ -267,36 +295,47 @@ function notificationsSection() {
 }
 
 function accountSection(login: string) {
+  const groups = groupSessions(sessions);
   return html`
     <p class="text-sm">Signed in as <span class="font-bold">${login}</span></p>
     <div class="flex flex-col gap-1">
-      ${sessions.map(
-        (s) =>
-          html`<div class="flex items-center justify-between gap-2 text-sm">
-            <div class="min-w-0">
-              <div class="truncate">
-                ${s.name ?? s.label}${s.current
-                  ? html` <span class="badge badge-primary badge-sm"
-                      >this phone</span
-                    >`
-                  : ""}
-              </div>
-              ${s.createdAt
-                ? html`<div class="text-xs opacity-50">
-                    ${format24h(s.createdAt)}
-                  </div>`
+      ${groups.map((g) => {
+        const others = g.sessions.filter((s) => !s.current);
+        const lastUsed = sessionRecency(g.primary);
+        return html`<div
+          class="flex items-center justify-between gap-2 text-sm"
+        >
+          <div class="min-w-0">
+            <div class="truncate flex items-center gap-2">
+              <span class="truncate">${g.primary.name ?? g.primary.label}</span>
+              ${g.current
+                ? html`<span class="badge badge-primary badge-sm"
+                    >this phone</span
+                  >`
+                : ""}
+              ${g.sessions.length > 1
+                ? html`<span class="badge badge-ghost badge-sm"
+                    >${g.sessions.length}</span
+                  >`
                 : ""}
             </div>
-            ${s.current
-              ? ""
-              : html`<button
-                  class="btn btn-xs btn-ghost text-error"
-                  @click=${() => void doRevoke(s.id)}
-                >
-                  Revoke
-                </button>`}
-          </div>`,
-      )}
+            <div class="text-xs opacity-50">
+              ${lastUsed
+                ? `last used ${relativeTime(lastUsed)}`
+                : format24h(g.primary.createdAt)}
+            </div>
+          </div>
+          ${others.length === 0
+            ? ""
+            : html`<button
+                class="btn btn-xs btn-ghost text-error"
+                ?disabled=${busy}
+                @click=${() => void doRevokeMany(others.map((s) => s.id))}
+              >
+                Revoke
+              </button>`}
+        </div>`;
+      })}
     </div>
     <button
       class="btn btn-sm btn-error self-start"
@@ -458,12 +497,21 @@ async function updateQuiet(patch: Record<string, unknown>) {
   }
 }
 
-async function doRevoke(id: string) {
+async function doRevokeMany(ids: string[]) {
+  if (ids.length === 0) return;
+  if (
+    !window.confirm(
+      ids.length > 1
+        ? `Sign out ${ids.length} sessions for this device?`
+        : "Sign out this device?",
+    )
+  )
+    return;
   busy = true;
   refresh();
   try {
-    await revokeSession(id);
-    sessions = sessions.filter((s) => s.id !== id);
+    await Promise.all(ids.map((id) => revokeSession(id)));
+    sessions = sessions.filter((s) => !ids.includes(s.id));
   } catch {
     /* ignore */
   }

@@ -144,6 +144,7 @@ export interface SessionItem {
   name?: string;
   country?: string;
   createdAt: number;
+  lastUsedAt?: number;
   current: boolean;
 }
 

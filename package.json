@@ -1,7 +1,7 @@
 {
   "name": "better-intra-pwa",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
     "deploy": "npm run build && npx wrangler deploy"
   },
   "dependencies": {
+    "generate-random-username": "^2.2.0",
     "lit-html": "^3.3.3"
   },
   "devDependencies": {
