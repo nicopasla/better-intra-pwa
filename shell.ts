@@ -43,52 +43,18 @@ export function currentTab(): Tab {
   return "dashboard";
 }
 
-const ORDER: Tab[] = TABS.map((t) => t.id);
-
 type RouteRenderer = () => void;
 let routeRenderer: RouteRenderer = () => {};
 
-/** main.ts registers its render pipeline so navigate() can render inside the
- *  view-transition callback (the DOM swap must happen synchronously for
- *  `startViewTransition` to capture old/new snapshots). */
+/** main.ts registers its render pipeline so navigate() can trigger a render. */
 export function setRouteRenderer(fn: RouteRenderer): void {
   routeRenderer = fn;
 }
 
-const REDUCED =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const supportsViewTransition =
-  typeof document !== "undefined" &&
-  typeof document.startViewTransition === "function";
-
-export function navigate(tab: Tab, animate = false): void {
+export function navigate(tab: Tab): void {
   if (currentTab() === tab) return;
-
-  const update = () => {
-    location.hash = `/${tab}`;
-    routeRenderer();
-  };
-
-  // Dock/tab clicks pass `animate=false` (instant switch); swipe passes true so
-  // the change plays as a cross-fade.
-  if (!animate || REDUCED || !supportsViewTransition) {
-    update();
-    return;
-  }
-
-  document.startViewTransition(update);
-}
-
-export function prevTab(): Tab | null {
-  const i = ORDER.indexOf(currentTab());
-  return i > 0 ? ORDER[i - 1] : null;
-}
-
-export function nextTab(): Tab | null {
-  const i = ORDER.indexOf(currentTab());
-  return i < ORDER.length - 1 ? ORDER[i + 1] : null;
+  location.hash = `/${tab}`;
+  routeRenderer();
 }
 
 const icon24 = (raw: string) =>

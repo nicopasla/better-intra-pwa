@@ -51,7 +51,6 @@ import {
 import { initRouter } from "./lib/router.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
-import { initSwipe } from "./swipe.ts";
 import { setTabHidden } from "./shell.ts";
 import { me } from "./data.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
@@ -343,7 +342,6 @@ async function boot(): Promise<void> {
     setRouteRenderer(renderRoute);
     initRouter(renderRoute);
     initPullRefresh();
-    initSwipe();
     gateStudents();
     if (!location.hash) location.hash = "/dashboard";
     renderRoute();
@@ -404,7 +402,6 @@ async function boot(): Promise<void> {
   setRouteRenderer(renderRoute);
   initRouter(renderRoute);
   initPullRefresh();
-  initSwipe();
   gateStudents();
   healPush();
   renderRoute();

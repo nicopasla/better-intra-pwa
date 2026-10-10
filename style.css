@@ -91,29 +91,8 @@ body {
   color: var(--color-primary-content);
 }
 
-/* ---------------------------------------------------------------------------
-   Tab view transitions (View Transitions API)
-   Default cross-fade for the content; the dock is extracted so it stays put.
----------------------------------------------------------------------------- */
 /* Cross-document view transitions: smooths full page loads (e.g. returning
    from the OAuth redirect). Ignored by browsers without support. */
 @view-transition {
   navigation: auto;
-}
-
-/* The dock is extracted into its own group that stays still (no cross-fade),
-   so the tabs never flicker during a transition. */
-.dock {
-  view-transition-name: app-dock;
-}
-
-::view-transition-old(app-dock),
-::view-transition-new(app-dock) {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*) {
-    animation: none;
-  }
 }
