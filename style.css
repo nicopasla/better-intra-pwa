@@ -93,21 +93,16 @@ body {
 
 /* ---------------------------------------------------------------------------
    Tab view transitions (View Transitions API)
-   Only `main` is named, so its snapshot slides while the dock stays put.
-   Direction comes from `html[data-ft-dir]`, set by shell.navigate().
---------------------------------------------------------------------------- */
+   Default cross-fade for the content; the dock is extracted so it stays put.
+---------------------------------------------------------------------------- */
 /* Cross-document view transitions: smooths full page loads (e.g. returning
    from the OAuth redirect). Ignored by browsers without support. */
 @view-transition {
   navigation: auto;
 }
 
-main {
-  view-transition-name: app-main;
-}
-
-/* The dock is extracted into its own group that stays still and paints on top
-   of the sliding content, so the tabs never disappear during a transition. */
+/* The dock is extracted into its own group that stays still (no cross-fade),
+   so the tabs never flicker during a transition. */
 .dock {
   view-transition-name: app-dock;
 }
@@ -115,71 +110,6 @@ main {
 ::view-transition-old(app-dock),
 ::view-transition-new(app-dock) {
   animation: none;
-}
-
-::view-transition-old(app-main) {
-  animation: ft-out 220ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
-}
-
-::view-transition-new(app-main) {
-  animation: ft-in 220ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
-}
-
-html[data-ft-dir="prev"]::view-transition-old(app-main) {
-  animation-name: ft-out-back;
-}
-
-html[data-ft-dir="prev"]::view-transition-new(app-main) {
-  animation-name: ft-in-back;
-}
-
-/* Typed transitions (preferred; falls back to the data-attribute form above). */
-::view-transition-old(app-main):active-view-transition-type(ft-prev) {
-  animation-name: ft-out-back;
-}
-
-::view-transition-new(app-main):active-view-transition-type(ft-prev) {
-  animation-name: ft-in-back;
-}
-
-@keyframes ft-out {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(-100%);
-  }
-}
-
-@keyframes ft-in {
-  from {
-    transform: translateX(100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes ft-out-back {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes ft-in-back {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -32,8 +32,7 @@ function clamped(value: number): number {
 function release(target: Tab): void {
   const m = mainEl();
   if (m) {
-    // Snap the drag preview back; the view transition (or direct navigation)
-    // handles the actual swap without a leftover translate.
+    // Drop the drag preview; the cross-fade handles the actual swap.
     m.style.transition = "none";
     m.style.transform = "";
   }

@@ -63,57 +63,22 @@ const supportsViewTransition =
   typeof document !== "undefined" &&
   typeof document.startViewTransition === "function";
 
-const supportsViewTransitionTypes =
-  supportsViewTransition &&
-  typeof (globalThis as { ViewTransition?: { prototype: object } })
-    .ViewTransition !== "undefined" &&
-  "types" in
-    (globalThis as { ViewTransition: { prototype: object } }).ViewTransition
-      .prototype;
-
-type StartViewTransition = (
-  arg: (() => void) | { update: () => void; types?: string[] },
-) => ViewTransition;
-
 export function navigate(tab: Tab, animate = false): void {
   if (currentTab() === tab) return;
-
-  // Dock/tab clicks pass `animate=false` (instant switch); swipe passes true
-  // so the slide direction (derived from tab order) matches the gesture.
-  const from = ORDER.indexOf(currentTab());
-  const to = ORDER.indexOf(tab);
-  const dir = to > from ? "next" : "prev";
-
-  if (!animate || REDUCED || !supportsViewTransition) {
-    location.hash = `/${tab}`;
-    routeRenderer();
-    return;
-  }
 
   const update = () => {
     location.hash = `/${tab}`;
     routeRenderer();
   };
-  const start = document.startViewTransition.bind(
-    document,
-  ) as unknown as StartViewTransition;
 
-  // Set the direction before starting; it only affects ::view-transition-*
-  // pseudo-elements (which exist only during a transition) so it is safe to
-  // leave in place and simply overwrite on the next navigation. Clearing it on
-  // `finished` would race with a newer transition started by a rapid swipe.
-  document.documentElement.dataset.ftDir = dir;
-
-  if (supportsViewTransitionTypes) {
-    try {
-      start({ update, types: [dir === "next" ? "ft-next" : "ft-prev"] });
-      return;
-    } catch {
-      /* fall through to the untyped form */
-    }
+  // Dock/tab clicks pass `animate=false` (instant switch); swipe passes true so
+  // the change plays as a cross-fade.
+  if (!animate || REDUCED || !supportsViewTransition) {
+    update();
+    return;
   }
 
-  start(update);
+  document.startViewTransition(update);
 }
 
 export function prevTab(): Tab | null {
