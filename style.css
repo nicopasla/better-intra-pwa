@@ -51,10 +51,20 @@ body {
 }
 
 #app {
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);
+}
+
+/* iOS standalone reports a layout viewport that is short by
+   env(safe-area-inset-top) (WebKit 313800), which unpins a `position: fixed`
+   bottom bar. Keep the dock in flow at the bottom of the (100lvh) shell and
+   stick it while scrolling instead. Unlayered, so it beats daisyUI's layered
+   `position: fixed`. */
+.dock {
+  position: sticky;
+  bottom: 0;
 }
 
 /* ---------------------------------------------------------------------------
