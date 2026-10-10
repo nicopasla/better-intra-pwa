@@ -90,6 +90,18 @@ function installCallout() {
   return "";
 }
 
+function mockButton() {
+  return html`<button
+    type="button"
+    class="btn btn-ghost btn-sm text-xs opacity-60"
+    @click=${() => {
+      location.search = "?mock";
+    }}
+  >
+    Use mock data
+  </button>`;
+}
+
 function signInScreen(expired = false) {
   return html`
     <div class="flex-1 flex items-center justify-center p-4">
@@ -105,7 +117,7 @@ function signInScreen(expired = false) {
           <a class="btn btn-primary w-full" href=${loginUrl()}
             >Sign in with 42</a
           >
-          ${installCallout()}
+          ${installCallout()} ${mockButton()}
         </div>
       </div>
     </div>
@@ -140,6 +152,7 @@ function installGateScreen() {
           <p class="text-xs opacity-60">
             Then open Better Intra from your Home Screen.
           </p>
+          ${mockButton()}
         </div>
       </div>
     </div>
