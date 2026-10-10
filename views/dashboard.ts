@@ -165,15 +165,17 @@ function upcomingCard() {
   const needsPush = pushSupported() && pushSubscribed !== true;
 
   if (items.length === 0) {
-    const evalPart = needsPush
-      ? html`<div class="flex flex-col items-start gap-2 w-full">
-          <p class="text-sm opacity-60">
-            Enable notifications to start tracking evaluations.
-          </p>
-          ${enablePushBlock()}
-        </div>`
-      : html`<p class="text-sm opacity-60">Nothing planned right now.</p>`;
-    return card(evalPart, "Upcoming");
+    return needsPush
+      ? card(
+          html`<div class="flex flex-col items-start gap-2 w-full">
+            <p class="text-sm opacity-60">
+              Enable notifications to start tracking evaluations.
+            </p>
+            ${enablePushBlock()}
+          </div>`,
+          "Upcoming",
+        )
+      : "";
   }
 
   const evaluating = items.filter((e) => e.role !== "corrected");
@@ -435,11 +437,6 @@ function liveEventsCard(): unknown {
               <span class="badge ${status.cls} badge-sm font-semibold"
                 >${status.text}</span
               >
-              ${isExam
-                ? html`<span class="badge badge-outline badge-error badge-sm"
-                    >Exam</span
-                  >`
-                : ""}
             </div>
             <button
               type="button"
@@ -526,11 +523,6 @@ function eventRow(e: CalendarEvent) {
           </div>`
         : ""}
     </div>
-    ${isExam
-      ? html`<span class="badge badge-sm badge-outline badge-error self-center"
-          >Exam</span
-        >`
-      : ""}
   `;
 
   return html`<li class="list-row px-0">
