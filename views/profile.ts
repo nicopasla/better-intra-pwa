@@ -349,7 +349,7 @@ function evaluationsTab() {
       style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
     >
       <div
-        class="flex-65 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+        class="flex-60 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Evaluations</h2>
@@ -364,7 +364,12 @@ function evaluationsTab() {
                 >`
               : ""}
             ${pill("total", String(g?.total ?? 0), "rgb(59,130,246)", "flex-1")}
-            ${pill("failed", String(g?.failed ?? 0), "rgb(239,68,68)", "flex-1")}
+            ${pill(
+              "failed",
+              String(g?.failed ?? 0),
+              "rgb(239,68,68)",
+              "flex-1",
+            )}
           </div>
           <div
             class="overflow-auto min-h-0 flex-1 pr-2"
@@ -425,7 +430,7 @@ function evaluationsTab() {
       </div>
 
       <div
-        class="flex-35 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+        class="flex-40 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Roulette history</h2>
