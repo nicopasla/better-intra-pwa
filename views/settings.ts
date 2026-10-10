@@ -1,6 +1,7 @@
-import { html } from "lit-html";
+import { html, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { clearSession, getSession } from "../api.ts";
+import { until } from "lit-html/directives/until.js";
+import { clearSession, getDeviceName, getSession } from "../api.ts";
 import {
   BlobSettings,
   SessionItem,
@@ -28,14 +29,38 @@ import {
 } from "../lib/install.ts";
 import { dateTime, relativeTime } from "../lib/format.ts";
 import {
+  countryFlag,
+  countryTooltip,
+  fetchCommunityStats,
+  getFollowerCount,
+  getRepoStars,
+  PROFILE_URL,
+  PWA_REPO_URL,
+} from "../lib/community.ts";
+import { clearCache, resetData } from "../lib/app-data.ts";
+import {
   getThemePreference,
   setThemePreference,
   ThemePreference,
 } from "../theme.ts";
 import GITHUB_SVG from "../assets/github.svg?raw";
+import ISSUES_SVG from "../assets/issues.svg?raw";
+import PR_SVG from "../assets/pr.svg?raw";
+import STAR_SVG from "../assets/star.svg?raw";
+import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 
-const svg16 = (raw: string) =>
-  unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+const REPO_URL = "https://github.com/nicopasla/better-intra";
+
+const QUICK_LINKS = [
+  { href: REPO_URL, svg: GITHUB_SVG, label: "GitHub", color: "btn-primary" },
+  {
+    href: `${REPO_URL}/issues`,
+    svg: ISSUES_SVG,
+    label: "Issues",
+    color: "btn-secondary",
+  },
+  { href: `${REPO_URL}/pulls`, svg: PR_SVG, label: "PRs", color: "btn-accent" },
+];
 
 function format24h(ts: number): string {
   return dateTime(ts);
@@ -75,7 +100,7 @@ let blob: BlobSettings | null = null;
 let sessions: SessionItem[] = [];
 let loaded = false;
 let busy = false;
-let testing: "generic" | "booked" | "revealed" | null = null;
+let testing = false;
 let logmeError = "";
 let pushEnabled = false;
 let pushMessage = "";
@@ -113,12 +138,14 @@ const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
   { id: "light", label: "Light" },
 ];
 
-export function settingsView(): unknown {
+export function settingsView(): TemplateResult {
   const session = getSession();
   return html`
     ${section("Notifications", notificationsSection())}
-    ${section("Install", installSection())} ${section("Theme", themeSection())}
+    ${isStandalone() ? "" : section("Install", installSection())}
+    ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
+    ${section("Community", communitySection())}
     ${section("About & Debug", aboutSection())}
     ${logmeError
       ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
@@ -127,10 +154,6 @@ export function settingsView(): unknown {
 }
 
 function installSection() {
-  if (isStandalone())
-    return html`<p class="text-sm opacity-70">
-      Installed — running as an app.
-    </p>`;
   if (canInstall())
     return html`
       <p class="text-sm opacity-70">
@@ -225,27 +248,11 @@ function notificationsSection() {
     </label>
     <div class="flex flex-wrap gap-2 self-start">
       <button
-        class="btn btn-sm btn-outline ${testing === "generic" ? "loading" : ""}"
-        ?disabled=${!pushEnabled || testing === "generic"}
+        class="btn btn-sm btn-outline ${testing ? "loading" : ""}"
+        ?disabled=${!pushEnabled || testing}
         @click=${() => onTest()}
       >
         Send test
-      </button>
-      <button
-        class="btn btn-sm btn-outline ${testing === "booked" ? "loading" : ""}"
-        ?disabled=${!pushEnabled || testing === "booked"}
-        @click=${() => onTest("booked")}
-      >
-        Evaluation Booked
-      </button>
-      <button
-        class="btn btn-sm btn-outline ${testing === "revealed"
-          ? "loading"
-          : ""}"
-        ?disabled=${!pushEnabled || testing === "revealed"}
-        @click=${() => onTest("revealed")}
-      >
-        Evaluation in 15 min
       </button>
     </div>
     ${pushMessage
@@ -347,82 +354,277 @@ function accountSection(login: string) {
   `;
 }
 
-function aboutSection() {
+function communitySection(): TemplateResult {
+  return html`${until(
+    fetchCommunityStats().then((s) => {
+      if (!s || !s.total) {
+        return html`<p class="text-sm opacity-70">
+          Community stats unavailable right now.
+        </p>`;
+      }
+      const windows = [
+        { label: "today", value: s.newToday ?? 0 },
+        { label: "7d", value: s.newLast7Days },
+        { label: "14d", value: s.newLast14Days },
+        { label: "30d", value: s.newLast30Days },
+      ];
+      return html`
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex flex-col">
+            <span class="text-3xl font-bold font-mono leading-none"
+              >${s.total}</span
+            >
+            <span class="text-xs opacity-60">users</span>
+          </div>
+          <div class="flex flex-wrap justify-end gap-1.5">
+            ${windows.map(
+              (w) =>
+                html`<span class="badge badge-outline badge-sm font-mono"
+                  >+${w.value}<span class="ml-1 opacity-50"
+                    >${w.label}</span
+                  ></span
+                >`,
+            )}
+          </div>
+        </div>
+        ${s.countries.length > 0
+          ? html`<div class="flex flex-wrap gap-1.5">
+              ${s.countries.map(
+                (c) =>
+                  html`<span
+                    class="badge badge-outline badge-sm gap-1"
+                    title=${countryTooltip(c)}
+                  >
+                    <span>${countryFlag(c.country)}</span>
+                    <span class="font-mono">${c.count}</span>
+                  </span>`,
+              )}
+            </div>`
+          : ""}
+      `;
+    }),
+    html`<span class="loading loading-spinner loading-sm"></span>`,
+  )}`;
+}
+
+function diagRow(label: string, value: unknown): TemplateResult {
+  return html`<li class="list-row items-center py-2">
+    <div class="list-col-grow text-sm">${label}</div>
+    <div class="text-right font-mono text-sm opacity-70">${value}</div>
+  </li>`;
+}
+
+function diagGroup(title: string, rows: unknown): TemplateResult {
+  return html`
+    <div>
+      <div class="mb-1 flex items-center gap-2">
+        <h3 class="text-xs font-semibold uppercase tracking-wide opacity-60">
+          ${title}
+        </h3>
+        <div class="h-px flex-1 bg-base-300"></div>
+      </div>
+      <ul class="list">
+        ${rows}
+      </ul>
+    </div>
+  `;
+}
+
+function workerBadge(): TemplateResult {
+  if (!workerOkChecked)
+    return html`<span class="badge badge-ghost badge-sm">checking…</span>`;
+  return workerOk
+    ? html`<span class="badge badge-success badge-sm">reachable</span>`
+    : html`<span class="badge badge-error badge-sm">unreachable</span>`;
+}
+
+function pushPermission(): string {
+  if (!pushSupported() || typeof Notification === "undefined")
+    return "unsupported";
+  return Notification.permission;
+}
+
+function aboutSection(): TemplateResult {
   const session = getSession();
   const version =
     typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   return html`
-    <a
-      class="link text-sm inline-flex items-center gap-1"
-      href="https://github.com/nicopasla/better-intra"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      ${svg16(GITHUB_SVG)} github.com/nicopasla/better-intra
-    </a>
-    <dl class="text-sm flex flex-col gap-1 opacity-80">
-      <div class="flex justify-between">
-        <dt>App version</dt>
-        <dd class="font-mono">${version}</dd>
+    <div class="flex items-center gap-3">
+      <img src="/icons/icon-192.png" alt="" class="h-12 w-12 rounded-2xl" />
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-bold">Better Intra PWA</span>
+          <a
+            class="badge badge-ghost font-mono"
+            href=${PWA_REPO_URL + "/releases"}
+            target="_blank"
+            rel="noopener noreferrer"
+            >v${version}</a
+          >
+        </div>
+        <p class="text-xs opacity-60">
+          Mobile dashboard for 42 Intra, from Better Intra.
+        </p>
       </div>
-      <div class="flex justify-between">
-        <dt>Worker</dt>
-        <dd class="font-mono">${workerStatus()}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Push permission</dt>
-        <dd class="font-mono">${Notification.permission}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Endpoint</dt>
-        <dd class="font-mono">${endpointHost()}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Standalone</dt>
-        <dd class="font-mono">
-          ${(navigator as { standalone?: boolean }).standalone ? "yes" : "no"}
-        </dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Service worker</dt>
-        <dd class="font-mono">
-          ${navigator.serviceWorker.controller ? "controlling" : "idle"}
-        </dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Storage</dt>
-        <dd class="font-mono">
-          ${persistentStorage === null
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-2">
+      <a
+        class="btn btn-sm gap-1.5"
+        href=${PWA_REPO_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="size-4 flex items-center justify-center fill-current">
+          ${unsafeHTML(STAR_SVG)}
+        </span>
+        <span>Star</span>
+        ${until(
+          getRepoStars().then((c) =>
+            c != null
+              ? html`<span class="badge badge-sm font-mono">${c}</span>`
+              : "",
+          ),
+          html`<span class="loading loading-spinner loading-xs"></span>`,
+        )}
+      </a>
+      <a
+        class="btn btn-sm gap-1.5"
+        href=${PROFILE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="size-4 flex items-center justify-center fill-current">
+          ${unsafeHTML(FOLLOW_SVG)}
+        </span>
+        <span>Follow</span>
+        ${until(
+          getFollowerCount().then((c) =>
+            c != null
+              ? html`<span class="badge badge-sm font-mono">${c}</span>`
+              : "",
+          ),
+          html`<span class="loading loading-spinner loading-xs"></span>`,
+        )}
+      </a>
+    </div>
+
+    ${diagGroup(
+      "Connection",
+      html`
+        ${diagRow("Worker", workerBadge())}
+        ${diagRow("Endpoint", endpointHost())}
+        ${diagRow("Push permission", pushPermission())}
+      `,
+    )}
+    ${diagGroup(
+      "App",
+      html`
+        ${diagRow(
+          "Standalone",
+          (navigator as { standalone?: boolean }).standalone ? "yes" : "no",
+        )}
+        ${diagRow(
+          "Service worker",
+          navigator.serviceWorker?.controller ? "controlling" : "idle",
+        )}
+        ${diagRow(
+          "Storage",
+          persistentStorage === null
             ? "—"
             : persistentStorage
               ? "persistent"
-              : "best-effort"}
-        </dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Storage used</dt>
-        <dd class="font-mono">${storageLabel()}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt>Login</dt>
-        <dd class="font-mono">${session?.login ?? "—"}</dd>
-      </div>
-    </dl>
-    <p class="text-xs opacity-50">
-      MIT License · by <span class="italic">nicopasla</span>
+              : "best-effort",
+        )}
+        ${diagRow("Storage used", storageLabel())}
+      `,
+    )}
+    ${diagGroup(
+      "Device",
+      html`
+        ${diagRow("This device", getDeviceName() || "—")}
+        ${diagRow("Login", session?.login ?? "—")}
+      `,
+    )}
+
+    <div class="divider my-0 opacity-20"></div>
+
+    <div class="join w-full">
+      ${QUICK_LINKS.map(
+        (link) =>
+          html`<a
+            href=${link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="join-item btn btn-sm flex-1 gap-1.5 ${link.color}"
+          >
+            <span class="size-4 flex items-center justify-center fill-current">
+              ${unsafeHTML(link.svg)}
+            </span>
+            <span class="text-sm font-semibold">${link.label}</span>
+          </a>`,
+      )}
+    </div>
+    <p class="text-center text-xs opacity-50">
+      <a
+        class="link"
+        href=${PWA_REPO_URL + "/blob/main/LICENSE"}
+        target="_blank"
+        rel="noopener noreferrer"
+        >MIT License</a
+      >
     </p>
+
+    <div class="divider my-0 opacity-20"></div>
+
+    <details class="collapse collapse-arrow bg-base-100 border border-base-300">
+      <summary class="collapse-title text-sm font-semibold">
+        Maintenance
+      </summary>
+      <div class="collapse-content flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline flex-1"
+          @click=${onClearCache}
+        >
+          Clear cache
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-error flex-1"
+          @click=${onResetData}
+        >
+          Reset data
+        </button>
+      </div>
+    </details>
   `;
+}
+
+function onClearCache() {
+  if (
+    !window.confirm(
+      "Clear cached app data? It will be re-downloaded. Your account and settings are kept.",
+    )
+  )
+    return;
+  void clearCache();
+}
+
+function onResetData() {
+  if (
+    !window.confirm(
+      "Reset all local data on this device? You'll be signed out and the cache, settings, and this device's identity are removed. Your cloud data is not affected.",
+    )
+  )
+    return;
+  void resetData();
 }
 
 let workerOk: boolean | null = null;
 let workerOkChecked = false;
 let subHost = "";
 let persistentStorage: boolean | null = null;
-
-function workerStatus(): string {
-  if (!workerOkChecked) return "checking…";
-  return workerOk ? "reachable" : "unreachable";
-}
 
 function endpointHost(): string {
   return subHost || "—";
@@ -453,20 +655,19 @@ async function onTogglePush(e: Event) {
   }
 }
 
-async function onTest(variant?: "booked" | "revealed") {
-  const mine = variant ?? "generic";
-  testing = mine;
+async function onTest() {
+  testing = true;
   pushMessage = "";
   refresh();
   try {
-    const res = await sendTest(variant);
+    const res = await sendTest();
     pushMessage = res.ok
       ? `Delivered by ${res.host} (${res.status}).`
       : `Rejected (${res.status})${res.host ? ` by ${res.host}` : ""}${res.reason ? ` — ${res.reason}` : ""}.`;
   } catch {
     pushMessage = "Failed to reach the push service.";
   } finally {
-    if (testing === mine) testing = null;
+    testing = false;
     refresh();
   }
 }

@@ -135,7 +135,12 @@ export function renderShell(active: Tab, body: unknown): void {
   render(
     html`
       <div class="min-h-[100dvh] flex flex-col">
-        <main class="flex-1 px-4 pt-4 pb-24">${body}</main>
+        <main
+          class="flex-1 px-4 pt-4"
+          style="padding-bottom: calc(4rem + env(safe-area-inset-bottom));"
+        >
+          ${body}
+        </main>
         <nav
           class="dock dock-md z-20 bg-base-100 border-t border-base-300"
           style="padding-bottom: env(safe-area-inset-bottom);"
