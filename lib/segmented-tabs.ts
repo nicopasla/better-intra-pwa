@@ -5,33 +5,6 @@ import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
 const OVERFLOW_TOLERANCE = 1;
 
-/** Styles required by {@link segmentedTabs}; inject into the view's <style>. */
-export const SEGMENTED_TABS_CSS = `
-  .segmented-tabs-host {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-  }
-  .tab-btn {
-    flex: 1;
-    text-align: center;
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 0.4rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    color: var(--color-base-content);
-    background: transparent;
-    border: none;
-    white-space: nowrap;
-  }
-  .tab-btn.active {
-    background: var(--color-primary);
-    color: var(--color-primary-content);
-  }
-`;
-
 export interface SegmentedTab<T extends string> {
   id: T;
   label: string;

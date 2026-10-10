@@ -22,12 +22,14 @@ import {
   profileView,
   loadProfile,
   profileAttachObservers,
+  profileBottomBar,
 } from "./views/profile.ts";
 import { friendsView, loadFriends } from "./views/friends.ts";
 import {
   studentsView,
   loadStudents,
   studentsAttachObservers,
+  studentsBottomBar,
 } from "./views/students.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import {
@@ -281,24 +283,27 @@ function healPush(): void {
 function renderBody(): void {
   const tab = currentTab();
   let body: unknown;
+  let bottomBar: unknown = "";
   switch (tab) {
     case "dashboard":
       body = dashboardView();
       break;
     case "profile":
       body = profileView();
+      bottomBar = profileBottomBar();
       break;
     case "friends":
       body = friendsView();
       break;
     case "students":
       body = studentsView();
+      bottomBar = studentsBottomBar();
       break;
     case "settings":
       body = settingsView();
       break;
   }
-  renderShell(tab, body);
+  renderShell(tab, body, bottomBar);
   if (tab === "students") studentsAttachObservers();
   if (tab === "profile") profileAttachObservers();
 }

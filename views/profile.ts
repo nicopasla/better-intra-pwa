@@ -1,11 +1,7 @@
 import { html } from "lit-html";
 import { Me, ProfileStats, me, outstandingIds, profileStats } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import {
-  SEGMENTED_TABS_CSS,
-  observeTabsOverflow,
-  segmentedTabs,
-} from "../lib/segmented-tabs.ts";
+import { observeTabsOverflow, segmentedTabs } from "../lib/segmented-tabs.ts";
 import { dateTime } from "../lib/format.ts";
 
 type SubTab = "evaluations" | "projects" | "achievements";
@@ -59,29 +55,28 @@ export function profileView(): unknown {
   }
   const m = meData;
   return html`
-    <style>
-      ${SEGMENTED_TABS_CSS}
-    </style>
-    <div class="profile-feature flex flex-col pb-14">
-      <div>
-        ${subTab === "evaluations"
-          ? evaluationsTab()
-          : subTab === "projects"
-            ? projectsTab(m)
-            : achievementsTab(m)}
-      </div>
-      <div
-        class="fixed left-0 right-0 z-40 px-4"
-        style="bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);"
-      >
-        <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
-          ${segmentedTabs({
-            tabs: SUB_TABS,
-            active: subTab,
-            overflowing: tabsOverflowing,
-            onSwitch: switchSubTab,
-          })}
-        </div>
+    <div class="profile-feature flex flex-col">
+      ${subTab === "evaluations"
+        ? evaluationsTab()
+        : subTab === "projects"
+          ? projectsTab(m)
+          : achievementsTab(m)}
+    </div>
+  `;
+}
+
+/** The profile sub-tab bar, rendered by the shell above the dock. */
+export function profileBottomBar(): unknown {
+  if (!meData) return "";
+  return html`
+    <div class="ft-subtabs px-4 pb-2">
+      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
+        ${segmentedTabs({
+          tabs: SUB_TABS,
+          active: subTab,
+          overflowing: tabsOverflowing,
+          onSwitch: switchSubTab,
+        })}
       </div>
     </div>
   `;
@@ -94,7 +89,7 @@ export function profileAttachObservers(): void {
     tabsObserver = null;
   }
   tabsObserver = observeTabsOverflow(
-    ".profile-feature .segmented-tabs-host",
+    ".ft-subtabs .segmented-tabs-host",
     SUB_TABS.map((t) => t.label),
     (overflowing) => {
       if (overflowing === tabsOverflowing) return;

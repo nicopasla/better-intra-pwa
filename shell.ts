@@ -131,27 +131,39 @@ const icon24 = (raw: string) =>
 
 const app = () => document.getElementById("app")!;
 
-export function renderShell(active: Tab, body: unknown): void {
+export function renderShell(
+  active: Tab,
+  body: unknown,
+  bottomBar?: unknown,
+): void {
+  const padBottom = bottomBar
+    ? "calc(7.75rem + env(safe-area-inset-bottom))"
+    : "calc(4rem + env(safe-area-inset-bottom))";
   render(
     html`
-      <div class="flex min-h-0 flex-1 flex-col">
-        <main class="flex-1 px-4 pt-4 pb-4">${body}</main>
-        <nav
-          class="dock dock-md z-20 bg-base-100 border-t border-base-300"
-          style="padding-bottom: env(safe-area-inset-bottom);"
-        >
-          ${TABS.filter((t) => !hidden.has(t.id)).map(
-            (t) => html`
-              <button
-                class="${active === t.id ? "dock-active" : ""}"
-                @click=${() => navigate(t.id)}
-              >
-                ${icon24(t.icon)}
-                <span class="dock-label text-xs font-medium">${t.label}</span>
-              </button>
-            `,
-          )}
-        </nav>
+      <div class="flex flex-1 flex-col">
+        <main class="flex-1 px-4 pt-4" style="padding-bottom:${padBottom}">
+          ${body}
+        </main>
+        <div class="fixed bottom-0 left-0 right-0 z-20">
+          ${bottomBar ?? ""}
+          <nav
+            class="dock dock-md bg-base-100 border-t border-base-300"
+            style="padding-bottom: env(safe-area-inset-bottom);"
+          >
+            ${TABS.filter((t) => !hidden.has(t.id)).map(
+              (t) => html`
+                <button
+                  class="${active === t.id ? "dock-active" : ""}"
+                  @click=${() => navigate(t.id)}
+                >
+                  ${icon24(t.icon)}
+                  <span class="dock-label text-xs font-medium">${t.label}</span>
+                </button>
+              `,
+            )}
+          </nav>
+        </div>
       </div>
     `,
     app(),

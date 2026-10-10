@@ -1,5 +1,6 @@
 import { html } from "lit-html";
 import {
+  getStudentsBottomBar,
   getStudentsView,
   initStudentsFeature,
   studentsSync,
@@ -14,6 +15,10 @@ export function studentsView(): unknown {
   return html`<div class="flex justify-center py-10">
     <span class="loading loading-spinner loading-lg"></span>
   </div>`;
+}
+
+export function studentsBottomBar(): unknown {
+  return getStudentsBottomBar() ?? "";
 }
 
 export async function loadStudents(force = false): Promise<void> {

@@ -13,6 +13,7 @@ import {
 } from "./data.ts";
 import {
   STUDENTS_TAB_LABELS,
+  renderStudentsBottomBar,
   renderStudentsDialogTemplate,
   StudentsTemplateHandlers,
   StudentsTemplateState,
@@ -30,6 +31,7 @@ import type {
 } from "./data.ts";
 
 let pendingView: TemplateResult | null = null;
+let pendingBottomBar: TemplateResult | null = null;
 let initialized = false;
 let sentinelObserver: IntersectionObserver | null = null;
 let tabsResizeObserver: ResizeObserver | null = null;
@@ -37,6 +39,10 @@ let syncObserversFn: (() => void) | null = null;
 
 export function getStudentsView(): TemplateResult | null {
   return pendingView;
+}
+
+export function getStudentsBottomBar(): TemplateResult | null {
+  return pendingBottomBar;
 }
 
 /** Re-attach sentinel/tabs observers after the PWA re-renders the tab. */
@@ -83,7 +89,11 @@ export function initStudentsFeature(onUpdate: () => void): void {
     rerender();
   };
 
-  let savedSortData: { field?: SortField; nameDir?: SortDir; dateDir?: SortDir } | null = null;
+  let savedSortData: {
+    field?: SortField;
+    nameDir?: SortDir;
+    dateDir?: SortDir;
+  } | null = null;
   try {
     savedSortData = JSON.parse(localStorage.getItem("STUDENTS_SORT") || "null");
   } catch {
@@ -415,7 +425,7 @@ export function initStudentsFeature(onUpdate: () => void): void {
       tabsResizeObserver = null;
     }
     tabsResizeObserver = observeTabsOverflow(
-      ".students-feature .segmented-tabs-host",
+      ".ft-subtabs .segmented-tabs-host",
       Object.values(STUDENTS_TAB_LABELS),
       (overflowing) => {
         if (overflowing === tabsOverflowing) return;
@@ -427,7 +437,9 @@ export function initStudentsFeature(onUpdate: () => void): void {
 
   const rerender = () => {
     if (disposed) return;
-    pendingView = renderStudentsDialogTemplate(buildState(), handlers);
+    const state = buildState();
+    pendingView = renderStudentsDialogTemplate(state, handlers);
+    pendingBottomBar = renderStudentsBottomBar(state, handlers);
     onUpdate();
     requestAnimationFrame(syncObservers);
   };

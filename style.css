@@ -57,14 +57,38 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* iOS standalone reports a layout viewport that is short by
-   env(safe-area-inset-top) (WebKit 313800), which unpins a `position: fixed`
-   bottom bar. Keep the dock in flow at the bottom of the (100lvh) shell and
-   stick it while scrolling instead. Unlayered, so it beats daisyUI's layered
-   `position: fixed`. */
+/* The shell renders the dock (and any sub-tab bar) inside a single
+   `position: fixed` bottom group, so the dock itself stays in flow. Unlayered,
+   so it beats daisyUI's layered `position: fixed`. */
 .dock {
-  position: sticky;
-  bottom: 0;
+  position: static;
+}
+
+/* Segmented sub-tab control (shared: rendered in the shell's bottom group). */
+.segmented-tabs-host {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.tab-btn {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--color-base-content);
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: var(--color-primary);
+  color: var(--color-primary-content);
 }
 
 /* ---------------------------------------------------------------------------

@@ -16,10 +16,7 @@ import WALLET_SVG from "../../assets/wallet.svg?raw";
 import EVAL_SVG from "../../assets/eval.svg?raw";
 import CHECK_SVG from "../../assets/check.svg?raw";
 import FORTY_TWO_SVG from "../../assets/42_Logo.svg?raw";
-import {
-  SEGMENTED_TABS_CSS,
-  segmentedTabs,
-} from "../../lib/segmented-tabs.ts";
+import { segmentedTabs } from "../../lib/segmented-tabs.ts";
 import {
   formatAlumniDate,
   formatBlackholeDate,
@@ -587,7 +584,6 @@ export function renderStudentsDialogTemplate(
   `;
   return html`
     <style>
-      ${SEGMENTED_TABS_CSS}
       .students-feature {
         display: block;
       }
@@ -888,7 +884,7 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-24">
+    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-4">
       <div
         class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
       >
@@ -1080,21 +1076,27 @@ export function renderStudentsDialogTemplate(
                       </div>`
                     : ""}`}
       </div>
-      <div
-        class="fixed left-0 right-0 z-40 px-4"
-        style="bottom: calc(4rem + env(safe-area-inset-bottom) + 0.5rem);"
-      >
-        <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
-          ${segmentedTabs({
-            tabs: STUDENTS_TAB_ORDER.map((t) => ({
-              id: t,
-              label: STUDENTS_TAB_LABELS[t],
-            })),
-            active: tab,
-            overflowing: tabsOverflowing,
-            onSwitch: handlers.onSwitchTab,
-          })}
-        </div>
+    </div>
+  `;
+}
+
+/** The students sub-tab bar, rendered by the shell above the dock. */
+export function renderStudentsBottomBar(
+  state: StudentsTemplateState,
+  handlers: StudentsTemplateHandlers,
+): TemplateResult {
+  return html`
+    <div class="ft-subtabs px-4 pb-2">
+      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
+        ${segmentedTabs({
+          tabs: STUDENTS_TAB_ORDER.map((t) => ({
+            id: t,
+            label: STUDENTS_TAB_LABELS[t],
+          })),
+          active: state.tab,
+          overflowing: state.tabsOverflowing,
+          onSwitch: handlers.onSwitchTab,
+        })}
       </div>
     </div>
   `;
