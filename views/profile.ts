@@ -356,7 +356,7 @@ function evaluationsTab() {
           <div class="flex flex-wrap items-center justify-center gap-2">
             ${g?.successPercentage != null
               ? html`<span
-                  class="text-xl font-bold px-5 py-2 rounded-xl"
+                  class="text-xl font-bold px-3 py-1 rounded-xl"
                   style="color:${successColor};background:${successColor
                     .replace(/^rgb\(/, "rgba(")
                     .replace(/\)$/, ",0.1)")};"
