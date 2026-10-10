@@ -106,7 +106,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
                 >
                   <span>${u.location}</span>
                   <span
-                    class="size-3 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                    class="size-[1em] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                     >${unsafeHTML(ARROW_SHARE_SVG)}</span
                   >
                 </a>`
@@ -129,7 +129,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           >
             ${e.project ?? "Project"}
             <span
-              class="size-3 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+              class="size-[1em] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
               >${unsafeHTML(ARROW_SHARE_SVG)}</span
             >
           </a>`
