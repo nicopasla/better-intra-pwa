@@ -29,8 +29,6 @@ import {
 } from "../lib/install.ts";
 import { dateTime, relativeTime } from "../lib/format.ts";
 import {
-  countryFlag,
-  countryTooltip,
   fetchCommunityStats,
   getFollowerCount,
   getRepoStars,
@@ -419,21 +417,6 @@ function communitySection(): TemplateResult {
             )}
           </div>
         </div>
-        ${s.countries.length > 0
-          ? html`<div class="flex flex-wrap gap-1.5">
-              ${s.countries.map(
-                (c) =>
-                  html`<span
-                    class="badge badge-lg gap-1 bg-base-100"
-                    style="border: 2px solid var(--color-info)"
-                    title=${countryTooltip(c)}
-                  >
-                    <span>${countryFlag(c.country)}</span>
-                    <span class="font-mono">${c.count}</span>
-                  </span>`,
-              )}
-            </div>`
-          : ""}
       `;
     }),
     html`<span class="loading loading-spinner loading-sm"></span>`,
