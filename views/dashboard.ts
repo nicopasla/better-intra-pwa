@@ -181,8 +181,11 @@ function upcomingCard() {
 
   const evaluating = items.filter((e) => e.role !== "corrected");
   const corrected = items.filter((e) => e.role === "corrected");
-  const active =
+  const showTabs = evaluating.length > 0 && corrected.length > 0;
+  let active: "evaluator" | "corrected" =
     upcomingTab ?? (evaluating.length > 0 ? "evaluator" : "corrected");
+  if (active === "evaluator" && evaluating.length === 0) active = "corrected";
+  if (active === "corrected" && corrected.length === 0) active = "evaluator";
   const list = active === "evaluator" ? evaluating : corrected;
 
   const tab = (id: "evaluator" | "corrected", label: string, count: number) =>
@@ -207,15 +210,15 @@ function upcomingCard() {
     </button>`;
 
   const evalPart = html`
-    <div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
-      ${tab("evaluator", "Evaluating", evaluating.length)}
-      ${tab("corrected", "Being evaluated", corrected.length)}
-    </div>
-    ${list.length === 0
-      ? html`<p class="text-sm opacity-60">Nothing here right now.</p>`
-      : html`<ul class="flex flex-col divide-y divide-base-300">
-          ${list.map(evalRow)}
-        </ul>`}
+    ${showTabs
+      ? html`<div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
+          ${tab("evaluator", "Evaluating", evaluating.length)}
+          ${tab("corrected", "Being evaluated", corrected.length)}
+        </div>`
+      : ""}
+    <ul class="flex flex-col divide-y divide-base-300">
+      ${list.map(evalRow)}
+    </ul>
   `;
   return card(evalPart, "Upcoming");
 }
