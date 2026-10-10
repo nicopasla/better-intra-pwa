@@ -107,6 +107,16 @@ let testing = false;
 let logmeError = "";
 let pushEnabled = false;
 let pushMessage = "";
+const NOTIFY_TYPES: { key: string; label: string }[] = [
+  { key: "EVAL_NOTIFY_EVALUATOR_BOOKED", label: "Booked to evaluate" },
+  { key: "EVAL_NOTIFY_EVALUATOR_REVEALED", label: "In 15 min" },
+  { key: "EVAL_NOTIFY_CORRECTED_REVEALED", label: "Your evaluator" },
+];
+let notifyTypes: Record<string, boolean> = {
+  EVAL_NOTIFY_EVALUATOR_BOOKED: true,
+  EVAL_NOTIFY_EVALUATOR_REVEALED: true,
+  EVAL_NOTIFY_CORRECTED_REVEALED: true,
+};
 let quietEnabled = false;
 let quietStart = "22:00";
 let quietEnd = "08:00";
@@ -267,6 +277,22 @@ function notificationsSection() {
           ${pushMessage}
         </p>`
       : ""}
+    <div class="flex flex-col gap-1.5 mt-1">
+      <span class="text-xs opacity-60">Push notifications you receive</span>
+      <div class="flex flex-wrap gap-2">
+        ${NOTIFY_TYPES.map(
+          (t) => html`<button
+            type="button"
+            class="btn btn-sm ${notifyTypes[t.key]
+              ? "btn-primary"
+              : "btn-outline"}"
+            @click=${() => void toggleNotifyType(t.key)}
+          >
+            ${t.label}
+          </button>`,
+        )}
+      </div>
+    </div>
     <div class="divider my-0"></div>
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span>Quiet hours</span>
@@ -688,6 +714,16 @@ function setQuietTimes(patch: Record<string, string>) {
   void updateQuiet(patch);
 }
 
+async function toggleNotifyType(key: string) {
+  notifyTypes = { ...notifyTypes, [key]: !notifyTypes[key] };
+  refresh();
+  try {
+    await updateBlob({ [key]: notifyTypes[key] });
+  } catch {
+    /* ignore */
+  }
+}
+
 async function updateQuiet(patch: Record<string, unknown>) {
   try {
     const next = {
@@ -751,6 +787,14 @@ export async function loadSettings(force = false): Promise<void> {
     quietEnabled = Boolean(b.settings.DISCORD_QUIET_ENABLED);
     quietStart = String(b.settings.DISCORD_QUIET_START || "22:00");
     quietEnd = String(b.settings.DISCORD_QUIET_END || "08:00");
+    const bs = b.settings as Record<string, unknown>;
+    notifyTypes = {
+      EVAL_NOTIFY_EVALUATOR_BOOKED: bs.EVAL_NOTIFY_EVALUATOR_BOOKED !== false,
+      EVAL_NOTIFY_EVALUATOR_REVEALED:
+        bs.EVAL_NOTIFY_EVALUATOR_REVEALED !== false,
+      EVAL_NOTIFY_CORRECTED_REVEALED:
+        bs.EVAL_NOTIFY_CORRECTED_REVEALED !== false,
+    };
   } catch (e) {
     logmeError = e instanceof Error ? e.message : String(e);
   }

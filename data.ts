@@ -84,7 +84,9 @@ export interface UpcomingEval {
   state: "booked" | "revealed";
   project: string | null;
   slug: string | null;
+  role: "evaluator" | "corrected";
   correcteds?: string[];
+  corrector?: string | null;
 }
 
 export interface UpcomingResponse {

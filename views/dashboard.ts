@@ -196,35 +196,85 @@ function avatarBlock() {
   />`;
 }
 
+let upcomingTab: "evaluator" | "corrected" | null = null;
+
 function upcomingCard() {
   const done = new Set(getDoneEvals());
   const items = upcoming.items.filter((e) => !done.has(e.id));
   const needsPush = pushSupported() && pushSubscribed !== true;
-  const evalPart =
-    items.length === 0
-      ? needsPush
-        ? html`<div class="flex flex-col items-start gap-2 w-full">
-            <p class="text-sm opacity-60">
-              Enable notifications to start tracking evaluations.
-            </p>
-            ${enablePushBlock()}
-          </div>`
-        : html`<p class="text-sm opacity-60">Nothing planned right now.</p>`
+
+  if (items.length === 0) {
+    const evalPart = needsPush
+      ? html`<div class="flex flex-col items-start gap-2 w-full">
+          <p class="text-sm opacity-60">
+            Enable notifications to start tracking evaluations.
+          </p>
+          ${enablePushBlock()}
+        </div>`
+      : html`<p class="text-sm opacity-60">Nothing planned right now.</p>`;
+    return card(evalPart, "Upcoming");
+  }
+
+  const evaluating = items.filter((e) => e.role !== "corrected");
+  const corrected = items.filter((e) => e.role === "corrected");
+  const active =
+    upcomingTab ??
+    (evaluating.length > 0 ? "evaluator" : "corrected");
+  const list = active === "evaluator" ? evaluating : corrected;
+
+  const tab = (
+    id: "evaluator" | "corrected",
+    label: string,
+    count: number,
+  ) => html`<button
+    type="button"
+    class="flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${active ===
+    id
+      ? "bg-primary text-primary-content"
+      : "text-base-content/70 hover:bg-base-300"}"
+    @click=${() => {
+      upcomingTab = id;
+      refresh();
+    }}
+  >
+    <span>${label}</span>
+    <span
+      class="min-w-5 rounded-full px-1.5 text-xs font-bold ${active === id
+        ? "bg-primary-content/20"
+        : "bg-base-300"}"
+      >${count}</span
+    >
+  </button>`;
+
+  const evalPart = html`
+    <div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
+      ${tab("evaluator", "Evaluating", evaluating.length)}
+      ${tab("corrected", "Being evaluated", corrected.length)}
+    </div>
+    ${list.length === 0
+      ? html`<p class="text-sm opacity-60">Nothing here right now.</p>`
       : html`<ul class="flex flex-col divide-y divide-base-300">
-          ${items.map(evalRow)}
-        </ul>`;
+          ${list.map(evalRow)}
+        </ul>`}
+  `;
   return card(evalPart, "Upcoming");
 }
 
 function evalRow(e: UpcomingEval) {
   const started = new Date(e.beginAt).getTime() <= Date.now();
-  const corrected = e.state === "revealed" ? e.correcteds?.[0] : undefined;
-  const label = corrected ?? (e.state === "revealed" ? "Revealed" : "Booked");
+  const isCorrected = e.role === "corrected";
+  const person =
+    e.state === "revealed"
+      ? isCorrected
+        ? (e.corrector ?? undefined)
+        : e.correcteds?.[0]
+      : undefined;
+  const label = person ?? (e.state === "revealed" ? "Revealed" : "Booked");
   return html`<li
-    class="flex items-center justify-between gap-3 py-2 ${corrected
+    class="flex items-center justify-between gap-3 py-2 ${person
       ? "cursor-pointer -mx-2 px-2 rounded-lg hover:bg-base-200 transition-colors"
       : ""}"
-    @click=${corrected ? () => openEvalDialog(e, corrected) : undefined}
+    @click=${person ? () => openEvalDialog(e, person) : undefined}
   >
     <div class="min-w-0">
       <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
@@ -233,14 +283,14 @@ function evalRow(e: UpcomingEval) {
       </div>
     </div>
     <div class="flex items-center gap-1 flex-none">
-      ${corrected
+      ${person
         ? html`<button
             type="button"
             class="btn btn-ghost btn-xs btn-circle text-info"
             title="View details"
             @click=${(ev: Event) => {
               ev.stopPropagation();
-              openEvalDialog(e, corrected);
+              openEvalDialog(e, person);
             }}
           >
             ${svg18(INFO_SVG)}
@@ -252,7 +302,7 @@ function evalRow(e: UpcomingEval) {
           : "badge-warning"}"
         >${countdown(e.beginAt)}</span
       >
-      ${started
+      ${started && !isCorrected
         ? html`<button
             class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
             title="Mark as done"
