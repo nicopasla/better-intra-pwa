@@ -1,12 +1,12 @@
 import { html, render } from "lit-html";
 
-/** A fixed offline banner, created once so it lives outside the route's
- *  View Transition DOM. */
-export function initConnectivityBanner(): void {
+/** A fixed red dot shown while the app is offline, created once so it lives
+ *  outside the route's View Transition DOM. */
+export function initConnectivityIndicator(): void {
   if (typeof document === "undefined") return;
   const host = document.createElement("div");
   host.style.cssText =
-    "position:fixed;top:0;left:0;right:0;z-index:70;pointer-events:none;";
+    "position:fixed;top:calc(env(safe-area-inset-top) + 0.5rem);right:0.75rem;z-index:70;pointer-events:none;";
   document.body.appendChild(host);
 
   const update = () => {
@@ -15,12 +15,11 @@ export function initConnectivityBanner(): void {
       return;
     }
     render(
-      html`<div
-        class="alert alert-warning rounded-none py-1.5 text-sm"
-        style="padding-top:calc(env(safe-area-inset-top) + 0.375rem);"
-      >
-        <span>Offline — showing cached data.</span>
-      </div>`,
+      html`<span
+        class="status status-error animate-pulse shadow"
+        title="Offline — showing cached data."
+        aria-label="Offline"
+      ></span>`,
       host,
     );
   };

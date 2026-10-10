@@ -36,7 +36,7 @@ import {
   registerServiceWorker,
   syncPushSubscription,
 } from "./push.ts";
-import { initConnectivityBanner } from "./lib/connectivity.ts";
+import { initConnectivityIndicator } from "./lib/connectivity.ts";
 import {
   canInstall,
   initInstall,
@@ -326,7 +326,7 @@ async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
   initTheme();
-  initConnectivityBanner();
+  initConnectivityIndicator();
   initInstall();
   onInstallAvailability(refreshPreApp);
   onPushSubscriptionChange(() => void syncPushSubscription());

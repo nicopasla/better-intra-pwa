@@ -91,7 +91,7 @@ export function openEventDialog(e: CalendarEvent): void {
             : html`<p class="text-sm opacity-60">No description.</p>`}
           ${href
             ? html`<a
-                class="btn btn-primary btn-sm rounded-full self-center px-6"
+                class="btn btn-primary btn-sm self-center px-6"
                 href=${href}
                 target="_blank"
                 rel="noopener noreferrer"
