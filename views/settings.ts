@@ -363,15 +363,18 @@ function communitySection(): TemplateResult {
         </p>`;
       }
       const windows = [
-        { label: "today", value: s.newToday ?? 0 },
-        { label: "7d", value: s.newLast7Days },
-        { label: "14d", value: s.newLast14Days },
-        { label: "30d", value: s.newLast30Days },
+        { label: "today", value: s.newToday ?? 0, color: "#a78bfa" },
+        { label: "7d", value: s.newLast7Days, color: "#fb923c" },
+        { label: "14d", value: s.newLast14Days, color: "#4ade80" },
+        { label: "30d", value: s.newLast30Days, color: "#38bdf8" },
       ];
       return html`
         <div class="flex items-center justify-between gap-3">
-          <div class="flex flex-col">
-            <span class="text-3xl font-bold font-mono leading-none"
+          <div
+            class="flex flex-col items-center rounded-xl bg-base-100 px-4 py-2"
+            style="border: 2px solid #00babc"
+          >
+            <span class="text-2xl font-bold font-mono leading-none"
               >${s.total}</span
             >
             <span class="text-xs opacity-60">users</span>
@@ -379,10 +382,10 @@ function communitySection(): TemplateResult {
           <div class="flex flex-wrap justify-end gap-1.5">
             ${windows.map(
               (w) =>
-                html`<span class="badge badge-outline badge-sm font-mono"
-                  >+${w.value}<span class="ml-1 opacity-50"
-                    >${w.label}</span
-                  ></span
+                html`<span
+                  class="badge badge-lg gap-1 bg-base-100 font-mono"
+                  style="border: 2px solid ${w.color}"
+                  >+${w.value}<span class="opacity-60">${w.label}</span></span
                 >`,
             )}
           </div>
@@ -392,7 +395,8 @@ function communitySection(): TemplateResult {
               ${s.countries.map(
                 (c) =>
                   html`<span
-                    class="badge badge-outline badge-sm gap-1"
+                    class="badge badge-lg gap-1 bg-base-100"
+                    style="border: 2px solid var(--color-info)"
                     title=${countryTooltip(c)}
                   >
                     <span>${countryFlag(c.country)}</span>

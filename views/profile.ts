@@ -8,9 +8,13 @@ import {
   segmentedTabs,
 } from "../lib/segmented-tabs.ts";
 import { dateTime, fullDate } from "../lib/format.ts";
+import { cursusLabel } from "../lib/cursus.ts";
+import { getCampusFlag } from "../lib/campus-flags.ts";
 import { saveData } from "../lib/network.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
+import POOL_SVG from "../assets/pool.svg?raw";
+import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 
 type SubTab = "overview" | "projects" | "achievements";
@@ -71,7 +75,7 @@ export function profileView(): unknown {
       ${SEGMENTED_TABS_CSS}
     </style>
     <div class="profile-feature flex flex-col pb-24">
-      <div class="pt-1">
+      <div>
         ${subTab === "overview"
           ? overviewTab(m)
           : subTab === "projects"
@@ -183,21 +187,21 @@ function card(content: unknown, title?: string) {
 function avatarBlock(m: Me) {
   if (saveData) {
     return html`<div
-      class="w-16 h-16 rounded-2xl shadow-lg flex-none bg-base-300 flex items-center justify-center text-xl font-bold"
+      class="w-20 h-20 rounded-full shadow-lg flex-none bg-base-300 flex items-center justify-center text-2xl font-bold"
     >
       ${m.login[0]?.toUpperCase() ?? "?"}
     </div>`;
   }
   if (m.customAvatar) {
     return html`<div
-      class="w-16 h-16 rounded-2xl shadow-lg flex-none"
+      class="w-20 h-20 rounded-full shadow-lg flex-none"
       style="background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
     ></div>`;
   }
   return html`<img
     src="${m.image ?? "/icons/icon-192.png"}"
     onerror="this.onerror=null;this.src='/icons/icon-192.png'"
-    class="w-16 h-16 rounded-2xl shadow-lg object-cover flex-none"
+    class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
     alt=""
   />`;
 }
@@ -208,6 +212,15 @@ function statBadge(value: string, icon: string) {
     style="border:2px solid var(--color-accent);"
   >
     ${svg18(icon)}<span class="font-semibold">${value}</span>
+  </div>`;
+}
+
+function infoBadge(text: string, icon?: string) {
+  return html`<div
+    class="badge badge-lg h-auto justify-center gap-2 py-2"
+    style="border:2px solid var(--color-accent);"
+  >
+    ${icon ? svg18(icon) : ""}<span class="font-semibold">${text}</span>
   </div>`;
 }
 
@@ -240,10 +253,11 @@ function locationBadge(location: string | null) {
 
 function groupBadges(groups: string[]) {
   if (groups.length === 0) return "";
-  return html`<div class="flex flex-wrap gap-2">
+  return html`<div class="flex gap-2 overflow-x-auto pb-1" data-no-swipe>
     ${groups.map(
       (g) =>
-        html`<span class="badge badge-lg badge-primary font-semibold"
+        html`<span
+          class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
           >${g}</span
         >`,
     )}
@@ -257,11 +271,17 @@ function groupBadges(groups: string[]) {
 function overviewTab(m: Me) {
   const whole = Math.floor(m.level);
   const pct = Math.round((m.level % 1) * 100);
-  const meta: string[] = [];
-  if (m.campusName) meta.push(m.campusName);
-  if (m.kind) meta.push(m.kind);
-  if (m.poolLabel) meta.push(`Pool ${m.poolLabel}`);
-  if (m.memberSince) meta.push(`since ${fullDate(new Date(m.memberSince))}`);
+  const meta: { text: string; icon?: string }[] = [];
+  if (m.campusName) {
+    const flag = getCampusFlag(m.campusName);
+    meta.push({ text: `${flag ? `${flag} ` : ""}${m.campusName}` });
+  }
+  if (m.poolLabel) meta.push({ text: m.poolLabel, icon: POOL_SVG });
+  if (m.memberSince)
+    meta.push({
+      text: fullDate(new Date(m.memberSince)),
+      icon: CALENDAR_SVG,
+    });
 
   return html`
     ${card(html`
@@ -270,7 +290,7 @@ function overviewTab(m: Me) {
         <div class="min-w-0">
           <div class="font-bold text-lg truncate">${m.displayName}</div>
           <div class="text-sm opacity-60 truncate">
-            @${m.login}${m.usualFullName && m.usualFullName !== m.displayName
+            ${m.login}${m.usualFullName && m.usualFullName !== m.displayName
               ? ` · ${m.usualFullName}`
               : ""}
           </div>
@@ -289,9 +309,7 @@ function overviewTab(m: Me) {
         <div class="w-full flex flex-col justify-between gap-1">
           <div class="flex items-center justify-between font-bold text-sm">
             <span style="color:var(--color-accent);">${pct}%</span>
-            <span class="opacity-70 truncate"
-              >${m.cursus?.name ?? m.grade ?? "42cursus"}</span
-            >
+            <span class="opacity-70 truncate">${cursusLabel(m)}</span>
           </div>
           <div class="w-full h-2.5 rounded overflow-hidden bg-base-300">
             <div
@@ -301,15 +319,16 @@ function overviewTab(m: Me) {
           </div>
         </div>
       </div>
-      ${m.grade ? html`<div class="text-sm opacity-70">${m.grade}</div>` : ""}
-      ${meta.length
-        ? html`<div class="text-xs opacity-60">${meta.join(" · ")}</div>`
-        : ""}
       <div class="flex flex-wrap gap-2 mt-1">
         ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
         ${statBadge(String(m.correctionPoints), EVAL_SVG)}
         ${locationBadge(m.location)}
       </div>
+      ${meta.length
+        ? html`<div class="flex flex-wrap justify-center gap-2 mt-1">
+            ${meta.map((t) => infoBadge(t.text, t.icon))}
+          </div>`
+        : ""}
     `)}
     ${evaluationsTab()}
   `;

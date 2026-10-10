@@ -19,6 +19,7 @@ import {
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
+import { cursusLabel } from "../lib/cursus.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
@@ -82,18 +83,21 @@ function profileCard() {
   const pct = Math.round((m.level % 1) * 100);
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body gap-4">
+      <div class="card-body">
         <div class="flex items-center gap-4">
           ${avatarBlock()}
           <div class="min-w-0">
             <div class="font-bold text-lg truncate">${m.displayName}</div>
             <div class="text-sm opacity-60 truncate">${m.login}</div>
             ${(m.groups ?? []).length
-              ? html`<div class="flex flex-wrap gap-2 mt-1.5">
+              ? html`<div
+                  class="flex gap-2 mt-2 overflow-x-auto pb-1"
+                  data-no-swipe
+                >
                   ${(m.groups ?? []).map(
                     (g) =>
                       html`<span
-                        class="badge badge-lg badge-primary font-semibold"
+                        class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
                         >${g}</span
                       >`,
                   )}
@@ -101,9 +105,9 @@ function profileCard() {
               : ""}
           </div>
         </div>
-        <div class="flex items-end gap-5">
+        <div class="flex items-end gap-5 mt-2">
           <h1
-            class="text-5xl font-bold drop-shadow-md leading-none shrink-0"
+            class="text-5xl font-bold leading-none shrink-0"
             style="transform: scale(1.2); transform-origin: left center; color: var(--color-accent);"
           >
             ${whole}
@@ -111,7 +115,7 @@ function profileCard() {
           <div class="w-full flex flex-col justify-between gap-1">
             <div class="flex items-center justify-between font-bold text-sm">
               <span style="color: var(--color-accent);">${pct}%</span>
-              <span class="opacity-70 truncate">${m.grade ?? "42cursus"}</span>
+              <span class="opacity-70 truncate">${cursusLabel(m)}</span>
             </div>
             <div class="w-full h-2.5 rounded overflow-hidden bg-base-300">
               <div
@@ -121,7 +125,7 @@ function profileCard() {
             </div>
           </div>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mt-1">
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
           ${locationBadge(m.location)}
@@ -171,21 +175,21 @@ function avatarBlock() {
   const m = meData!;
   if (saveData) {
     return html`<div
-      class="w-16 h-16 rounded-2xl shadow-lg flex-none bg-base-300 flex items-center justify-center text-xl font-bold"
+      class="w-20 h-20 rounded-full shadow-lg flex-none bg-base-300 flex items-center justify-center text-2xl font-bold"
     >
       ${m.login[0]?.toUpperCase() ?? "?"}
     </div>`;
   }
   if (m.customAvatar) {
     return html`<div
-      class="w-16 h-16 rounded-2xl shadow-lg flex-none"
+      class="w-20 h-20 rounded-full shadow-lg flex-none"
       style="background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
     ></div>`;
   }
   return html`<img
     src="${m.image ?? "/icons/icon-192.png"}"
     onerror="this.onerror=null;this.src='/icons/icon-192.png'"
-    class="w-16 h-16 rounded-2xl shadow-lg object-cover flex-none"
+    class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
     alt=""
   />`;
 }

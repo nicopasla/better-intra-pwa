@@ -8,6 +8,14 @@ let engaged = false;
 let dx = 0;
 let direction = 0; // -1 = left (next), +1 = right (prev)
 let animating = false;
+let blocked = false;
+
+/** Gestures starting on a horizontally-scrollable element should scroll it
+ *  instead of switching tabs. */
+function isNoSwipe(target: EventTarget | null): boolean {
+  const el = target as Element | null;
+  return Boolean(el?.closest?.("[data-no-swipe], .overflow-x-auto"));
+}
 
 function mainEl(): HTMLElement | null {
   return document.querySelector<HTMLElement>("main");
@@ -62,6 +70,7 @@ export function initSwipe(): void {
       engaged = false;
       dx = 0;
       direction = 0;
+      blocked = isNoSwipe(e.target);
     },
     { passive: true },
   );
@@ -69,7 +78,7 @@ export function initSwipe(): void {
   document.addEventListener(
     "touchmove",
     (e: TouchEvent) => {
-      if (animating) return;
+      if (animating || blocked) return;
       const t = e.touches[0];
       const curX = t.clientX - startX;
       const curY = t.clientY - startY;

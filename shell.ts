@@ -65,8 +65,8 @@ const supportsViewTransition =
 
 const supportsViewTransitionTypes =
   supportsViewTransition &&
-  typeof (globalThis as { ViewTransition?: { prototype: object } }).ViewTransition !==
-    "undefined" &&
+  typeof (globalThis as { ViewTransition?: { prototype: object } })
+    .ViewTransition !== "undefined" &&
   "types" in
     (globalThis as { ViewTransition: { prototype: object } }).ViewTransition
       .prototype;
@@ -134,7 +134,7 @@ const app = () => document.getElementById("app")!;
 export function renderShell(active: Tab, body: unknown): void {
   render(
     html`
-      <div class="min-h-[100dvh] flex flex-col">
+      <div class="flex min-h-0 flex-1 flex-col">
         <main
           class="flex-1 px-4 pt-4"
           style="padding-bottom: calc(4rem + env(safe-area-inset-bottom));"
