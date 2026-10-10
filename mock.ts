@@ -352,7 +352,7 @@ export const mock = {
       beginAt: mins(12 * 24 * 60),
       endAt: mins(12 * 24 * 60 + 4 * 60),
       location: "Cluster 1",
-      url: "https://events.intra.42.fr/events/105",
+      url: "https://events.intra.42.fr/exams/105",
     },
   ],
   studentsPage: (offset: number) => {
