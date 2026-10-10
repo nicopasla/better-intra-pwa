@@ -270,9 +270,9 @@ function projectsTab(m: Me) {
   `;
 }
 
-function pill(label: string, value: string, color: string) {
+function pill(label: string, value: string, color: string, extra = "") {
   return html`<span
-    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+    class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl ${extra}"
     style="color:${color};background:${color
       .replace(/^rgb\(/, "rgba(")
       .replace(/\)$/, ",0.1)")};"
@@ -353,18 +353,18 @@ function evaluationsTab() {
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Evaluations</h2>
-          <div class="flex flex-wrap items-center justify-center gap-2">
+          <div class="flex items-stretch justify-center gap-2">
             ${g?.successPercentage != null
               ? html`<span
-                  class="text-xl font-bold px-3 py-1 rounded-xl"
+                  class="inline-flex items-center text-xl font-bold px-3 py-1 rounded-xl"
                   style="color:${successColor};background:${successColor
                     .replace(/^rgb\(/, "rgba(")
                     .replace(/\)$/, ",0.1)")};"
                   >${g.successPercentage}%</span
                 >`
               : ""}
-            ${pill("total", String(g?.total ?? 0), "rgb(59,130,246)")}
-            ${pill("failed", String(g?.failed ?? 0), "rgb(239,68,68)")}
+            ${pill("total", String(g?.total ?? 0), "rgb(59,130,246)", "flex-1")}
+            ${pill("failed", String(g?.failed ?? 0), "rgb(239,68,68)", "flex-1")}
           </div>
           <div
             class="overflow-auto min-h-0 flex-1 pr-2"
@@ -429,12 +429,13 @@ function evaluationsTab() {
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Roulette history</h2>
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            ${pill("wins", String(entries.length), "rgb(59,130,246)")}
+          <div class="flex items-stretch justify-center gap-2">
+            ${pill("wins", String(entries.length), "rgb(59,130,246)", "flex-1")}
             ${pill(
               "points",
               String(entries.reduce((a, e) => a + e.sum, 0)),
               "rgb(34,197,94)",
+              "flex-1",
             )}
           </div>
           <div
