@@ -137,7 +137,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
 
       <div class="flex gap-2 mt-3">
         <span
-          class="badge badge-lg flex-1 justify-center text-base font-semibold"
+          class="badge badge-lg flex-[0.8] justify-center text-base font-semibold"
           style="${TIME_STYLE}"
           >${countdown(e.beginAt)}</span
         >
@@ -166,7 +166,8 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             </div>
             <button
               type="button"
-              class="btn btn-circle btn-ghost btn-sm"
+              class="btn btn-circle btn-ghost text-xl shrink-0"
+              style="width:2.5rem;height:2.5rem;"
               aria-label="Close"
               @click=${close}
             >
