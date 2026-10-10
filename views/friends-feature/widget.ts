@@ -961,7 +961,7 @@ function renderWidget(state: WidgetState) {
                       ? renderEmpty()
                       : sorted.length === 0
                         ? html`<div
-                            class="flex flex-1 flex-col items-center justify-center gap-2 py-16 opacity-40"
+                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[60vh] py-16 opacity-40"
                           >
                             <span
                               class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
