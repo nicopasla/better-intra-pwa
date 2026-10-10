@@ -3,6 +3,7 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
 import { dateTime } from "../lib/format.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import STAR_SVG from "../assets/star-lucide.svg?raw";
 
 const RADIUS = "0.75rem";
 
@@ -94,6 +95,10 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             <span
               class="badge badge-lg gap-1 px-2 text-base font-semibold"
               style="${userBadgeStyle("var(--color-primary)")}"
+            >
+              <span
+                class="size-[1em] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                >${unsafeHTML(STAR_SVG)}</span
               >${u.level.toFixed(2)}</span
             >
             ${u.location

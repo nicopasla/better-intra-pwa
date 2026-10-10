@@ -19,15 +19,15 @@ import {
 import { saveData } from "../lib/network.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
-import { cursusLabel } from "../lib/cursus.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
-import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
-import CALENDAR_SVG from "../assets/calendar.svg?raw";
+import STAR_SVG from "../assets/star-lucide.svg?raw";
+import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
+import X_SVG from "../assets/x.svg?raw";
 import INFO_SVG from "../assets/info.svg?raw";
 
 let meData: Me | null = null;
@@ -65,7 +65,9 @@ export function dashboardView(): unknown {
       </div>
     `;
   }
-  return html` ${profileCard()} ${upcomingCard()} ${eventsCard()} `;
+  return html`
+    ${profileCard()} ${liveEventsCard()} ${upcomingCard()} ${eventsCard()}
+  `;
 }
 
 function card(content: unknown, title?: string) {
@@ -81,15 +83,21 @@ function card(content: unknown, title?: string) {
 
 function profileCard() {
   const m = meData!;
-  const whole = Math.floor(m.level);
-  const pct = Math.round((m.level % 1) * 100);
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
       <div class="card-body">
         <div class="flex items-center gap-4">
           ${avatarBlock()}
           <div class="min-w-0">
-            <div class="font-bold text-lg truncate">${m.displayName}</div>
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-bold text-lg truncate">${m.displayName}</span>
+              <span
+                class="status ${m.location
+                  ? "status-success"
+                  : "status-neutral"} shrink-0"
+                title="${m.location ? `Online · ${m.location}` : "Offline"}"
+              ></span>
+            </div>
             <div class="text-sm opacity-60 truncate">${m.login}</div>
             ${(m.groups ?? []).length
               ? html`<div
@@ -107,69 +115,22 @@ function profileCard() {
               : ""}
           </div>
         </div>
-        <div class="flex items-end gap-5 mt-2">
-          <h1
-            class="text-5xl font-bold leading-none shrink-0"
-            style="transform: scale(1.2); transform-origin: left center; color: var(--color-accent);"
-          >
-            ${whole}
-          </h1>
-          <div class="w-full flex flex-col justify-between gap-1">
-            <div class="flex items-center justify-between font-bold text-sm">
-              <span style="color: var(--color-accent);">${pct}%</span>
-              <span class="opacity-70 truncate">${cursusLabel(m)}</span>
-            </div>
-            <div class="w-full h-2.5 rounded overflow-hidden bg-base-300">
-              <div
-                class="h-full rounded transition-all duration-1000 ease-out"
-                style="width:${pct}%;background-color:var(--color-accent);"
-              ></div>
-            </div>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2 mt-1">
+        <div class="flex gap-2 mt-2">
+          ${statBadge(m.level.toFixed(2), STAR_SVG)}
           ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
           ${statBadge(String(m.correctionPoints), EVAL_SVG)}
-          ${locationBadge(m.location)}
         </div>
       </div>
     </div>
   `;
 }
 
-const clusterUrl = (seat: string) =>
-  `https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(seat)}`;
-
-function locationBadge(location: string | null) {
-  const base =
-    "badge badge-lg h-auto flex-1 justify-center gap-2 py-2 no-underline";
-  if (!location) {
-    return html`<div
-      class="${base}"
-      style="border:2px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);"
-    >
-      <span class="font-semibold opacity-60">unavailable</span>
-    </div>`;
-  }
-  return html`<a
-    href="${clusterUrl(location)}"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="${base} text-success"
-    style="border:2px solid var(--color-success);"
-    data-tip="View on cluster map"
-  >
-    <span class="font-semibold font-mono whitespace-nowrap">${location}</span
-    >${svg18(ARROW_SHARE_SVG)}
-  </a>`;
-}
-
-function statBadge(value: string, icon: string) {
+function statBadge(value: string, icon?: string) {
   return html`<div
     class="badge badge-lg h-auto flex-1 justify-center gap-2 py-2"
     style="border:2px solid var(--color-accent);"
   >
-    ${svg18(icon)}<span class="font-semibold">${value}</span>
+    ${icon ? svg18(icon) : ""}<span class="font-semibold">${value}</span>
   </div>`;
 }
 
@@ -218,33 +179,29 @@ function upcomingCard() {
   const evaluating = items.filter((e) => e.role !== "corrected");
   const corrected = items.filter((e) => e.role === "corrected");
   const active =
-    upcomingTab ??
-    (evaluating.length > 0 ? "evaluator" : "corrected");
+    upcomingTab ?? (evaluating.length > 0 ? "evaluator" : "corrected");
   const list = active === "evaluator" ? evaluating : corrected;
 
-  const tab = (
-    id: "evaluator" | "corrected",
-    label: string,
-    count: number,
-  ) => html`<button
-    type="button"
-    class="flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${active ===
-    id
-      ? "bg-primary text-primary-content"
-      : "text-base-content/70 hover:bg-base-300"}"
-    @click=${() => {
-      upcomingTab = id;
-      refresh();
-    }}
-  >
-    <span>${label}</span>
-    <span
-      class="min-w-5 rounded-full px-1.5 text-xs font-bold ${active === id
-        ? "bg-primary-content/20"
-        : "bg-base-300"}"
-      >${count}</span
+  const tab = (id: "evaluator" | "corrected", label: string, count: number) =>
+    html`<button
+      type="button"
+      class="flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${active ===
+      id
+        ? "bg-primary text-primary-content"
+        : "text-base-content/70 hover:bg-base-300"}"
+      @click=${() => {
+        upcomingTab = id;
+        refresh();
+      }}
     >
-  </button>`;
+      <span>${label}</span>
+      <span
+        class="min-w-5 rounded-full px-1.5 text-xs font-bold ${active === id
+          ? "bg-primary-content/20"
+          : "bg-base-300"}"
+        >${count}</span
+      >
+    </button>`;
 
   const evalPart = html`
     <div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
@@ -387,7 +344,9 @@ function eventsCard() {
     );
   }
   return card(
-    html`<div class="flex flex-col gap-3">${allEvents.map(eventCard)}</div>`,
+    html`<ul class="list">
+      ${allEvents.map(eventRow)}
+    </ul>`,
     "Events",
   );
 }
@@ -396,65 +355,195 @@ const TEAL = "rgb(0,186,188)";
 const svg16 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
 
-function eventCard(e: CalendarEvent) {
+const DISMISSED_EVENTS_KEY = "ft_dismissed_events";
+
+function getDismissedEvents(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_EVENTS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function dismissEvent(id: number | null): void {
+  if (id == null) return;
+  const set = getDismissedEvents();
+  set.add(String(id));
+  try {
+    localStorage.setItem(DISMISSED_EVENTS_KEY, JSON.stringify([...set]));
+  } catch {
+    /* ignore */
+  }
+  refresh();
+}
+
+/** Events that are ongoing, start soon, or happen today/tomorrow. */
+function isCloseEvent(e: CalendarEvent): boolean {
+  const now = new Date();
+  if (new Date(e.endAt).getTime() <= now.getTime()) return false;
+  const endOfTomorrow = new Date(now);
+  endOfTomorrow.setDate(now.getDate() + 2);
+  endOfTomorrow.setHours(0, 0, 0, 0);
+  return new Date(e.beginAt).getTime() < endOfTomorrow.getTime();
+}
+
+function closeStatus(start: Date, end: Date): { text: string; cls: string } {
+  const now = new Date();
+  if (now >= start && now < end)
+    return { text: "Happening now", cls: "badge-success" };
+  if (start.toDateString() === now.toDateString()) {
+    const mins = Math.max(
+      1,
+      Math.round((start.getTime() - now.getTime()) / 60000),
+    );
+    return {
+      text:
+        mins < 60
+          ? `Starts in ${mins} min`
+          : `Starts in ${Math.floor(mins / 60)}h`,
+      cls: "badge-warning",
+    };
+  }
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (start.toDateString() === tomorrow.toDateString())
+    return { text: "Tomorrow", cls: "badge-info" };
+  return { text: "Soon", cls: "badge-info" };
+}
+
+/** Highlights events that are ongoing or happening today/tomorrow, above the Upcoming card. */
+function liveEventsCard(): unknown {
+  const dismissed = getDismissedEvents();
+  const live = allEvents.filter(
+    (e) => isCloseEvent(e) && !dismissed.has(String(e.id)),
+  );
+  if (live.length === 0) return "";
+  return html`<div class="flex flex-col gap-3 mb-4">
+    ${live.map((e) => {
+      const start = new Date(e.beginAt);
+      const end = new Date(e.endAt);
+      const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
+      const status = closeStatus(start, end);
+      const href =
+        e.url ??
+        (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
+      const inner = html`
+        <div class="card-body p-4 gap-2">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="badge ${status.cls} badge-sm font-semibold"
+                >${status.text}</span
+              >
+              ${isExam
+                ? html`<span class="badge badge-outline badge-error badge-sm"
+                    >Exam</span
+                  >`
+                : ""}
+            </div>
+            <button
+              type="button"
+              class="badge badge-lg badge-outline badge-error text-error cursor-pointer shrink-0 -mr-1 -mt-1"
+              title="Hide this event"
+              @click=${(ev: Event) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                dismissEvent(e.id);
+              }}
+            >
+              ${svg18(X_SVG)}
+            </button>
+          </div>
+          <div class="font-semibold leading-snug ${isExam ? "text-error" : ""}">
+            ${e.name}
+          </div>
+          <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs opacity-60"
+          >
+            <span class="flex items-center gap-1"
+              >${svg16(CLOCK_SVG)}${pad2(start.getHours())}:${pad2(
+                start.getMinutes(),
+              )}–${pad2(end.getHours())}:${pad2(end.getMinutes())}</span
+            >
+            ${e.location
+              ? html`<span class="flex items-center gap-1"
+                  >${svg16(MAP_PIN_SVG)}${e.location}</span
+                >`
+              : ""}
+          </div>
+        </div>
+      `;
+      return html`<div
+        class="card bg-base-100 shadow-xl border-2 ${isExam
+          ? "border-error"
+          : "border-primary"}"
+      >
+        ${href
+          ? html`<a
+              class="contents no-underline text-base-content"
+              href="${href}"
+              target="_blank"
+              rel="noopener noreferrer"
+              >${inner}</a
+            >`
+          : inner}
+      </div>`;
+    })}
+  </div>`;
+}
+
+function eventRow(e: CalendarEvent) {
   const start = new Date(e.beginAt);
   const end = new Date(e.endAt);
-  const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
-  const day = String(start.getDate());
-  const month = start.toLocaleDateString("en-GB", { month: "short" });
   const href =
     e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
   const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
-  const accent = isExam ? "#ed8179" : TEAL;
+  const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
+  const day = String(start.getDate());
+  const timeRange = `${pad2(start.getHours())}:${pad2(start.getMinutes())}–${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
 
-  const cardEl = html`
+  const content = html`
     <div
-      class="flex w-full h-24 rounded-2xl overflow-hidden border border-base-300 bg-base-100 shadow-sm"
+      class="w-12 self-stretch flex-none rounded-box border-2 flex flex-col items-center justify-center ${isExam
+        ? "border-error text-error"
+        : "border-primary text-primary"}"
     >
-      <div
-        class="w-20 flex-none flex flex-col items-center justify-center gap-0.5 text-white font-thin"
-        style="background-color:${accent};"
+      <span class="text-[10px] font-semibold uppercase leading-none opacity-70"
+        >${weekday}</span
       >
-        <span class="text-xs">${weekday}</span>
-        <span class="font-bold text-xl leading-none">${day}</span>
-        <span class="text-xs">${month}</span>
-      </div>
-      <div class="flex-1 px-3 py-2 min-w-0 flex flex-col">
-        <div
-          class="font-bold text-base leading-snug line-clamp-2"
-          style="color:${accent};"
-        >
-          ${e.name}
-        </div>
-        <div
-          class="flex flex-row gap-4 flex-wrap items-center text-sm mt-auto"
-          style="color:${accent};"
-        >
-          <span class="flex items-center gap-0.5"
-            >${svg16(CALENDAR_SVG)}${formatDuration(start, end)}</span
-          >
-          <span class="flex items-center gap-0.5"
-            >${svg16(CLOCK_SVG)}${eventRelative(start)}</span
-          >
-          ${e.location
-            ? html`<span class="flex items-center gap-0.5"
-                >📍 ${e.location}</span
-              >`
-            : ""}
-        </div>
-      </div>
+      <span class="text-lg font-bold leading-none">${day}</span>
     </div>
+    <div class="min-w-0 flex flex-col justify-center gap-0.5 min-h-[3.5rem]">
+      <div class="font-semibold truncate ${isExam ? "text-error" : ""}">
+        ${e.name}
+      </div>
+      <div class="flex items-center gap-1 text-xs opacity-60 min-w-0">
+        ${svg16(CLOCK_SVG)}${timeRange} · ${formatDuration(start, end)}
+      </div>
+      ${e.location
+        ? html`<div class="flex items-center gap-1 text-xs opacity-60 min-w-0">
+            ${svg16(MAP_PIN_SVG)}<span class="truncate">${e.location}</span>
+          </div>`
+        : ""}
+    </div>
+    ${isExam
+      ? html`<span class="badge badge-sm badge-outline badge-error self-center"
+          >Exam</span
+        >`
+      : ""}
   `;
 
-  return href
-    ? html`<a
-        href="${href}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="no-underline"
-        >${cardEl}</a
-      >`
-    : cardEl;
+  return html`<li class="list-row px-0">
+    ${href
+      ? html`<a
+          class="contents no-underline text-base-content"
+          href="${href}"
+          target="_blank"
+          rel="noopener noreferrer"
+          >${content}</a
+        >`
+      : content}
+  </li>`;
 }
 
 function formatDuration(start: Date, end: Date): string {
@@ -463,22 +552,6 @@ function formatDuration(start: Date, end: Date): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m ? `${h}h${m}m` : `${h}h`;
-}
-
-function eventRelative(d: Date): string {
-  const diff = d.getTime() - Date.now();
-  if (diff < 0) return "started";
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) {
-    const h = Math.floor(diff / 3600000);
-    if (h === 0) {
-      const m = Math.max(1, Math.floor(diff / 60000));
-      return `in ${m}m`;
-    }
-    return `in ${h}h`;
-  }
-  if (days === 1) return "tomorrow";
-  return `in ${days} days`;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
