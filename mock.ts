@@ -417,6 +417,10 @@ export const mock = {
       beginAt: mins(5 * 24 * 60),
       endAt: mins(5 * 24 * 60 + 60),
       location: "Amphithéâtre",
+      description:
+        "Unsure what comes after 42? Get your answers from two 42 Alumni at the next Fireside Chat.\n\n• Antoine — 42 Paris, Senior Software Engineer @ Google Cloud\n• Mounia — 1337 Benguerir, Data Scientist @ CRSA\n\nJourneys, career choices, relocation, life after 42… Come ask your questions!",
+      subscribers: 803,
+      maxSubscribers: 1000,
       url: "https://events.intra.42.fr/events/101",
     },
     {
@@ -425,6 +429,10 @@ export const mock = {
       beginAt: mins(-20),
       endAt: mins(100),
       location: "Room 4.2",
+      description:
+        "Hands-on introduction to Docker: images, containers, volumes and compose. Bring your laptop.",
+      subscribers: 42,
+      maxSubscribers: null,
       url: "https://events.intra.42.fr/events/102",
     },
     {

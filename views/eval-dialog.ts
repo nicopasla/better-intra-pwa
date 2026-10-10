@@ -4,6 +4,7 @@ import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
 import { dateTime } from "../lib/format.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
+import X_SVG from "../assets/x.svg?raw";
 
 const RADIUS = "0.75rem";
 
@@ -171,12 +172,13 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             </div>
             <button
               type="button"
-              class="btn btn-circle btn-ghost text-xl shrink-0"
-              style="width:2.5rem;height:2.5rem;"
+              class="btn btn-ghost btn-sm shrink-0"
               aria-label="Close"
               @click=${close}
             >
-              ✕
+              ${unsafeHTML(
+                X_SVG.replace("<svg", '<svg width="18" height="18"'),
+              )}
             </button>
           </div>
           <div class="px-4 py-4">${body()}</div>

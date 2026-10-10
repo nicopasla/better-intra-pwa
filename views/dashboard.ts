@@ -21,6 +21,7 @@ import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
+import { openEventDialog } from "./event-dialog.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
@@ -427,9 +428,6 @@ function liveEventsCard(): unknown {
       const end = new Date(e.endAt);
       const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
       const status = closeStatus(start, end);
-      const href =
-        e.url ??
-        (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
       const inner = html`
         <div class="card-body p-4 gap-2">
           <div class="flex items-start justify-between gap-2">
@@ -471,19 +469,12 @@ function liveEventsCard(): unknown {
         </div>
       `;
       return html`<div
-        class="card bg-base-100 shadow-xl border-2 ${isExam
+        class="card bg-base-100 shadow-xl border-2 cursor-pointer hover:brightness-105 transition-all ${isExam
           ? "border-error"
           : "border-primary"}"
+        @click=${() => openEventDialog(e)}
       >
-        ${href
-          ? html`<a
-              class="contents no-underline text-base-content"
-              href="${href}"
-              target="_blank"
-              rel="noopener noreferrer"
-              >${inner}</a
-            >`
-          : inner}
+        ${inner}
       </div>`;
     })}
   </div>`;
@@ -492,8 +483,6 @@ function liveEventsCard(): unknown {
 function eventRow(e: CalendarEvent) {
   const start = new Date(e.beginAt);
   const end = new Date(e.endAt);
-  const href =
-    e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
   const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
   const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
   const day = String(start.getDate());
@@ -525,16 +514,11 @@ function eventRow(e: CalendarEvent) {
     </div>
   `;
 
-  return html`<li class="list-row px-0">
-    ${href
-      ? html`<a
-          class="contents no-underline text-base-content"
-          href="${href}"
-          target="_blank"
-          rel="noopener noreferrer"
-          >${content}</a
-        >`
-      : content}
+  return html`<li
+    class="list-row px-0 cursor-pointer hover:bg-base-200 transition-colors"
+    @click=${() => openEventDialog(e)}
+  >
+    ${content}
   </li>`;
 }
 

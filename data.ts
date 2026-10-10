@@ -280,6 +280,9 @@ export interface CalendarEvent {
   beginAt: string;
   endAt: string;
   location: string | null;
+  description?: string | null;
+  subscribers?: number | null;
+  maxSubscribers?: number | null;
   url: string | null;
 }
 
