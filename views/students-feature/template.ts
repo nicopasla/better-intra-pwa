@@ -884,7 +884,7 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
     </style>
-    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-4">
+    <div class="students-feature flex flex-col bg-base-100 rounded-xl pb-4 mb-4">
       <div
         class="sticky top-[env(safe-area-inset-top)] z-10 bg-base-100 rounded-t-xl"
       >

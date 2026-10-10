@@ -644,7 +644,7 @@ function renderWidget(state: WidgetState) {
         flex-direction: column;
         scrollbar-width: thin;
         scrollbar-gutter: stable;
-        padding-bottom: 4rem;
+        padding-bottom: 1rem;
       }
 
       .friends-actions {
@@ -801,7 +801,9 @@ function renderWidget(state: WidgetState) {
       }
     </style>
 
-    <div class="friends-feature flex flex-col min-h-[calc(100dvh-7rem)]">
+    <div
+      class="friends-feature flex flex-col min-h-[calc(100dvh-7rem)] pb-[calc(5rem+env(safe-area-inset-bottom))]"
+    >
       <div style="display:none">
         <div class="indicator">
           ${onlineCount > 0 && !state.needsReconnect
