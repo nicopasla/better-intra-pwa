@@ -11,7 +11,18 @@ let startY = 0;
 let lastDy = 0;
 let pulling = false;
 let reloading = false;
+let blocked = false;
 let indicatorEl: HTMLDivElement | null = null;
+
+/** Touches starting on an inner scroll area should scroll it, not pull-refresh. */
+function isScrollArea(target: EventTarget | null): boolean {
+  const el = target as Element | null;
+  return Boolean(
+    el?.closest?.(
+      "[data-no-swipe], .overflow-auto, .overflow-y-auto, .overflow-scroll",
+    ),
+  );
+}
 
 function mainEl(): HTMLElement | null {
   return document.querySelector<HTMLElement>("main");
@@ -22,7 +33,8 @@ function indicator(): HTMLDivElement | null {
   const el = document.createElement("div");
   el.style.cssText =
     "position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:flex-end;height:4rem;pointer-events:none;";
-  el.innerHTML = '<span class="loading loading-ring" style="color:var(--color-accent);"></span>';
+  el.innerHTML =
+    '<span class="loading loading-ring" style="color:var(--color-accent);"></span>';
   document.body.appendChild(el);
   indicatorEl = el;
   return el;
@@ -42,8 +54,7 @@ function render(value: number, armed: boolean, spinning: boolean): void {
   const offset = Math.min(value * 0.6, 90);
 
   // Blend the revealed strip with the card color so the pull looks native.
-  document.body.style.background =
-    value > 0 ? "var(--color-base-100)" : "";
+  document.body.style.background = value > 0 ? "var(--color-base-100)" : "";
 
   if (el) {
     setVisible(value > 0 || spinning);
@@ -115,6 +126,7 @@ export function initPullRefresh(): void {
       startY = t.clientY;
       lastDy = 0;
       pulling = false;
+      blocked = isScrollArea(e.target);
     },
     { passive: true },
   );
@@ -122,7 +134,7 @@ export function initPullRefresh(): void {
   document.addEventListener(
     "touchmove",
     (e: TouchEvent) => {
-      if (reloading) return;
+      if (reloading || blocked) return;
       const t = e.touches[0];
       const dy = t.clientY - startY;
       const dx = t.clientX - startX;
