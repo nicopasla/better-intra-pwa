@@ -349,7 +349,7 @@ function evaluationsTab() {
       style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
     >
       <div
-        class="flex-1 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+        class="flex-65 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Evaluations</h2>
@@ -425,7 +425,7 @@ function evaluationsTab() {
       </div>
 
       <div
-        class="flex-1 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+        class="flex-35 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
         <div class="card-body min-h-0">
           <h2 class="card-title text-base">Roulette history</h2>
