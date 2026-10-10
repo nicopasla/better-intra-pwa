@@ -16,9 +16,9 @@ function mins(m: number): string {
 
 export const mock = {
   me: {
-    login: "shrek",
-    displayName: "Shrek",
-    usualFullName: "Ogre Shrek",
+    login: "jsmith",
+    displayName: "Jane Smith",
+    usualFullName: "Jane Smith",
     image: "https://cataas.com/cat?width=200&height=200&r=1",
     kind: "student",
     staff: false,
@@ -172,7 +172,7 @@ export const mock = {
         project: "push_swap",
         slug: "push_swap",
         role: "corrected" as const,
-        corrector: "fiona",
+        corrector: "amelie",
       },
       {
         id: 6,
@@ -186,7 +186,70 @@ export const mock = {
     ],
   },
   profileStats: {
-    roulette: { entries: [] },
+    roulette: {
+      entries: [
+        {
+          historic_id: 101,
+          sum: 2,
+          total: 3,
+          created_at: new Date(now - 86400000).toISOString(),
+        },
+        {
+          historic_id: 102,
+          sum: 1,
+          total: 3,
+          created_at: new Date(now - 3 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 103,
+          sum: 1,
+          total: 2,
+          created_at: new Date(now - 5 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 104,
+          sum: 3,
+          total: 3,
+          created_at: new Date(now - 8 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 105,
+          sum: 1,
+          total: 2,
+          created_at: new Date(now - 11 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 106,
+          sum: 2,
+          total: 3,
+          created_at: new Date(now - 15 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 107,
+          sum: 2,
+          total: 2,
+          created_at: new Date(now - 19 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 108,
+          sum: 1,
+          total: 3,
+          created_at: new Date(now - 24 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 109,
+          sum: 3,
+          total: 4,
+          created_at: new Date(now - 30 * 86400000).toISOString(),
+        },
+        {
+          historic_id: 110,
+          sum: 1,
+          total: 2,
+          created_at: new Date(now - 36 * 86400000).toISOString(),
+        },
+      ],
+    },
     evalStats: {
       global: { total: 68, failed: 8, successPercentage: 88.2 },
       byMonth: {
@@ -225,8 +288,8 @@ export const mock = {
   outstanding: { 101: 3, 102: 1 } as Record<number, number>,
   friends: [
     {
-      login: "fiona",
-      displayName: "Fiona",
+      login: "amelie",
+      displayName: "Amélie Martin",
       avatar: "https://cataas.com/cat?width=200&height=200&r=2",
       customAvatar: null,
       avatarBg: "transparent",
@@ -234,7 +297,7 @@ export const mock = {
       avatarPosY: 50,
       avatarScale: 100,
       level: 14.32,
-      grade: "Ogre at 42cursus",
+      grade: "Member at 42cursus",
       isOnline: true,
       lastSeen: "c3r1p2",
       poolLabel: "06/2001",
@@ -243,8 +306,8 @@ export const mock = {
       lastOnlineTimestamp: null,
     },
     {
-      login: "donkey",
-      displayName: "Donkey",
+      login: "bdurand",
+      displayName: "Bob Durand",
       avatar: "https://cataas.com/cat?width=200&height=200&r=3",
       customAvatar: "https://cataas.com/cat?width=200&height=200&r=4",
       avatarBg: "#5b21b6",
@@ -261,8 +324,8 @@ export const mock = {
       lastOnlineTimestamp: null,
     },
     {
-      login: "puss",
-      displayName: "Puss in Boots",
+      login: "cpetit",
+      displayName: "Charlie Petit",
       avatar: "https://cataas.com/cat?width=200&height=200&r=5",
       customAvatar: null,
       avatarBg: "transparent",
@@ -279,8 +342,8 @@ export const mock = {
       lastOnlineTimestamp: now - 2 * 3600 * 1000,
     },
     {
-      login: "dragon",
-      displayName: "Dragon",
+      login: "dleroy",
+      displayName: "Diana Leroy",
       avatar: "https://cataas.com/cat?width=200&height=200&r=6",
       customAvatar: null,
       avatarBg: "transparent",
@@ -297,8 +360,8 @@ export const mock = {
       lastOnlineTimestamp: now - 86400000,
     },
     {
-      login: "farquaad",
-      displayName: "Lord Farquaad",
+      login: "vmoreau",
+      displayName: "Victor Moreau",
       avatar: "https://cataas.com/cat?width=200&height=200&r=7",
       customAvatar: null,
       avatarBg: "transparent",
@@ -317,7 +380,7 @@ export const mock = {
   ],
   blob: {
     settings: {
-      FRIENDS_LIST: ["fiona", "donkey", "puss", "dragon", "farquaad"],
+      FRIENDS_LIST: ["amelie", "bdurand", "cpetit", "dleroy", "vmoreau"],
       DISCORD_QUIET_ENABLED: false,
       DISCORD_QUIET_START: "22:00",
       DISCORD_QUIET_END: "08:00",
@@ -325,7 +388,7 @@ export const mock = {
     },
     revision: "mock",
     discordId: "123456",
-    discordUsername: "shrek",
+    discordUsername: "jsmith",
   },
   sessions: {
     max: 20,

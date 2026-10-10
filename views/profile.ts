@@ -1,5 +1,4 @@
 import { html } from "lit-html";
-import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { Me, ProfileStats, me, outstandingIds, profileStats } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import {
@@ -7,26 +6,15 @@ import {
   observeTabsOverflow,
   segmentedTabs,
 } from "../lib/segmented-tabs.ts";
-import { dateTime, fullDate } from "../lib/format.ts";
-import { cursusLabel } from "../lib/cursus.ts";
-import { getCampusFlag } from "../lib/campus-flags.ts";
-import { saveData } from "../lib/network.ts";
-import WALLET_SVG from "../assets/wallet.svg?raw";
-import EVAL_SVG from "../assets/eval.svg?raw";
-import POOL_SVG from "../assets/pool.svg?raw";
-import CALENDAR_SVG from "../assets/calendar.svg?raw";
-import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import { dateTime } from "../lib/format.ts";
 
-type SubTab = "overview" | "projects" | "achievements";
+type SubTab = "evaluations" | "projects" | "achievements";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
-  { id: "overview", label: "Overview" },
+  { id: "evaluations", label: "Evaluations" },
   { id: "projects", label: "Projects" },
   { id: "achievements", label: "Achievements" },
 ];
-
-const svg18 = (raw: string) =>
-  unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
 
 let meData: Me | null = null;
 let stats: ProfileStats | null = null;
@@ -38,7 +26,7 @@ let tabsObserver: ResizeObserver | null = null;
 
 const storedSub = (): SubTab => {
   const v = localStorage.getItem(PROFILE_SUB_TAB_KEY);
-  return SUB_TABS.some((t) => t.id === v) ? (v as SubTab) : "overview";
+  return SUB_TABS.some((t) => t.id === v) ? (v as SubTab) : "evaluations";
 };
 const PROFILE_SUB_TAB_KEY = "PROFILE_SUB_TAB";
 let subTab: SubTab = storedSub();
@@ -76,8 +64,8 @@ export function profileView(): unknown {
     </style>
     <div class="profile-feature flex flex-col pb-14">
       <div>
-        ${subTab === "overview"
-          ? overviewTab(m)
+        ${subTab === "evaluations"
+          ? evaluationsTab()
           : subTab === "projects"
             ? projectsTab(m)
             : achievementsTab(m)}
@@ -181,156 +169,6 @@ function card(content: unknown, title?: string) {
         ${content}
       </div>
     </div>
-  `;
-}
-
-function avatarBlock(m: Me) {
-  if (saveData) {
-    return html`<div
-      class="w-20 h-20 rounded-full shadow-lg flex-none bg-base-300 flex items-center justify-center text-2xl font-bold"
-    >
-      ${m.login[0]?.toUpperCase() ?? "?"}
-    </div>`;
-  }
-  if (m.customAvatar) {
-    return html`<div
-      class="w-20 h-20 rounded-full shadow-lg flex-none"
-      style="background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
-    ></div>`;
-  }
-  return html`<img
-    src="${m.image ?? "/icons/icon-192.png"}"
-    onerror="this.onerror=null;this.src='/icons/icon-192.png'"
-    class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
-    alt=""
-  />`;
-}
-
-function statBadge(value: string, icon: string) {
-  return html`<div
-    class="badge badge-lg h-auto flex-1 justify-center gap-2 py-2"
-    style="border:2px solid var(--color-accent);"
-  >
-    ${svg18(icon)}<span class="font-semibold">${value}</span>
-  </div>`;
-}
-
-function infoBadge(text: string, icon?: string) {
-  return html`<div
-    class="badge badge-lg h-auto justify-center gap-2 py-2"
-    style="border:2px solid var(--color-accent);"
-  >
-    ${icon ? svg18(icon) : ""}<span class="font-semibold">${text}</span>
-  </div>`;
-}
-
-const clusterUrl = (seat: string) =>
-  `https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(seat)}`;
-
-function locationBadge(location: string | null) {
-  const base =
-    "badge badge-lg h-auto flex-1 justify-center gap-2 py-2 no-underline";
-  if (!location) {
-    return html`<div
-      class="${base}"
-      style="border:2px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);"
-    >
-      <span class="font-semibold opacity-60">unavailable</span>
-    </div>`;
-  }
-  return html`<a
-    href="${clusterUrl(location)}"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="${base} text-success"
-    style="border:2px solid var(--color-success);"
-    data-tip="View on cluster map"
-  >
-    <span class="font-semibold font-mono whitespace-nowrap">${location}</span
-    >${svg18(ARROW_SHARE_SVG)}
-  </a>`;
-}
-
-function groupBadges(groups: string[]) {
-  if (groups.length === 0) return "";
-  return html`<div class="flex gap-2 overflow-x-auto pb-1" data-no-swipe>
-    ${groups.map(
-      (g) =>
-        html`<span
-          class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
-          >${g}</span
-        >`,
-    )}
-  </div>`;
-}
-
-// ---------------------------------------------------------------------------
-// Overview
-// ---------------------------------------------------------------------------
-
-function overviewTab(m: Me) {
-  const whole = Math.floor(m.level);
-  const pct = Math.round((m.level % 1) * 100);
-  const meta: { text: string; icon?: string }[] = [];
-  if (m.campusName) {
-    const flag = getCampusFlag(m.campusName);
-    meta.push({ text: `${flag ? `${flag} ` : ""}${m.campusName}` });
-  }
-  if (m.poolLabel) meta.push({ text: m.poolLabel, icon: POOL_SVG });
-  if (m.memberSince)
-    meta.push({
-      text: fullDate(new Date(m.memberSince)),
-      icon: CALENDAR_SVG,
-    });
-
-  return html`
-    ${card(html`
-      <div class="flex items-center gap-4">
-        ${avatarBlock(m)}
-        <div class="min-w-0">
-          <div class="font-bold text-lg truncate">${m.displayName}</div>
-          <div class="text-sm opacity-60 truncate">
-            ${m.login}${m.usualFullName && m.usualFullName !== m.displayName
-              ? ` · ${m.usualFullName}`
-              : ""}
-          </div>
-          ${m.groups.length
-            ? html`<div class="mt-2">${groupBadges(m.groups)}</div>`
-            : ""}
-        </div>
-      </div>
-      <div class="flex items-end gap-5 mt-2">
-        <h1
-          class="text-5xl font-bold leading-none shrink-0"
-          style="transform:scale(1.2);transform-origin:left center;color:var(--color-accent);"
-        >
-          ${whole}
-        </h1>
-        <div class="w-full flex flex-col justify-between gap-1">
-          <div class="flex items-center justify-between font-bold text-sm">
-            <span style="color:var(--color-accent);">${pct}%</span>
-            <span class="opacity-70 truncate">${cursusLabel(m)}</span>
-          </div>
-          <div class="w-full h-2.5 rounded overflow-hidden bg-base-300">
-            <div
-              class="h-full rounded"
-              style="width:${pct}%;background-color:var(--color-accent);"
-            ></div>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2 mt-1">
-        ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
-        ${statBadge(String(m.correctionPoints), EVAL_SVG)}
-        ${locationBadge(m.location)}
-      </div>
-      ${meta.length
-        ? html`<div class="flex flex-wrap justify-center gap-2 mt-1">
-            ${meta.map((t) => infoBadge(t.text, t.icon))}
-          </div>`
-        : ""}
-    `)}
-    ${evaluationsTab()}
   `;
 }
 
@@ -491,47 +329,159 @@ function achievementsTab(m: Me) {
 // Evaluations
 // ---------------------------------------------------------------------------
 
+function formatMonth(key: string): string {
+  const [year, month] = key.split("-");
+  if (!year || !month) return key;
+  return `${month}/${year.slice(2)}`;
+}
+
 function evaluationsTab() {
   const g = stats?.evalStats.global;
   const entries = stats?.roulette.entries ?? [];
+  const months = Object.entries(stats?.evalStats.byMonth ?? {}).sort((a, b) =>
+    b[0].localeCompare(a[0]),
+  );
   const ok = g?.successPercentage != null && g.successPercentage >= 67;
   const successColor = ok ? "rgb(34,197,94)" : "rgb(239,68,68)";
   return html`
-    ${card(
-      html`<div class="flex flex-wrap items-center justify-center gap-2">
-        ${g?.successPercentage != null
-          ? html`<span
-              class="text-xl font-bold px-5 py-2 rounded-xl"
-              style="color:${successColor};background:${successColor
-                .replace(/^rgb\(/, "rgba(")
-                .replace(/\)$/, ",0.1)")};"
-              >${g.successPercentage}%</span
-            >`
-          : ""}
-        ${pill("total", String(g?.total ?? 0), "rgb(59,130,246)")}
-        ${pill("failed", String(g?.failed ?? 0), "rgb(239,68,68)")}
-      </div>`,
-      "Evaluations",
-    )}
-    ${entries.length
-      ? card(
-          html`<div class="flex flex-wrap gap-2">
-            ${entries.slice(0, 40).map((e) => {
-              const color =
-                e.sum > 0
-                  ? "rgb(34,197,94)"
-                  : e.sum < 0
-                    ? "rgb(239,68,68)"
-                    : "rgb(59,130,246)";
-              const label = new Date(e.created_at).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-              });
-              return pill(label, String(e.sum), color);
-            })}
-          </div>`,
-          "Roulette history",
-        )
-      : ""}
+    <div
+      class="fixed left-0 right-0 z-10 flex flex-col gap-3 px-4"
+      style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
+    >
+      <div
+        class="flex-1 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+      >
+        <div class="card-body min-h-0">
+          <h2 class="card-title text-base">Evaluations</h2>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            ${g?.successPercentage != null
+              ? html`<span
+                  class="text-xl font-bold px-5 py-2 rounded-xl"
+                  style="color:${successColor};background:${successColor
+                    .replace(/^rgb\(/, "rgba(")
+                    .replace(/\)$/, ",0.1)")};"
+                  >${g.successPercentage}%</span
+                >`
+              : ""}
+            ${pill("total", String(g?.total ?? 0), "rgb(59,130,246)")}
+            ${pill("failed", String(g?.failed ?? 0), "rgb(239,68,68)")}
+          </div>
+          <div
+            class="overflow-auto min-h-0 flex-1 pr-2"
+            style="scrollbar-gutter:stable;"
+          >
+            ${months.length
+              ? html`<table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left">
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-base-content/60"
+                      >
+                        Month
+                      </th>
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-right text-base-content/60"
+                      >
+                        Total
+                      </th>
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-right text-base-content/60"
+                      >
+                        Failed
+                      </th>
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-right text-base-content/60"
+                      >
+                        Success
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${months.map(
+                      ([month, s]) =>
+                        html`<tr class="border-t border-base-300">
+                          <td class="py-1.5">${formatMonth(month)}</td>
+                          <td class="py-1.5 text-right font-mono">
+                            ${s.total}
+                          </td>
+                          <td class="py-1.5 text-right font-mono">
+                            ${s.failed}
+                          </td>
+                          <td
+                            class="py-1.5 text-right font-mono font-semibold"
+                            style="color:${(s.successPercentage ?? 0) >= 67
+                              ? "rgb(34,197,94)"
+                              : "rgb(239,68,68)"}"
+                          >
+                            ${s.successPercentage ?? 0}%
+                          </td>
+                        </tr>`,
+                    )}
+                  </tbody>
+                </table>`
+              : html`<p class="text-sm opacity-60">No history yet.</p>`}
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="flex-1 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+      >
+        <div class="card-body min-h-0">
+          <h2 class="card-title text-base">Roulette history</h2>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            ${pill("wins", String(entries.length), "rgb(59,130,246)")}
+            ${pill(
+              "points",
+              String(entries.reduce((a, e) => a + e.sum, 0)),
+              "rgb(34,197,94)",
+            )}
+          </div>
+          <div
+            class="overflow-auto min-h-0 flex-1 pr-2"
+            style="scrollbar-gutter:stable;"
+          >
+            ${entries.length
+              ? html`<table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left">
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-base-content/60"
+                      >
+                        Date
+                      </th>
+                      <th
+                        class="sticky top-0 z-10 bg-base-100 py-1 font-semibold text-right text-base-content/60"
+                      >
+                        Points
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${entries.slice(0, 40).map((e) => {
+                      const date = new Date(e.created_at).toLocaleDateString(
+                        "en-GB",
+                        { day: "2-digit", month: "2-digit", year: "2-digit" },
+                      );
+                      return html`<tr class="border-t border-base-300">
+                        <td class="py-1.5">${date}</td>
+                        <td class="py-1.5 text-right">
+                          <span
+                            class="badge badge-lg font-mono font-bold"
+                            style="border:2px solid rgb(34,197,94);color:rgb(34,197,94);"
+                            >+${e.sum}</span
+                          >
+                        </td>
+                      </tr>`;
+                    })}
+                  </tbody>
+                </table>`
+              : html`<p class="text-sm opacity-60">
+                  No roulette history yet.
+                </p>`}
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
