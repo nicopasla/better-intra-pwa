@@ -337,6 +337,8 @@ function eventCard(e: CalendarEvent) {
   const month = start.toLocaleDateString("en-GB", { month: "short" });
   const href =
     e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
+  const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
+  const accent = isExam ? "#ed8179" : TEAL;
 
   const cardEl = html`
     <div
@@ -344,7 +346,7 @@ function eventCard(e: CalendarEvent) {
     >
       <div
         class="w-20 flex-none flex flex-col items-center justify-center gap-0.5 text-white font-thin"
-        style="background-color:${TEAL};"
+        style="background-color:${accent};"
       >
         <span class="text-xs">${weekday}</span>
         <span class="font-bold text-xl leading-none">${day}</span>
@@ -353,13 +355,13 @@ function eventCard(e: CalendarEvent) {
       <div class="flex-1 px-3 py-2 min-w-0 flex flex-col">
         <div
           class="font-bold text-base leading-snug line-clamp-2"
-          style="color:${TEAL};"
+          style="color:${accent};"
         >
           ${e.name}
         </div>
         <div
           class="flex flex-row gap-4 flex-wrap items-center text-sm mt-auto"
-          style="color:${TEAL};"
+          style="color:${accent};"
         >
           <span class="flex items-center gap-0.5"
             >${svg16(CALENDAR_SVG)}${formatDuration(start, end)}</span

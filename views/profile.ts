@@ -74,7 +74,7 @@ export function profileView(): unknown {
     <style>
       ${SEGMENTED_TABS_CSS}
     </style>
-    <div class="profile-feature flex flex-col pb-24">
+    <div class="profile-feature flex flex-col pb-14">
       <div>
         ${subTab === "overview"
           ? overviewTab(m)
@@ -457,11 +457,8 @@ function achievementsTab(m: Me) {
       `Achievements`,
     );
   }
-  return html`
-    <div class="mb-2 text-sm font-semibold opacity-70">
-      Achievements (${m.achievementsCount})
-    </div>
-    <ul class="list bg-base-100 rounded-box shadow-md">
+  return card(
+    html`<ul class="list">
       ${m.achievements.map(
         (a) => html`
           <li class="list-row items-center">
@@ -485,8 +482,9 @@ function achievementsTab(m: Me) {
           </li>
         `,
       )}
-    </ul>
-  `;
+    </ul>`,
+    `Achievements (${m.achievementsCount})`,
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -51,6 +51,9 @@ import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 
 const REPO_URL = "https://github.com/nicopasla/better-intra";
 
+const svgIcon = (raw: string) =>
+  unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+
 const QUICK_LINKS = [
   { href: REPO_URL, svg: GITHUB_SVG, label: "GitHub", color: "btn-primary" },
   {
@@ -480,7 +483,7 @@ function aboutSection(): TemplateResult {
         rel="noopener noreferrer"
       >
         <span class="size-4 flex items-center justify-center fill-current">
-          ${unsafeHTML(STAR_SVG)}
+          ${svgIcon(STAR_SVG)}
         </span>
         <span>Star</span>
         ${until(
@@ -499,7 +502,7 @@ function aboutSection(): TemplateResult {
         rel="noopener noreferrer"
       >
         <span class="size-4 flex items-center justify-center fill-current">
-          ${unsafeHTML(FOLLOW_SVG)}
+          ${svgIcon(FOLLOW_SVG)}
         </span>
         <span>Follow</span>
         ${until(
@@ -563,7 +566,7 @@ function aboutSection(): TemplateResult {
             class="join-item btn btn-sm flex-1 gap-1.5 ${link.color}"
           >
             <span class="size-4 flex items-center justify-center fill-current">
-              ${unsafeHTML(link.svg)}
+              ${svgIcon(link.svg)}
             </span>
             <span class="text-sm font-semibold">${link.label}</span>
           </a>`,
