@@ -21,12 +21,14 @@ import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
 import { cursusLabel } from "../lib/cursus.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
+import { openEvalDialog } from "./eval-dialog.ts";
 import WALLET_SVG from "../assets/wallet.svg?raw";
 import EVAL_SVG from "../assets/eval.svg?raw";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
+import INFO_SVG from "../assets/info.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -216,20 +218,34 @@ function upcomingCard() {
 
 function evalRow(e: UpcomingEval) {
   const started = new Date(e.beginAt).getTime() <= Date.now();
-  const label =
-    e.state === "revealed" && e.correcteds?.length
-      ? e.correcteds.join(", ")
-      : e.state === "revealed"
-        ? "Revealed"
-        : "Booked";
-  return html`<li class="flex items-center justify-between gap-3 py-2">
+  const corrected = e.state === "revealed" ? e.correcteds?.[0] : undefined;
+  const label = corrected ?? (e.state === "revealed" ? "Revealed" : "Booked");
+  return html`<li
+    class="flex items-center justify-between gap-3 py-2 ${corrected
+      ? "cursor-pointer -mx-2 px-2 rounded-lg hover:bg-base-200 transition-colors"
+      : ""}"
+    @click=${corrected ? () => openEvalDialog(e, corrected) : undefined}
+  >
     <div class="min-w-0">
-      <div class="font-medium truncate">${e.project ?? ""}</div>
+      <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
       <div class="text-xs opacity-60">
         ${label} · ${dateTimeShort(e.beginAt)}
       </div>
     </div>
     <div class="flex items-center gap-1 flex-none">
+      ${corrected
+        ? html`<button
+            type="button"
+            class="btn btn-ghost btn-xs btn-circle text-info"
+            title="View details"
+            @click=${(ev: Event) => {
+              ev.stopPropagation();
+              openEvalDialog(e, corrected);
+            }}
+          >
+            ${svg18(INFO_SVG)}
+          </button>`
+        : ""}
       <span
         class="badge badge-lg whitespace-nowrap ${e.state === "revealed"
           ? "badge-success"
@@ -240,7 +256,8 @@ function evalRow(e: UpcomingEval) {
         ? html`<button
             class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
             title="Mark as done"
-            @click=${() => {
+            @click=${(ev: Event) => {
+              ev.stopPropagation();
               markEvalDone(e.id);
               refresh();
             }}

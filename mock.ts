@@ -19,7 +19,7 @@ export const mock = {
     login: "shrek",
     displayName: "Shrek",
     usualFullName: "Ogre Shrek",
-    image: "https://pngimg.com/uploads/shrek/shrek_PNG40.png",
+    image: "https://cataas.com/cat?width=200&height=200&r=1",
     kind: "student",
     staff: false,
     alumni: false,
@@ -138,33 +138,35 @@ export const mock = {
     items: [
       {
         id: 4,
-        beginAt: mins(-5),
+        // Names + project are revealed 15 min before the slot.
+        beginAt: mins(15),
         state: "revealed" as const,
-        project: "Shrek's Swamp",
-        slug: "shreks-swamp",
-        correcteds: ["donkey"],
+        project: "Libft",
+        slug: "42cursus-libft",
+        correcteds: ["marvin"],
       },
       {
         id: 1,
-        beginAt: mins(35),
+        beginAt: mins(15),
         state: "revealed" as const,
-        project: "Swamp Defense",
-        slug: "swamp-defense",
-        correcteds: ["donkey", "fiona"],
+        project: "get_next_line",
+        slug: "get_next_line",
+        correcteds: ["jdoe"],
       },
       {
+        // Booked: project isn't revealed yet.
         id: 2,
         beginAt: mins(3 * 60),
         state: "booked" as const,
-        project: "Ogres Have Layers",
-        slug: "ogres-have-layers",
+        project: null,
+        slug: null,
       },
       {
         id: 3,
         beginAt: mins(26 * 60),
         state: "booked" as const,
-        project: "Far Far Away Sorting",
-        slug: "far-far-away-sorting",
+        project: null,
+        slug: null,
       },
     ],
   },
@@ -188,12 +190,29 @@ export const mock = {
       },
     },
   },
+  userLookup: (login: string) => {
+    const l = login.toLowerCase();
+    let hash = 0;
+    for (const ch of l) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    const fullNames: Record<string, string> = {
+      marvin: "Marvin Martian",
+      jdoe: "John Doe",
+    };
+    return {
+      login: l,
+      displayName: fullNames[l] ?? l.charAt(0).toUpperCase() + l.slice(1),
+      avatar: `https://cataas.com/cat?width=200&height=200&r=${hash % 100000}`,
+      level: Number(((hash % 1800) / 100).toFixed(2)),
+      grade: "Cadet",
+      location: hash % 2 === 0 ? "shi-r12-p2" : null,
+    };
+  },
   outstanding: { 101: 3, 102: 1 } as Record<number, number>,
   friends: [
     {
       login: "fiona",
       displayName: "Fiona",
-      avatar: "https://picsum.photos/seed/fiona/200/200",
+      avatar: "https://cataas.com/cat?width=200&height=200&r=2",
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -211,8 +230,8 @@ export const mock = {
     {
       login: "donkey",
       displayName: "Donkey",
-      avatar: "https://picsum.photos/seed/donkey/200/200",
-      customAvatar: "/icons/icon-192.png",
+      avatar: "https://cataas.com/cat?width=200&height=200&r=3",
+      customAvatar: "https://cataas.com/cat?width=200&height=200&r=4",
       avatarBg: "#5b21b6",
       avatarPosX: 60,
       avatarPosY: 40,
@@ -229,7 +248,7 @@ export const mock = {
     {
       login: "puss",
       displayName: "Puss in Boots",
-      avatar: "https://picsum.photos/seed/puss/200/200",
+      avatar: "https://cataas.com/cat?width=200&height=200&r=5",
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -247,7 +266,7 @@ export const mock = {
     {
       login: "dragon",
       displayName: "Dragon",
-      avatar: "https://picsum.photos/seed/dragon/200/200",
+      avatar: "https://cataas.com/cat?width=200&height=200&r=6",
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -265,7 +284,7 @@ export const mock = {
     {
       login: "farquaad",
       displayName: "Lord Farquaad",
-      avatar: "https://picsum.photos/seed/farquaad/200/200",
+      avatar: "https://cataas.com/cat?width=200&height=200&r=7",
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -360,7 +379,7 @@ export const mock = {
       {
         login: "aberger",
         displayname: "Anna Berger",
-        image_url: "https://cdn.intra.42.fr/users/small_aberger.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=11",
         begin_at: mins(-20 * 24 * 60),
         blackholed_at: mins(90 * 24 * 60),
         active: true,
@@ -374,7 +393,7 @@ export const mock = {
       {
         login: "bdewit",
         displayname: "Brent de Wit",
-        image_url: "https://cdn.intra.42.fr/users/small_bdewit.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=12",
         begin_at: mins(-30 * 24 * 60),
         blackholed_at: mins(200 * 24 * 60),
         active: true,
@@ -388,7 +407,7 @@ export const mock = {
       {
         login: "cdupont",
         displayname: "Camille Dupont",
-        image_url: "https://cdn.intra.42.fr/users/small_cdupont.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=13",
         begin_at: mins(-500 * 24 * 60),
         blackholed_at: mins(-400 * 24 * 60),
         active: false,
@@ -402,7 +421,7 @@ export const mock = {
       {
         login: "dlaurens",
         displayname: "Denis Laurens",
-        image_url: "https://cdn.intra.42.fr/users/small_dlaurens.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=14",
         begin_at: mins(-25 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -416,7 +435,7 @@ export const mock = {
       {
         login: "emartel",
         displayname: "Elisa Martel",
-        image_url: "https://cdn.intra.42.fr/users/small_emartel.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=15",
         begin_at: mins(-15 * 24 * 60),
         blackholed_at: mins(30 * 24 * 60),
         active: true,
@@ -430,7 +449,7 @@ export const mock = {
       {
         login: "fvanden",
         displayname: "Félix Vandenbroeck",
-        image_url: "https://cdn.intra.42.fr/users/small_fvanden.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=16",
         begin_at: mins(-45 * 24 * 60),
         blackholed_at: mins(60 * 24 * 60),
         active: true,
@@ -444,7 +463,7 @@ export const mock = {
       {
         login: "gpeeters",
         displayname: "Gaël Peeters",
-        image_url: "https://cdn.intra.42.fr/users/small_gpeeters.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=17",
         begin_at: mins(-10 * 24 * 60),
         blackholed_at: mins(15 * 24 * 60),
         active: true,
@@ -458,7 +477,7 @@ export const mock = {
       {
         login: "hclaeys",
         displayname: "Hugo Claeys",
-        image_url: "https://cdn.intra.42.fr/users/small_hclaeys.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=18",
         begin_at: mins(-60 * 24 * 60),
         blackholed_at: mins(5 * 24 * 60),
         active: true,
@@ -472,7 +491,7 @@ export const mock = {
       {
         login: "ijeunhomme",
         displayname: "Iris Jeunhomme",
-        image_url: "https://cdn.intra.42.fr/users/small_ijeunhomme.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=19",
         begin_at: mins(-400 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -486,7 +505,7 @@ export const mock = {
       {
         login: "jvdberg",
         displayname: "Joren van den Berg",
-        image_url: "https://cdn.intra.42.fr/users/small_jvdberg.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=20",
         begin_at: mins(-5 * 24 * 60),
         blackholed_at: mins(400 * 24 * 60),
         active: true,
@@ -500,7 +519,7 @@ export const mock = {
       {
         login: "kvermeulen",
         displayname: "Kim Vermeulen",
-        image_url: "https://cdn.intra.42.fr/users/small_kvermeulen.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=21",
         begin_at: mins(-70 * 24 * 60),
         blackholed_at: mins(120 * 24 * 60),
         active: true,
@@ -514,7 +533,7 @@ export const mock = {
       {
         login: "lgeertsen",
         displayname: "Lena Geertsen",
-        image_url: "https://cdn.intra.42.fr/users/small_lgeertsen.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=22",
         begin_at: mins(-12 * 24 * 60),
         blackholed_at: mins(2 * 24 * 60),
         active: true,
@@ -528,7 +547,7 @@ export const mock = {
       {
         login: "mvanhoof",
         displayname: "Max Vanhoof",
-        image_url: "https://cdn.intra.42.fr/users/small_mvanhoof.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=23",
         begin_at: mins(-800 * 24 * 60),
         blackholed_at: mins(-500 * 24 * 60),
         active: false,
@@ -542,7 +561,7 @@ export const mock = {
       {
         login: "ndeclercq",
         displayname: "Noor De Clercq",
-        image_url: "https://cdn.intra.42.fr/users/small_ndeclercq.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=24",
         begin_at: mins(-35 * 24 * 60),
         blackholed_at: mins(75 * 24 * 60),
         active: true,
@@ -556,7 +575,7 @@ export const mock = {
       {
         login: "otheys",
         displayname: "Olivier Theys",
-        image_url: "https://cdn.intra.42.fr/users/small_otheys.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=25",
         begin_at: mins(-8 * 24 * 60),
         blackholed_at: mins(20 * 24 * 60),
         active: true,
@@ -570,7 +589,7 @@ export const mock = {
       {
         login: "pstoffel",
         displayname: "Paul Stoffel",
-        image_url: "https://cdn.intra.42.fr/users/small_pstoffel.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=26",
         begin_at: mins(-500 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -584,7 +603,7 @@ export const mock = {
       {
         login: "qjacobs",
         displayname: "Quinn Jacobs",
-        image_url: "https://cdn.intra.42.fr/users/small_qjacobs.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=27",
         begin_at: mins(-20 * 24 * 60),
         blackholed_at: mins(150 * 24 * 60),
         active: true,
@@ -598,7 +617,7 @@ export const mock = {
       {
         login: "rsegers",
         displayname: "Robin Segers",
-        image_url: "https://cdn.intra.42.fr/users/small_rsegers.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=28",
         begin_at: mins(-55 * 24 * 60),
         blackholed_at: mins(10 * 24 * 60),
         active: true,
@@ -612,7 +631,7 @@ export const mock = {
       {
         login: "slefevre",
         displayname: "Sara Lefèvre",
-        image_url: "https://cdn.intra.42.fr/users/small_slefevre.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=29",
         begin_at: mins(-30 * 24 * 60),
         blackholed_at: mins(90 * 24 * 60),
         active: true,
@@ -626,7 +645,7 @@ export const mock = {
       {
         login: "tclaen",
         displayname: "Tessa Claen",
-        image_url: "https://cdn.intra.42.fr/users/small_tclaen.jpg",
+        image_url: "https://cataas.com/cat?width=200&height=200&r=30",
         begin_at: mins(-3 * 24 * 60),
         blackholed_at: mins(500 * 24 * 60),
         active: true,
@@ -665,7 +684,7 @@ export const mock = {
     {
       login: "znew",
       displayname: "Zoë New",
-      image_url: "https://cdn.intra.42.fr/users/small_znew.jpg",
+      image_url: "https://cataas.com/cat?width=200&height=200&r=31",
       begin_at: mins(45 * 24 * 60),
       active: true,
       pool_month: "october",
@@ -674,7 +693,7 @@ export const mock = {
     {
       login: "yfresh",
       displayname: "Yann Fresh",
-      image_url: "https://cdn.intra.42.fr/users/small_yfresh.jpg",
+      image_url: "https://cataas.com/cat?width=200&height=200&r=32",
       begin_at: mins(80 * 24 * 60),
       active: true,
       pool_month: "january",
@@ -685,7 +704,7 @@ export const mock = {
     {
       login: "pprep",
       displayname: "Piscine Prep",
-      image_url: "https://cdn.intra.42.fr/users/small_pprep.jpg",
+      image_url: "https://cataas.com/cat?width=200&height=200&r=33",
       begin_at: mins(-2 * 24 * 60),
       active: true,
       pool_month: "july",
@@ -694,7 +713,7 @@ export const mock = {
     {
       login: "qquiz",
       displayname: "Quinn Quiz",
-      image_url: "https://cdn.intra.42.fr/users/small_qquiz.jpg",
+      image_url: "https://cataas.com/cat?width=200&height=200&r=34",
       begin_at: mins(-3 * 24 * 60),
       active: true,
       pool_month: "july",

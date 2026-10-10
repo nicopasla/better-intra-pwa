@@ -166,14 +166,36 @@ export const upcomingEvals = () =>
     ? Promise.resolve(mock.upcoming)
     : json<UpcomingResponse>("/api/v1/private/evaluations?action=upcoming");
 
+export const profileStatsFor = (login: string) => {
+  if (mockMode) return Promise.resolve(mock.profileStats);
+  return json<ProfileStats>(
+    `/api/v1/private/profile-stats?target=${encodeURIComponent(login)}`,
+  );
+};
+
 export const profileStats = () => {
   if (mockMode) return Promise.resolve(mock.profileStats);
   const session = getSession();
   if (!session) throw new Error("not_authenticated");
-  return json<ProfileStats>(
-    `/api/v1/private/profile-stats?target=${encodeURIComponent(session.login)}`,
-  );
+  return profileStatsFor(session.login);
 };
+
+export interface UserLookup {
+  login: string;
+  displayName: string;
+  avatar: string | null;
+  level: number;
+  grade: string | null;
+  location: string | null;
+}
+
+/** Minimal 42 user lookup (name, avatar, level, location) for the eval dialog. */
+export const userLookup = (login: string) =>
+  mockMode
+    ? Promise.resolve(mock.userLookup(login))
+    : json<UserLookup>(
+        `/api/v1/private/user?target=${encodeURIComponent(login)}`,
+      );
 
 /** Outstanding-corrector counts keyed by projects_user id. Triggers a sync. */
 export async function outstandingIds(
