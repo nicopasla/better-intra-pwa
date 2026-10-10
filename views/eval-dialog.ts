@@ -37,7 +37,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   dialog.id = DIALOG_ID;
   dialog.className = "bg-transparent backdrop:bg-black/50";
   dialog.style.cssText =
-    "margin:auto;padding:0;border:none;max-width:24rem;width:calc(100dvw - 2rem);";
+    "margin:auto;padding:0;border:none;outline:none;max-width:24rem;width:calc(100dvw - 2rem);";
 
   let user: UserLookup | null = null;
   let error = false;
