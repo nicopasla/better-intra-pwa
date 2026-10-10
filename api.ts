@@ -49,6 +49,23 @@ export function clearSession(): void {
   refresh();
 }
 
+/** Drops the local session without re-rendering (used when it expires). */
+export function forgetSession(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LOGIN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+let onSessionExpired: (() => void) | null = null;
+
+/** Registered by the app shell to return to the sign-in screen on a 401. */
+export function setSessionExpiredHandler(fn: (() => void) | null): void {
+  onSessionExpired = fn;
+}
+
 /** Full-page OAuth entry point on the worker. */
 export function loginUrl(): string {
   const redirect = new URL(`${location.origin}/`);
@@ -89,5 +106,7 @@ export async function workerFetch(
     url += `${path.includes("?") ? "&" : "?"}login=${encodeURIComponent(hash)}`;
   }
 
-  return fetch(url, { ...init, headers });
+  const res = await fetch(url, { ...init, headers });
+  if (withAuth && res.status === 401) onSessionExpired?.();
+  return res;
 }

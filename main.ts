@@ -1,6 +1,13 @@
 import "./style.css";
 import { html, render } from "lit-html";
-import { exchangeCode, getSession, loginUrl, setSession } from "./api.ts";
+import {
+  exchangeCode,
+  forgetSession,
+  getSession,
+  loginUrl,
+  setSession,
+  setSessionExpiredHandler,
+} from "./api.ts";
 import { initTheme } from "./theme.ts";
 import {
   currentTab,
@@ -83,13 +90,18 @@ function installCallout() {
   return "";
 }
 
-function signInScreen() {
+function signInScreen(expired = false) {
   return html`
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-base-100 shadow-xl">
         <div class="card-body items-center text-center gap-4">
           <img src="/icons/icon-192.png" alt="" class="w-16 h-16 rounded-2xl" />
           <h1 class="text-2xl font-bold">Better Intra</h1>
+          ${expired
+            ? html`<p class="text-sm text-warning">
+                Your session expired — sign in again.
+              </p>`
+            : ""}
           <a class="btn btn-primary w-full" href=${loginUrl()}
             >Sign in with 42</a
           >
@@ -100,8 +112,8 @@ function signInScreen() {
   `;
 }
 
-function renderSignIn(): void {
-  render(signInScreen(), app());
+function renderSignIn(expired = false): void {
+  render(signInScreen(expired), app());
 }
 
 function installGateScreen() {
@@ -171,6 +183,9 @@ function blockedScreen() {
 const triggered = new Set<Tab>();
 const lastLoadedAt: Partial<Record<Tab, number>> = {};
 const FRESH_MS = 30_000;
+
+/** Set once when the worker rejects the session, so parallel 401s only reload once. */
+let sessionExpired = false;
 
 function triggerLoad(tab: Tab, force = false): void {
   if (!force && triggered.has(tab)) return;
@@ -345,14 +360,27 @@ async function boot(): Promise<void> {
     history.replaceState(null, "", "/");
   }
 
+  const expired = sessionStorage.getItem("ft_pwa_expired") === "1";
   if (!getSession()) {
+    sessionStorage.removeItem("ft_pwa_expired");
     preAppScreen = renderSignIn;
-    renderSignIn();
+    renderSignIn(expired);
     return;
   }
+  sessionStorage.removeItem("ft_pwa_expired");
 
   preAppScreen = null;
   if (!location.hash) location.hash = "/dashboard";
+
+  // The worker rejecting our session (401) means it's no longer valid: drop it
+  // and return to the sign-in screen rather than surfacing an error.
+  setSessionExpiredHandler(() => {
+    if (sessionExpired) return;
+    sessionExpired = true;
+    sessionStorage.setItem("ft_pwa_expired", "1");
+    forgetSession();
+    location.reload();
+  });
 
   setRefresh(renderBody);
   setRouteRenderer(renderRoute);
