@@ -124,36 +124,46 @@ function row(e: OccupancyEntry): unknown {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const date = since.toLocaleDateString([], { day: "2-digit", month: "short" });
   const ago = e.begin_at ? formatTimeAgo(since.getTime()) : "";
   return html`
     <li>
-      <a
-        href="https://profile.intra.42.fr/users/${e.login}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="flex items-center gap-3 py-2 no-underline text-base-content"
-      >
-        <img
-          class="size-10 rounded-full object-cover shrink-0 bg-base-200"
-          src="${e.cdn_uri}"
-          alt=""
-          loading="lazy"
-          onerror="this.style.visibility='hidden'"
-        />
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold truncate">${e.name || e.login}</div>
-          <div class="text-xs opacity-60 truncate">
-            <span class="font-mono">${e.login}</span>${e.begin_at
-              ? ` · since ${time} · ${ago}`
-              : ""}
-          </div>
-        </div>
-        <span
-          class="badge badge-outline shrink-0 opacity-70"
-          style="height:2.5rem;min-width:2.5rem;justify-content:center"
-          >${e.host}</span
+      <div class="flex items-center gap-3 py-2">
+        <a
+          href="https://profile.intra.42.fr/users/${e.login}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
-      </a>
+          <img
+            class="size-10 rounded-full object-cover shrink-0 bg-base-200"
+            src="${e.cdn_uri}"
+            alt=""
+            loading="lazy"
+            onerror="this.style.visibility='hidden'"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold truncate">${e.name || e.login}</div>
+            <div class="text-xs text-base-content/80 truncate">${e.login}</div>
+          </div>
+        </a>
+        ${e.begin_at
+          ? html`<details class="relative shrink-0">
+              <summary
+                class="badge badge-outline badge-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                title="Start time"
+              >
+                ${time}
+              </summary>
+              <div
+                class="absolute right-0 top-full z-50 mt-1 w-max rounded-box bg-base-100 p-2 text-xs shadow-xl"
+              >
+                ${ago} · ${date}
+              </div>
+            </details>`
+          : ""}
+        <span class="badge badge-secondary shrink-0">${e.host}</span>
+      </div>
     </li>
   `;
 }
