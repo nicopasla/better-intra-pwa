@@ -73,7 +73,7 @@ function startTimers(): void {
 export function clustersView(): unknown {
   if (subTab === "map") return mapComingSoon();
   return html`
-    <div class="flex flex-col bg-base-100 rounded-xl mb-4 overflow-hidden">
+    <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
         leading: headerBadge(entries.length, { tip: "online" }),
         trailing: html`<button
