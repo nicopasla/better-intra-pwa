@@ -95,7 +95,7 @@ function profileCard() {
               <span
                 class="status ${m.location
                   ? "status-success"
-                  : "status-neutral"} shrink-0"
+                  : "status-error"} shrink-0"
                 title="${m.location ? `Online · ${m.location}` : "Offline"}"
               ></span>
             </div>
