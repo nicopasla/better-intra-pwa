@@ -19,7 +19,7 @@ export interface PageHeaderOptions {
 export function pageHeader(opts: PageHeaderOptions): TemplateResult {
   return html`
     <div
-      class="flex flex-wrap items-center gap-2 px-5 pt-4 pb-4 border-b border-base-300 bg-base-200/50 shrink-0 sticky top-[env(safe-area-inset-top)] z-10 rounded-t-xl"
+      class="flex flex-wrap items-center gap-2 px-0 pt-4 pb-4 border-b border-base-300 bg-base-200/50 shrink-0 sticky top-[env(safe-area-inset-top)] z-10 rounded-t-xl"
     >
       <div
         class="flex items-center gap-2.5 min-w-0 flex-wrap ${opts.stack
