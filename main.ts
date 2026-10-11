@@ -31,6 +31,12 @@ import {
   studentsAttachObservers,
   studentsBottomBar,
 } from "./views/students.ts";
+import {
+  clustersView,
+  loadClusters,
+  clustersAttachObservers,
+  clustersBottomBar,
+} from "./views/clusters.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import {
   ensurePushSubscription,
@@ -218,6 +224,9 @@ function triggerLoad(tab: Tab, force = false): void {
     case "students":
       void loadStudents();
       break;
+    case "clusters":
+      void loadClusters();
+      break;
     case "settings":
       void loadSettings();
       break;
@@ -241,6 +250,9 @@ function refreshActiveTab(force = false): void {
       break;
     case "students":
       void loadStudents(true);
+      break;
+    case "clusters":
+      void loadClusters(true);
       break;
   }
 }
@@ -298,6 +310,10 @@ function renderBody(): void {
       body = studentsView();
       bottomBar = studentsBottomBar();
       break;
+    case "clusters":
+      body = clustersView();
+      bottomBar = clustersBottomBar();
+      break;
     case "settings":
       body = settingsView();
       break;
@@ -305,19 +321,25 @@ function renderBody(): void {
   renderShell(tab, body, bottomBar);
   if (tab === "students") studentsAttachObservers();
   if (tab === "profile") profileAttachObservers();
+  if (tab === "clusters") clustersAttachObservers();
 }
 
-function gateStudents(): void {
+function gateCampusTabs(): void {
   void me()
     .then((m) => {
-      setTabHidden("students", Boolean(m && m.campusId !== 12));
-      if (m && m.campusId !== 12 && currentTab() === "students") {
+      const isBelgium = !m || m.campusId === 12;
+      setTabHidden("students", !isBelgium);
+      setTabHidden("clusters", !isBelgium);
+      if (
+        !isBelgium &&
+        (currentTab() === "students" || currentTab() === "clusters")
+      ) {
         location.hash = "/dashboard";
       }
       renderBody();
     })
     .catch(() => {
-      /* campus unknown — keep the tab visible */
+      /* campus unknown — keep the tabs visible */
     });
 }
 
@@ -342,7 +364,7 @@ async function boot(): Promise<void> {
     setRouteRenderer(renderRoute);
     initRouter(renderRoute);
     initPullRefresh();
-    gateStudents();
+    gateCampusTabs();
     if (!location.hash) location.hash = "/dashboard";
     renderRoute();
     return;
@@ -402,7 +424,7 @@ async function boot(): Promise<void> {
   setRouteRenderer(renderRoute);
   initRouter(renderRoute);
   initPullRefresh();
-  gateStudents();
+  gateCampusTabs();
   healPush();
   renderRoute();
 }

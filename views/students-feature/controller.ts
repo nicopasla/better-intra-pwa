@@ -36,6 +36,7 @@ let initialized = false;
 let sentinelObserver: IntersectionObserver | null = null;
 let tabsResizeObserver: ResizeObserver | null = null;
 let syncObserversFn: (() => void) | null = null;
+let filterMenuCleanup: (() => void) | null = null;
 
 export function getStudentsView(): TemplateResult | null {
   return pendingView;
@@ -49,6 +50,46 @@ export function getStudentsBottomBar(): TemplateResult | null {
 export function studentsSync(): void {
   const fn = syncObserversFn;
   if (fn) requestAnimationFrame(fn);
+}
+
+/**
+ * Positions the students filter menu as a viewport-fixed popup under its
+ * trigger, so opening it overlays the page instead of expanding the document
+ * (which shifted the whole view). Returns a cleanup for the global listeners.
+ */
+function attachFilterMenuPositioning(): (() => void) | null {
+  const menu = document.querySelector<HTMLElement>(".students-filter-menu");
+  const details = menu?.closest("details");
+  const summary = details?.querySelector("summary");
+  if (!menu || !details || !summary) return null;
+
+  const place = () => {
+    if (!details.open) return;
+    const r = summary.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const mw = Math.min(menu.offsetWidth || 256, vw - 16);
+    let left = r.left;
+    if (left + mw > vw - 8) left = vw - 8 - mw;
+    if (left < 8) left = 8;
+    menu.style.position = "fixed";
+    menu.style.setProperty("position-area", "none");
+    menu.style.top = `${Math.round(r.bottom + 4)}px`;
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.right = "auto";
+    menu.style.transform = "none";
+    menu.style.maxHeight = `${Math.max(120, Math.round(vh - r.bottom - 16))}px`;
+    menu.style.overflowY = "auto";
+  };
+
+  details.addEventListener("toggle", place);
+  window.addEventListener("scroll", place, true);
+  window.addEventListener("resize", place);
+  return () => {
+    details.removeEventListener("toggle", place);
+    window.removeEventListener("scroll", place, true);
+    window.removeEventListener("resize", place);
+  };
 }
 
 export function initStudentsFeature(onUpdate: () => void): void {
@@ -397,6 +438,8 @@ export function initStudentsFeature(onUpdate: () => void): void {
 
   const syncObservers = () => {
     if (disposed) return;
+    filterMenuCleanup?.();
+    filterMenuCleanup = attachFilterMenuPositioning();
     if (sentinelObserver) {
       sentinelObserver.disconnect();
       sentinelObserver = null;

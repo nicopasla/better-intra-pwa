@@ -13,6 +13,7 @@ import {
 import { loginUrl, getSession } from "../../api.ts";
 import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
+import { headerBadge, pageHeader } from "../../lib/page-header.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -854,57 +855,51 @@ function renderWidget(state: WidgetState) {
         style="position:static;transform:none;inset:auto;width:100%;max-width:none;margin:0;"
       >
         <!-- Header -->
-        <div
-          class="flex items-center gap-2 px-5 pt-4 pb-4 border-b border-base-300 bg-base-200/50 shrink-0 sticky top-[env(safe-area-inset-top)] z-10"
-        >
-          <div class="flex items-center gap-2.5 min-w-0 flex-none flex-wrap">
-            ${state.friends.length > 0
-              ? html`<span
-                  class="badge badge-primary font-bold font-mono"
-                  style="border:3px solid color-mix(in oklab, var(--color-primary) 55%, transparent);border-radius:var(--radius-field);height:2.5rem;padding-block:0;font-weight:600;min-width:2.5rem;justify-content:center;"
-                  >${state.friends.length}</span
-                >`
-              : ""}
-          </div>
-          ${state.friends.length > 0
-            ? html`<div class="flex items-center gap-2 min-w-0 ml-auto">
-                <button
-                  type="button"
-                  class="btn btn-md px-2 shrink-0 gap-1.5 ${state.onlineOnly
-                    ? ""
-                    : "btn-success"}"
-                  style="height:2.5rem;${state.onlineOnly
-                    ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
-                    : ""}"
-                  data-tip="${state.onlineOnly
-                    ? "Showing online users only (click to show all)"
-                    : "Show only online users"}"
-                  @click="${state.onToggleOnline}"
-                  aria-pressed="${state.onlineOnly}"
-                >
-                  ${onlineCount > 0
-                    ? html`<span class="text-sm font-bold font-mono"
-                        >${onlineCount}</span
-                      >`
-                    : ""}
-                  <span
-                    class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                    >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
+        ${pageHeader({
+          leading:
+            state.friends.length > 0 ? headerBadge(state.friends.length) : "",
+          trailing:
+            state.friends.length > 0
+              ? html`
+                  <button
+                    type="button"
+                    class="btn btn-md px-2 shrink-0 gap-1.5 ${state.onlineOnly
+                      ? ""
+                      : "btn-success"}"
+                    style="height:2.5rem;${state.onlineOnly
+                      ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
+                      : ""}"
+                    data-tip="${state.onlineOnly
+                      ? "Showing online users only (click to show all)"
+                      : "Show only online users"}"
+                    @click="${state.onToggleOnline}"
+                    aria-pressed="${state.onlineOnly}"
                   >
-                </button>
-                <div class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"></div>
-                <div class="overflow-x-auto no-scrollbar shrink-0">
-                  ${renderSortControl(
-                    state.sortBy,
-                    state.sortDir,
-                    primaryColor,
-                    primaryContent,
-                    state.onSortChange,
-                  )}
-                </div>
-              </div>`
-            : ""}
-        </div>
+                    ${onlineCount > 0
+                      ? html`<span class="text-sm font-bold font-mono"
+                          >${onlineCount}</span
+                        >`
+                      : ""}
+                    <span
+                      class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                      >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
+                    >
+                  </button>
+                  <div
+                    class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"
+                  ></div>
+                  <div class="overflow-x-auto no-scrollbar shrink-0">
+                    ${renderSortControl(
+                      state.sortBy,
+                      state.sortDir,
+                      primaryColor,
+                      primaryContent,
+                      state.onSortChange,
+                    )}
+                  </div>
+                `
+              : "",
+        })}
 
         <!-- Friend list + floating actions -->
         <div class="friends-list-wrap">

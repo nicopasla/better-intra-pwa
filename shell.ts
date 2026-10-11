@@ -5,8 +5,15 @@ import USER_SVG from "./assets/user.svg?raw";
 import USERS_SVG from "./assets/users.svg?raw";
 import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
 import GEAR_SVG from "./assets/settings_gear.svg?raw";
+import CLUSTERS_SVG from "./assets/clusters.svg?raw";
 
-export type Tab = "dashboard" | "profile" | "friends" | "students" | "settings";
+export type Tab =
+  | "dashboard"
+  | "profile"
+  | "friends"
+  | "students"
+  | "clusters"
+  | "settings";
 
 interface TabDef {
   id: Tab;
@@ -19,6 +26,7 @@ const TABS: TabDef[] = [
   { id: "profile", label: "Profile", icon: USER_SVG },
   { id: "friends", label: "Friends", icon: USERS_SVG },
   { id: "students", label: "Students", icon: GRADUATION_SVG },
+  { id: "clusters", label: "Clusters", icon: CLUSTERS_SVG },
   { id: "settings", label: "Settings", icon: GEAR_SVG },
 ];
 
@@ -36,6 +44,7 @@ export function currentTab(): Tab {
     hash === "profile" ||
     hash === "friends" ||
     hash === "students" ||
+    hash === "clusters" ||
     hash === "settings"
   ) {
     return hash as Tab;
