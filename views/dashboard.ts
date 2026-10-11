@@ -11,6 +11,8 @@ import {
   CalendarEvent,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import { navigate } from "../shell.ts";
+import { switchSubTab } from "./profile.ts";
 import {
   disablePush,
   enablePush,
@@ -82,7 +84,8 @@ export function dashboardView(): unknown {
     `;
   }
   return html`
-    ${profileCard()} ${liveEventsCard()} ${upcomingCard()} ${eventsCard()}
+    ${profileCard()} ${upcomingCard()} ${liveEventsCard()} ${projectsCard()}
+    ${eventsCard()}
   `;
 }
 
@@ -147,6 +150,37 @@ function statBadge(value: string, icon?: string) {
     style="border:2px solid ${profileColor};"
   >
     ${icon ? svg18(icon) : ""}<span class="font-semibold">${value}</span>
+  </div>`;
+}
+
+function projectsCard() {
+  if (!meData) return "";
+  const p = meData.projects;
+  return html`<div
+    class="card bg-base-100 shadow-xl mb-4 cursor-pointer hover:brightness-105 transition-all"
+    @click=${() => {
+      switchSubTab("projects");
+      navigate("profile");
+    }}
+  >
+    <div class="card-body">
+      <h2 class="card-title text-base">Projects</h2>
+      <div class="flex gap-2">
+        ${projectStat("Validated", p.validated)}
+        ${projectStat("In progress", p.inProgress)}
+        ${projectStat("Total", p.total)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function projectStat(label: string, value: number) {
+  return html`<div
+    class="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg py-2"
+    style="border:2px solid ${profileColor};background:color-mix(in oklab, ${profileColor} 12%, transparent);"
+  >
+    <span class="text-xs font-medium opacity-70">${label}</span>
+    <span class="text-lg font-bold leading-none">${value}</span>
   </div>`;
 }
 

@@ -27,7 +27,7 @@ const storedSub = (): SubTab => {
 const PROFILE_SUB_TAB_KEY = "PROFILE_SUB_TAB";
 let subTab: SubTab = storedSub();
 
-function switchSubTab(tab: SubTab): void {
+export function switchSubTab(tab: SubTab): void {
   subTab = tab;
   localStorage.setItem(PROFILE_SUB_TAB_KEY, tab);
   refresh();
