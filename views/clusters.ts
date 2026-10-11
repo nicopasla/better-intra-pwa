@@ -155,9 +155,23 @@ function row(e: OccupancyEntry): unknown {
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
-        <span class="badge badge-lg badge-secondary shrink-0" title="${tooltip}"
-          >${e.host}</span
-        >
+        ${e.begin_at
+          ? html`<details class="relative shrink-0" data-cluster-time>
+              <summary
+                class="badge badge-lg badge-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                title="${tooltip}"
+              >
+                ${e.host}
+              </summary>
+              <div
+                class="absolute right-0 top-full z-50 mt-1 w-max rounded-box bg-base-100 p-2 text-xs shadow-xl"
+              >
+                since ${time} | ${durationLabel(since.getTime())}
+              </div>
+            </details>`
+          : html`<span class="badge badge-lg badge-secondary shrink-0"
+              >${e.host}</span
+            >`}
       </div>
     </li>
   `;
@@ -226,7 +240,24 @@ export async function loadClusters(force = false): Promise<void> {
   }
 }
 
+let outsideCloseAttached = false;
+
+/** Closes any open time popover when tapping outside it. */
+function ensureOutsideClose(): void {
+  if (outsideCloseAttached) return;
+  outsideCloseAttached = true;
+  document.addEventListener("click", (ev) => {
+    const target = ev.target as Node;
+    document
+      .querySelectorAll<HTMLDetailsElement>("details[data-cluster-time][open]")
+      .forEach((d) => {
+        if (!d.contains(target)) d.open = false;
+      });
+  });
+}
+
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
+  ensureOutsideClose();
   refreshLabel();
 }
