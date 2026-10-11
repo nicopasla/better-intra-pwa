@@ -5,7 +5,7 @@ import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
-import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
+import { sortActiveUsers } from "./clusters-feature/render.ts";
 import type { OccupancyEntry } from "./clusters-feature/types.ts";
 
 type SubTab = "active" | "map";
@@ -118,14 +118,22 @@ function activeList(): unknown {
   `;
 }
 
+function durationLabel(ts: number): string {
+  const mins = Math.max(0, Math.round((Date.now() - ts) / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m}m`;
+}
+
 function row(e: OccupancyEntry): unknown {
   const since = new Date(e.begin_at);
   const time = since.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const date = since.toLocaleDateString([], { day: "2-digit", month: "short" });
-  const ago = e.begin_at ? formatTimeAgo(since.getTime()) : "";
+  const tooltip = e.begin_at
+    ? `since ${time} | ${durationLabel(since.getTime())}`
+    : "";
   return html`
     <li>
       <div class="flex items-center gap-3 py-2">
@@ -147,22 +155,9 @@ function row(e: OccupancyEntry): unknown {
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
-        ${e.begin_at
-          ? html`<details class="relative shrink-0">
-              <summary
-                class="badge badge-outline badge-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-                title="Start time"
-              >
-                ${time}
-              </summary>
-              <div
-                class="absolute right-0 top-full z-50 mt-1 w-max rounded-box bg-base-100 p-2 text-xs shadow-xl"
-              >
-                ${ago} · ${date}
-              </div>
-            </details>`
-          : ""}
-        <span class="badge badge-secondary shrink-0">${e.host}</span>
+        <span class="badge badge-lg badge-secondary shrink-0" title="${tooltip}"
+          >${e.host}</span
+        >
       </div>
     </li>
   `;
