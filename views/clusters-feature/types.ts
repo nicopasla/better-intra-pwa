@@ -9,6 +9,8 @@ export interface OccupancyEntry {
 
 export type ActiveSortMode = "name" | "since";
 
+export type SortDir = "asc" | "desc";
+
 export interface OccupancyResponse {
   campus: string;
   entries: OccupancyEntry[];

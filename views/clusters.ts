@@ -6,7 +6,15 @@ import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
 import { sortActiveUsers } from "./clusters-feature/render.ts";
-import type { OccupancyEntry } from "./clusters-feature/types.ts";
+import {
+  activeSortControl,
+  loadActiveSort,
+  toggleActiveSort,
+} from "./clusters-feature/sort.ts";
+import type {
+  ActiveSortMode,
+  OccupancyEntry,
+} from "./clusters-feature/types.ts";
 
 type SubTab = "active" | "map";
 
@@ -28,6 +36,13 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
  * restored.
  */
 let subTab: SubTab = "active";
+
+const sortState = loadActiveSort();
+
+function setSort(mode: ActiveSortMode): void {
+  toggleActiveSort(sortState, mode);
+  refresh();
+}
 
 function switchSubTab(tab: SubTab): void {
   if (tab === "map") return; // locked — "coming soon"
@@ -78,12 +93,15 @@ export function clustersView(): unknown {
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
         leading: headerBadge(entries.length, { tip: "online" }),
-        trailing: html`<span
-          id="ft-clusters-countdown"
-          class="badge badge-outline tabular-nums opacity-70"
-          style="height:2.5rem;min-width:2.5rem;justify-content:center"
-          title="Auto-refreshes every minute"
-        ></span>`,
+        trailing: html`
+          ${activeSortControl(sortState, setSort)}
+          <span
+            id="ft-clusters-countdown"
+            class="badge badge-outline tabular-nums opacity-70"
+            style="height:2.5rem;min-width:2.5rem;justify-content:center"
+            title="Auto-refreshes every minute"
+          ></span>
+        `,
       })}
       ${activeList()}
     </div>
@@ -112,7 +130,12 @@ function activeList(): unknown {
       No one is online right now.
     </div>`;
   }
-  const sorted = sortActiveUsers(entries, "name", "asc", "desc");
+  const sorted = sortActiveUsers(
+    entries,
+    sortState.mode,
+    sortState.nameDir,
+    sortState.sinceDir,
+  );
   return html`
     <ul class="flex flex-col divide-y divide-base-300 px-4">
       ${sorted.map((e) => row(e))}
