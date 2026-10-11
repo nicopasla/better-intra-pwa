@@ -4,6 +4,7 @@ import {
   me,
   upcomingEvals,
   events,
+  getBlob,
   Me,
   UpcomingEval,
   UpcomingResponse,
@@ -39,6 +40,20 @@ let error = "";
 let pushBusy = false;
 let pushError = "";
 let pushSubscribed: boolean | null = null;
+/** User's profile color (synced custom color), used for the stat badges. */
+let profileColor = "#00BABC";
+
+const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+function resolveProfileColor(settings: Record<string, unknown>): string {
+  const custom =
+    typeof settings.LOGTIME_CALENDAR_COLOR === "string"
+      ? settings.LOGTIME_CALENDAR_COLOR.trim()
+      : "";
+  return settings.PROFILE_USE_CUSTOM_COLOR === true && HEX_COLOR.test(custom)
+    ? custom
+    : "#00BABC";
+}
 
 const svg18 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
@@ -129,7 +144,7 @@ function profileCard() {
 function statBadge(value: string, icon?: string) {
   return html`<div
     class="badge badge-lg h-auto flex-1 justify-center gap-2 py-2"
-    style="border:2px solid var(--color-accent);"
+    style="border:2px solid ${profileColor};"
   >
     ${icon ? svg18(icon) : ""}<span class="font-semibold">${value}</span>
   </div>`;
@@ -561,8 +576,10 @@ export function loadDashboard(silent = false): void {
     refresh();
   }
   void refreshPushState();
-  void Promise.allSettled([me(), upcomingEvals(), events()]).then(
-    ([m, u, ev]) => {
+  void Promise.allSettled([me(), upcomingEvals(), events(), getBlob()]).then(
+    ([m, u, ev, bl]) => {
+      if (bl.status === "fulfilled")
+        profileColor = resolveProfileColor(bl.value.settings ?? {});
       if (m.status === "fulfilled") meData = m.value;
       else if (!silent) error = friendly(m.reason);
       if (u.status === "fulfilled") {
