@@ -57,11 +57,33 @@ import {
 import { initRouter } from "./lib/router.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
-import { setTabHidden } from "./shell.ts";
 import { me } from "./data.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
+import { comingSoonView } from "./lib/coming-soon.ts";
+import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
+import CLUSTERS_SVG from "./assets/clusters.svg?raw";
 
 const app = () => document.getElementById("app")!;
+
+/** Belgium-only features (students, clusters) are gated by campus. */
+let campusAllowed = true;
+
+const BELGIUM_CAMPUS = 12;
+
+function comingSoonFor(tab: Tab): unknown {
+  if (tab === "students") {
+    return comingSoonView({
+      icon: GRADUATION_SVG,
+      description:
+        "Students is only available to Belgium students for now. It's rolling out to more campuses soon.",
+    });
+  }
+  return comingSoonView({
+    icon: CLUSTERS_SVG,
+    description:
+      "Clusters is only available to Belgium students for now. It's rolling out to more campuses soon.",
+  });
+}
 
 function loadingScreen() {
   return html`
@@ -222,10 +244,10 @@ function triggerLoad(tab: Tab, force = false): void {
       void loadFriends();
       break;
     case "students":
-      void loadStudents();
+      if (campusAllowed) void loadStudents();
       break;
     case "clusters":
-      void loadClusters();
+      if (campusAllowed) void loadClusters();
       break;
     case "settings":
       void loadSettings();
@@ -249,10 +271,10 @@ function refreshActiveTab(force = false): void {
       void loadFriends(true);
       break;
     case "students":
-      void loadStudents(true);
+      if (campusAllowed) void loadStudents(true);
       break;
     case "clusters":
-      void loadClusters(true);
+      if (campusAllowed) void loadClusters(true);
       break;
   }
 }
@@ -307,39 +329,41 @@ function renderBody(): void {
       body = friendsView();
       break;
     case "students":
-      body = studentsView();
-      bottomBar = studentsBottomBar();
+      if (campusAllowed) {
+        body = studentsView();
+        bottomBar = studentsBottomBar();
+      } else {
+        body = comingSoonFor("students");
+      }
       break;
     case "clusters":
-      body = clustersView();
-      bottomBar = clustersBottomBar();
+      if (campusAllowed) {
+        body = clustersView();
+        bottomBar = clustersBottomBar();
+      } else {
+        body = comingSoonFor("clusters");
+      }
       break;
     case "settings":
       body = settingsView();
       break;
   }
   renderShell(tab, body, bottomBar);
-  if (tab === "students") studentsAttachObservers();
   if (tab === "profile") profileAttachObservers();
-  if (tab === "clusters") clustersAttachObservers();
+  if (campusAllowed) {
+    if (tab === "students") studentsAttachObservers();
+    if (tab === "clusters") clustersAttachObservers();
+  }
 }
 
 function gateCampusTabs(): void {
   void me()
     .then((m) => {
-      const isBelgium = !m || m.campusId === 12;
-      setTabHidden("students", !isBelgium);
-      setTabHidden("clusters", !isBelgium);
-      if (
-        !isBelgium &&
-        (currentTab() === "students" || currentTab() === "clusters")
-      ) {
-        location.hash = "/dashboard";
-      }
+      campusAllowed = !m || m.campusId === BELGIUM_CAMPUS;
       renderBody();
     })
     .catch(() => {
-      /* campus unknown — keep the tabs visible */
+      /* campus unknown — keep the features available */
     });
 }
 

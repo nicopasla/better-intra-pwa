@@ -809,3 +809,14 @@ export const mock = {
     },
   ],
 };
+
+// Test hook: `?mock&campus=<id>` overrides the mock campus so the Belgium-only
+// features (Students, Clusters) can be exercised for other campuses.
+if (mockMode) {
+  const campus = Number(
+    new URLSearchParams(window.location.search).get("campus"),
+  );
+  if (Number.isFinite(campus) && campus > 0) {
+    (mock.me as { campusId: number | null }).campusId = campus;
+  }
+}
