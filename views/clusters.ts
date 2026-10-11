@@ -12,6 +12,8 @@ type SubTab = "active" | "map";
 
 const POLL_INTERVAL = 60_000;
 
+const SEP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
+
 let entries: OccupancyEntry[] = [];
 let loading = true;
 let error = "";
@@ -132,7 +134,7 @@ function row(e: OccupancyEntry): unknown {
     minute: "2-digit",
   });
   const tooltip = e.begin_at
-    ? `since ${time} | ${durationLabel(since.getTime())}`
+    ? `since ${time} · ${durationLabel(since.getTime())}`
     : "";
   return html`
     <li>
@@ -164,9 +166,13 @@ function row(e: OccupancyEntry): unknown {
                 ${e.host}
               </summary>
               <div
-                class="absolute right-0 top-full z-50 mt-1 w-max rounded-box bg-base-100 p-2 text-xs shadow-xl"
+                class="absolute right-0 top-full z-50 mt-1 flex w-max items-center gap-2 rounded-box bg-base-100 p-3 text-base shadow-xl"
               >
-                since ${time} | ${durationLabel(since.getTime())}
+                <span>since ${time}</span>
+                <span class="shrink-0 opacity-50" aria-hidden="true"
+                  >${unsafeHTML(SEP_SVG)}</span
+                >
+                <span>${durationLabel(since.getTime())}</span>
               </div>
             </details>`
           : html`<span class="badge badge-lg badge-secondary shrink-0"
