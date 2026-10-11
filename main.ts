@@ -17,9 +17,14 @@ import {
   setRouteRenderer,
 } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
-import { dashboardView, loadDashboard } from "./views/dashboard.ts";
+import {
+  dashboardView,
+  hydrateDashboardCache,
+  loadDashboard,
+} from "./views/dashboard.ts";
 import {
   profileView,
+  hydrateProfileCache,
   loadProfile,
   profileAttachObservers,
   profileBottomBar,
@@ -372,6 +377,11 @@ function renderRoute(): void {
   renderBody();
 }
 
+function hydrateCaches(): void {
+  hydrateDashboardCache();
+  hydrateProfileCache();
+}
+
 async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
@@ -390,6 +400,7 @@ async function boot(): Promise<void> {
     initPullRefresh();
     gateCampusTabs();
     if (!location.hash) location.hash = "/dashboard";
+    hydrateCaches();
     renderRoute();
     return;
   }
@@ -450,6 +461,7 @@ async function boot(): Promise<void> {
   initPullRefresh();
   gateCampusTabs();
   healPush();
+  hydrateCaches();
   renderRoute();
 }
 

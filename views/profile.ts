@@ -1,6 +1,10 @@
 import { html } from "lit-html";
 import { Me, ProfileStats, me, outstandingIds, profileStats } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import { currentTab } from "../shell.ts";
+import { getSession } from "../api.ts";
+import { readScopedCache, writeCache } from "../lib/cache.ts";
+import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { observeTabsOverflow, segmentedTabs } from "../lib/segmented-tabs.ts";
 import { dateTime } from "../lib/format.ts";
 
@@ -16,6 +20,7 @@ let meData: Me | null = null;
 let stats: ProfileStats | null = null;
 let loading = true;
 let error = "";
+let stale = false;
 let started = false;
 let tabsOverflowing = false;
 let tabsObserver: ResizeObserver | null = null;
@@ -56,6 +61,7 @@ export function profileView(): unknown {
   const m = meData;
   return html`
     <div class="profile-feature flex flex-col">
+      ${stale && subTab !== "evaluations" ? staleBanner() : ""}
       ${subTab === "evaluations"
         ? evaluationsTab()
         : subTab === "projects"
@@ -63,6 +69,15 @@ export function profileView(): unknown {
           : achievementsTab(m)}
     </div>
   `;
+}
+
+function staleBanner() {
+  return html`<div class="alert alert-warning alert-soft mb-3 py-2 text-sm">
+    <span class="flex-1">Couldn't refresh — showing saved data.</span>
+    <button class="btn btn-xs btn-outline" @click=${() => loadProfile(true)}>
+      Retry
+    </button>
+  </div>`;
 }
 
 /** The profile sub-tab bar, rendered by the shell above the dock. */
@@ -99,6 +114,40 @@ export function profileAttachObservers(): void {
   );
 }
 
+const PROFILE_CACHE = "profile";
+const CACHE_VERSION = 1;
+
+interface ProfileCache {
+  v: number;
+  login: string;
+  me: Me;
+  stats: ProfileStats | null;
+}
+
+export function hydrateProfileCache(): void {
+  const cached = readScopedCache<ProfileCache>(PROFILE_CACHE);
+  if (!cached || cached.v !== CACHE_VERSION) return;
+  meData = cached.me;
+  if (cached.stats) stats = cached.stats;
+  loading = false;
+}
+
+function writeProfileCache(): void {
+  const session = getSession();
+  if (!session || !meData) return;
+  writeCache(PROFILE_CACHE, {
+    v: CACHE_VERSION,
+    login: session.login,
+    me: meData,
+    stats,
+  } satisfies ProfileCache);
+}
+
+const retrier = new Retrier(
+  () => void loadProfile(true),
+  () => currentTab() === "profile" && document.visibilityState === "visible",
+);
+
 export async function loadProfile(force = false): Promise<void> {
   if (started && !force && meData) return;
   started = true;
@@ -106,6 +155,7 @@ export async function loadProfile(force = false): Promise<void> {
     loading = true;
     refresh();
   }
+  let failure: unknown = null;
   try {
     const [m, s] = await Promise.all([me(), profileStats().catch(() => null)]);
     const outstanding = await outstandingIds(
@@ -146,9 +196,23 @@ export async function loadProfile(force = false): Promise<void> {
     if (s) stats = s;
     error = "";
   } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
+    failure = e;
   }
   loading = false;
+
+  if (failure) {
+    if (meData) {
+      error = "";
+      stale = true;
+    } else {
+      error = friendlyError(failure);
+    }
+    if (isRetryableError(failure)) retrier.schedule();
+  } else {
+    stale = false;
+    writeProfileCache();
+    retrier.reset();
+  }
   refresh();
 }
 

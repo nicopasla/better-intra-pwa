@@ -11,7 +11,10 @@ import {
   CalendarEvent,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { navigate } from "../shell.ts";
+import { currentTab, navigate } from "../shell.ts";
+import { getSession } from "../api.ts";
+import { readScopedCache, writeCache } from "../lib/cache.ts";
+import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { switchSubTab } from "./profile.ts";
 import {
   disablePush,
@@ -39,6 +42,7 @@ let upcoming: UpcomingResponse = { items: [], tracked: false };
 let allEvents: CalendarEvent[] = [];
 let loading = true;
 let error = "";
+let stale = false;
 let pushBusy = false;
 let pushError = "";
 let pushSubscribed: boolean | null = null;
@@ -84,9 +88,18 @@ export function dashboardView(): unknown {
     `;
   }
   return html`
-    ${profileCard()} ${upcomingCard()} ${liveEventsCard()} ${projectsCard()}
-    ${eventsCard()}
+    ${stale ? staleBanner() : ""} ${profileCard()} ${upcomingCard()}
+    ${liveEventsCard()} ${projectsCard()} ${eventsCard()}
   `;
+}
+
+function staleBanner() {
+  return html`<div class="alert alert-warning alert-soft mb-4 py-2 text-sm">
+    <span class="flex-1">Couldn't refresh — showing saved data.</span>
+    <button class="btn btn-xs btn-outline" @click=${() => loadDashboard(true)}>
+      Retry
+    </button>
+  </div>`;
 }
 
 function card(content: unknown, title?: string) {
@@ -603,9 +616,49 @@ function countdown(iso: string): string {
   return `in ${d}d ${h % 24}h`;
 }
 
+const DASHBOARD_CACHE = "dashboard";
+const CACHE_VERSION = 1;
+
+interface DashboardCache {
+  v: number;
+  login: string;
+  me: Me;
+  upcoming: UpcomingResponse;
+  events: CalendarEvent[];
+  profileColor: string;
+}
+
+export function hydrateDashboardCache(): void {
+  const cached = readScopedCache<DashboardCache>(DASHBOARD_CACHE);
+  if (!cached || cached.v !== CACHE_VERSION) return;
+  meData = cached.me;
+  upcoming = { ...cached.upcoming, items: mergeEvals(cached.upcoming.items) };
+  allEvents = cached.events;
+  if (cached.profileColor) profileColor = cached.profileColor;
+  loading = false;
+}
+
+function writeDashboardCache(): void {
+  const session = getSession();
+  if (!session || !meData) return;
+  writeCache(DASHBOARD_CACHE, {
+    v: CACHE_VERSION,
+    login: session.login,
+    me: meData,
+    upcoming,
+    events: allEvents,
+    profileColor,
+  } satisfies DashboardCache);
+}
+
+const retrier = new Retrier(
+  () => loadDashboard(true),
+  () => currentTab() === "dashboard" && document.visibilityState === "visible",
+);
+
 export function loadDashboard(silent = false): void {
   if (!silent) {
-    loading = true;
+    if (!meData) loading = true;
     error = "";
     refresh();
   }
@@ -614,8 +667,9 @@ export function loadDashboard(silent = false): void {
     ([m, u, ev, bl]) => {
       if (bl.status === "fulfilled")
         profileColor = resolveProfileColor(bl.value.settings ?? {});
+      let failure: unknown = null;
       if (m.status === "fulfilled") meData = m.value;
-      else if (!silent) error = friendly(m.reason);
+      else failure = m.reason;
       if (u.status === "fulfilled") {
         upcoming = { ...u.value, items: mergeEvals(u.value.items) };
         const now = Date.now();
@@ -624,15 +678,22 @@ export function loadDashboard(silent = false): void {
         ).length;
         if (booked > 0) setAppBadge(booked);
         else clearAppBadge();
-      } else if (!silent) error ||= friendly(u.reason);
+      } else failure ||= u.reason;
       if (ev.status === "fulfilled") allEvents = ev.value;
-      else if (!silent) error ||= friendly(ev.reason);
+      else failure ||= ev.reason;
       loading = false;
+
+      if (failure && !meData) {
+        error = friendlyError(failure);
+      } else {
+        error = "";
+        writeDashboardCache();
+      }
+      stale = Boolean(failure) && Boolean(meData);
+
+      if (failure && isRetryableError(failure)) retrier.schedule();
+      else retrier.reset();
       refresh();
     },
   );
-}
-
-function friendly(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }
