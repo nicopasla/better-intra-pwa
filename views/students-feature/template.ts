@@ -884,64 +884,68 @@ export function renderStudentsDialogTemplate(
       ${pageHeader({
         stack: true,
         leading: html`
-          <div class="flex items-center gap-2 w-full basis-full">
-            <input
-              class="input input-sm flex-1 min-w-0"
-              style="height:2.5rem"
-              type="search"
-              placeholder="Search..."
-              .value="${query}"
-              @input="${(e: Event) =>
-                handlers.onSearchInput((e.target as HTMLInputElement).value)}"
-            />
-            ${showPoolFilter
-              ? html`<div class="indicator shrink-0">
-                  ${hasActiveFilters
-                    ? html`<span
-                        class="indicator-item badge badge-xs ${filter ===
-                        "blackhole"
-                          ? "badge-error"
-                          : filter === "alumni"
-                            ? "badge-secondary"
-                            : filter === "freeze"
-                              ? "badge-info"
-                              : "badge-error"}"
-                        style="border-radius:var(--radius-field)"
-                      ></span>`
-                    : ""}
-                  <details class="dropdown">
-                    <summary
-                      class="btn btn-md list-none ${hasActiveFilters
-                        ? "btn-primary"
-                        : "btn-outline border-base-content/20"}"
-                      style="height:2.5rem"
-                      data-tip="Filters"
-                    >
-                      ${unsafeHTML(
-                        FILTER_SVG.replace(
-                          "<svg",
-                          '<svg width="16" height="16"',
-                        ),
-                      )}
-                    </summary>
-                    ${renderFilterMenu(
-                      state,
-                      handlers,
-                      tab === "new" ? intakeFiltered : entries,
-                    )}
-                  </details>
-                </div>`
-              : ""}
-            ${tab === "pisciners" && selectedPiscine
-              ? html`<button
-                  class="btn btn-md btn-outline shrink-0"
+          ${showPiscineGrid
+            ? ""
+            : html`<div class="flex items-center gap-2 w-full basis-full">
+                <input
+                  class="input input-sm flex-1 min-w-0"
                   style="height:2.5rem"
-                  @click="${handlers.onBackToPiscines}"
-                >
-                  ← Piscines
-                </button>`
-              : ""}
-          </div>
+                  type="search"
+                  placeholder="Search..."
+                  .value="${query}"
+                  @input="${(e: Event) =>
+                    handlers.onSearchInput(
+                      (e.target as HTMLInputElement).value,
+                    )}"
+                />
+                ${showPoolFilter
+                  ? html`<div class="indicator shrink-0">
+                      ${hasActiveFilters
+                        ? html`<span
+                            class="indicator-item badge badge-xs ${filter ===
+                            "blackhole"
+                              ? "badge-error"
+                              : filter === "alumni"
+                                ? "badge-secondary"
+                                : filter === "freeze"
+                                  ? "badge-info"
+                                  : "badge-error"}"
+                            style="border-radius:var(--radius-field)"
+                          ></span>`
+                        : ""}
+                      <details class="dropdown">
+                        <summary
+                          class="btn btn-md list-none ${hasActiveFilters
+                            ? "btn-primary"
+                            : "btn-outline border-base-content/20"}"
+                          style="height:2.5rem"
+                          data-tip="Filters"
+                        >
+                          ${unsafeHTML(
+                            FILTER_SVG.replace(
+                              "<svg",
+                              '<svg width="16" height="16"',
+                            ),
+                          )}
+                        </summary>
+                        ${renderFilterMenu(
+                          state,
+                          handlers,
+                          tab === "new" ? intakeFiltered : entries,
+                        )}
+                      </details>
+                    </div>`
+                  : ""}
+                ${tab === "pisciners" && selectedPiscine
+                  ? html`<button
+                      class="btn btn-md btn-outline shrink-0"
+                      style="height:2.5rem"
+                      @click="${handlers.onBackToPiscines}"
+                    >
+                      ← Piscines
+                    </button>`
+                  : ""}
+              </div>`}
           <div class="flex items-center gap-2 w-full basis-full">
             <div class="flex items-center gap-2 shrink-0 mr-auto">
               <span
