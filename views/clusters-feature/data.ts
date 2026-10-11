@@ -5,15 +5,29 @@ import type { OccupancyEntry, OccupancyResponse } from "./types";
 /** Better Intra's clusters feature only targets Belgium for now. */
 export const CAMPUS_ID = "12";
 
-const MOCK_OCCUPANCY: OccupancyEntry[] = [
-  {
-    host: "shi-r1-p1",
-    login: "mock.user",
-    cdn_uri: "https://cdn.intra.42.fr/users/mock.user.jpg",
-    begin_at: new Date(Date.now() - 30 * 60_000).toISOString(),
-    end_at: null,
-  },
+const MOCK_PEOPLE: { login: string; name: string }[] = [
+  { login: "nponchon", name: "Nicolas Ponchon" },
+  { login: "arobion", name: "Alice Robion" },
+  { login: "clemarche", name: "Clément Le Marchand" },
+  { login: "mferreir", name: "Marco Ferreira" },
+  { login: "jdupont", name: "Julien Dupont" },
+  { login: "svandenb", name: "Sophie Van Den Berg" },
+  { login: "akadri", name: "Amina Kadri" },
+  { login: "lmoreau", name: "Louis Moreau" },
+  { login: "tlecoq", name: "Théo Lecocq" },
+  { login: "ebastien", name: "Emma Bastien" },
+  { login: "ghubert", name: "Gaëtan Hubert" },
+  { login: "vmarquet", name: "Victor Marquet" },
 ];
+
+const MOCK_OCCUPANCY: OccupancyEntry[] = MOCK_PEOPLE.map((p, i) => ({
+  host: i % 4 === 3 ? `wifi-${i + 1}` : `shi-r${(i % 6) + 1}-p${(i % 8) + 1}`,
+  login: p.login,
+  name: p.name,
+  cdn_uri: `https://cataas.com/cat?width=80&height=80&r=${i}`,
+  begin_at: new Date(Date.now() - (i * 17 + 4) * 60_000).toISOString(),
+  end_at: null,
+}));
 
 /** Active (online) students for the campus, keyed by host. */
 export async function fetchOccupancy(

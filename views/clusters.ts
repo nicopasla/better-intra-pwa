@@ -76,21 +76,12 @@ export function clustersView(): unknown {
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
         leading: headerBadge(entries.length, { tip: "online" }),
-        trailing: html`<button
-          type="button"
-          class="btn btn-md px-3 shrink-0 gap-1.5"
-          @click=${() => loadClusters(true)}
-        >
-          <span class="font-semibold">Refresh</span>
-          <span
-            id="ft-clusters-countdown"
-            class="text-xs opacity-60 tabular-nums"
-            >${Math.max(
-              0,
-              Math.ceil((POLL_INTERVAL - (Date.now() - lastUpdated)) / 1000),
-            )}s</span
-          >
-        </button>`,
+        trailing: html`<span
+          id="ft-clusters-countdown"
+          class="badge badge-outline tabular-nums opacity-70"
+          style="height:2.5rem;min-width:2.5rem;justify-content:center"
+          title="Auto-refreshes every minute"
+        ></span>`,
       })}
       ${activeList()}
     </div>
@@ -150,11 +141,18 @@ function row(e: OccupancyEntry): unknown {
           onerror="this.style.visibility='hidden'"
         />
         <div class="flex-1 min-w-0">
-          <div class="font-semibold truncate">${e.login}</div>
+          <div class="font-semibold truncate">${e.name || e.login}</div>
           <div class="text-xs opacity-60 truncate">
-            ${e.begin_at ? `since ${time} · ${ago}` : ""}
+            <span class="font-mono">${e.login}</span>${e.begin_at
+              ? ` · since ${time} · ${ago}`
+              : ""}
           </div>
         </div>
+        <span
+          class="badge badge-outline shrink-0 opacity-70"
+          style="height:2.5rem;min-width:2.5rem;justify-content:center"
+          >${e.host}</span
+        >
       </a>
     </li>
   `;
@@ -201,7 +199,7 @@ export function clustersBottomBar(): unknown {
               title="Coming soon"
               style="cursor:not-allowed;opacity:.45"
             >
-              Map · Soon
+              Map
             </button>
           </div>
         </div>

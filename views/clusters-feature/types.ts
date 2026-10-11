@@ -1,6 +1,7 @@
 export interface OccupancyEntry {
   host: string;
   login: string;
+  name?: string;
   cdn_uri: string;
   begin_at: string;
   end_at: string | null;
