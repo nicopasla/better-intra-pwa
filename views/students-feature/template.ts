@@ -10,6 +10,7 @@ import SORT_ZA_SVG from "../../assets/sort-za.svg?raw";
 import CAL_DOWN_SVG from "../../assets/calendar-arrow-down.svg?raw";
 import CAL_UP_SVG from "../../assets/calendar-arrow-up.svg?raw";
 import FILTER_SVG from "../../assets/filter.svg?raw";
+import USER_SVG from "../../assets/user.svg?raw";
 import STAR_SVG from "../../assets/star-lucide.svg?raw";
 import WALLET_SVG from "../../assets/wallet.svg?raw";
 import EVAL_SVG from "../../assets/eval.svg?raw";
@@ -883,21 +884,74 @@ export function renderStudentsDialogTemplate(
       ${pageHeader({
         stack: true,
         leading: html`
-          <input
-            class="input input-sm w-full basis-full"
-            style="height:2.5rem"
-            type="search"
-            placeholder="Search..."
-            .value="${query}"
-            @input="${(e: Event) =>
-              handlers.onSearchInput((e.target as HTMLInputElement).value)}"
-          />
+          <div class="flex items-center gap-2 w-full basis-full">
+            <input
+              class="input input-sm flex-1 min-w-0"
+              style="height:2.5rem"
+              type="search"
+              placeholder="Search..."
+              .value="${query}"
+              @input="${(e: Event) =>
+                handlers.onSearchInput((e.target as HTMLInputElement).value)}"
+            />
+            ${showPoolFilter
+              ? html`<div class="indicator shrink-0">
+                  ${hasActiveFilters
+                    ? html`<span
+                        class="indicator-item badge badge-xs ${filter ===
+                        "blackhole"
+                          ? "badge-error"
+                          : filter === "alumni"
+                            ? "badge-secondary"
+                            : filter === "freeze"
+                              ? "badge-info"
+                              : "badge-error"}"
+                        style="border-radius:var(--radius-field)"
+                      ></span>`
+                    : ""}
+                  <details class="dropdown">
+                    <summary
+                      class="btn btn-md list-none ${hasActiveFilters
+                        ? "btn-primary"
+                        : "btn-outline border-base-content/20"}"
+                      style="height:2.5rem"
+                      data-tip="Filters"
+                    >
+                      ${unsafeHTML(
+                        FILTER_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </summary>
+                    ${renderFilterMenu(
+                      state,
+                      handlers,
+                      tab === "new" ? intakeFiltered : entries,
+                    )}
+                  </details>
+                </div>`
+              : ""}
+            ${tab === "pisciners" && selectedPiscine
+              ? html`<button
+                  class="btn btn-md btn-outline shrink-0"
+                  style="height:2.5rem"
+                  @click="${handlers.onBackToPiscines}"
+                >
+                  ← Piscines
+                </button>`
+              : ""}
+          </div>
           <div class="flex items-center gap-2 w-full basis-full">
             <div class="flex items-center gap-2 shrink-0 mr-auto">
               <span
-                class="badge badge-accent shrink-0 font-bold font-mono"
+                class="badge badge-accent shrink-0 gap-1 font-bold font-mono"
                 style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
                 data-tip="${cursusLabel} — ${dateLabel}"
+              >
+                <span
+                  class="size-3.5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                  >${unsafeHTML(showPiscineGrid ? POOL_SVG : USER_SVG)}</span
                 >${countValue}</span
               >
               ${tab === "students"
@@ -910,61 +964,6 @@ export function renderStudentsDialogTemplate(
                 : ""}
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              ${showPoolFilter
-                ? html`<div class="indicator shrink-0">
-                    ${hasActiveFilters
-                      ? html`<span
-                          class="indicator-item badge badge-xs ${filter ===
-                          "blackhole"
-                            ? "badge-error"
-                            : filter === "alumni"
-                              ? "badge-secondary"
-                              : filter === "freeze"
-                                ? "badge-info"
-                                : "badge-error"}"
-                          style="border-radius:var(--radius-field)"
-                        ></span>`
-                      : ""}
-                    <details class="dropdown">
-                      <summary
-                        class="btn btn-md list-none ${hasActiveFilters
-                          ? "btn-primary"
-                          : "btn-outline border-base-content/20"}"
-                        style="height:2.5rem"
-                        data-tip="Filters"
-                      >
-                        ${unsafeHTML(
-                          FILTER_SVG.replace(
-                            "<svg",
-                            '<svg width="16" height="16"',
-                          ),
-                        )}
-                      </summary>
-                      ${renderFilterMenu(
-                        state,
-                        handlers,
-                        tab === "new" ? intakeFiltered : entries,
-                      )}
-                    </details>
-                  </div>`
-                : ""}
-              ${tab === "pisciners" && selectedPiscine
-                ? html`<button
-                    class="btn btn-md btn-outline shrink-0"
-                    style="height:2.5rem"
-                    @click="${handlers.onBackToPiscines}"
-                  >
-                    ← Piscines
-                  </button>`
-                : ""}
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              ${showPoolFilter && showRosterControls
-                ? html`<span
-                    class="h-6 w-px bg-base-content/20 shrink-0"
-                    aria-hidden="true"
-                  ></span>`
-                : ""}
               ${showRosterControls
                 ? html`<div class="join shrink-0">
                     <button
