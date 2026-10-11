@@ -893,6 +893,22 @@ export function renderStudentsDialogTemplate(
               handlers.onSearchInput((e.target as HTMLInputElement).value)}"
           />
           <div class="flex items-center gap-2 w-full basis-full">
+            <div class="flex items-center gap-2 shrink-0 mr-auto">
+              <span
+                class="badge badge-accent shrink-0 font-bold font-mono"
+                style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
+                data-tip="${cursusLabel} — ${dateLabel}"
+                >${countValue}</span
+              >
+              ${tab === "students"
+                ? html`<span
+                    class="badge ${activeBadgeClass} shrink-0 font-bold font-mono"
+                    style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
+                    data-tip="${activeBadgeTip}"
+                    >${activeBadgeValue} ${activeBadgeLabel}</span
+                  >`
+                : ""}
+            </div>
             <div class="flex items-center gap-2 shrink-0">
               ${showPoolFilter
                 ? html`<div class="indicator shrink-0">
@@ -942,23 +958,13 @@ export function renderStudentsDialogTemplate(
                   </button>`
                 : ""}
             </div>
-            <div class="flex items-center gap-2 mx-auto shrink-0">
-              <span
-                class="badge badge-accent shrink-0 font-bold font-mono"
-                style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
-                data-tip="${cursusLabel} — ${dateLabel}"
-                >${countValue}</span
-              >
-              ${tab === "students"
-                ? html`<span
-                    class="badge ${activeBadgeClass} shrink-0 font-bold font-mono"
-                    style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
-                    data-tip="${activeBadgeTip}"
-                    >${activeBadgeValue} ${activeBadgeLabel}</span
-                  >`
-                : ""}
-            </div>
             <div class="flex items-center gap-2 shrink-0">
+              ${showPoolFilter && showRosterControls
+                ? html`<span
+                    class="h-6 w-px bg-base-content/20 shrink-0"
+                    aria-hidden="true"
+                  ></span>`
+                : ""}
               ${showRosterControls
                 ? html`<div class="join shrink-0">
                     <button
