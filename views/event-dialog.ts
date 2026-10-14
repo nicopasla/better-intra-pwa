@@ -105,7 +105,7 @@ export function openEventDialog(e: CalendarEvent): void {
             ${unsafeHTML(X_SVG.replace("<svg", '<svg width="18" height="18"'))}
           </button>
         </div>
-        <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto">
+        <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto min-h-0">
           <div class="flex flex-wrap items-center gap-2">
             ${detailBadge(
               "var(--color-info)",

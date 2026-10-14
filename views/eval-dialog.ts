@@ -182,7 +182,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
               )}
             </button>
           </div>
-          <div class="px-4 py-4 overflow-y-auto">${body()}</div>
+          <div class="px-4 py-4 overflow-y-auto min-h-0 flex-1">${body()}</div>
         </div>
       `,
       dialog,
