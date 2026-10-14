@@ -293,6 +293,21 @@ export const events = () =>
         (d) => d.events,
       );
 
+export interface EventSubscriber {
+  login: string;
+  displayName: string;
+  avatar: string | null;
+  location: string | null;
+}
+
+/** Users subscribed to a 42 event (live from the API via the worker). */
+export const eventSubscribers = (id: number): Promise<EventSubscriber[]> =>
+  mockMode
+    ? Promise.resolve(mock.eventSubscribers(id))
+    : json<{ users?: EventSubscriber[] }>(
+        `/api/v1/private/event-subscribers?event=${id}`,
+      ).then((d) => d.users ?? []);
+
 export interface StudentEntry {
   login: string;
   displayname: string;

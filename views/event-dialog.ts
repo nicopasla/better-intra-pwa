@@ -7,6 +7,7 @@ import USERS_SVG from "../assets/users.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { dateTime } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
+import { openSubscribersDialog } from "./subscribers-dialog.ts";
 import type { CalendarEvent } from "../data.ts";
 
 const DIALOG_ID = "ft-event-dialog";
@@ -22,15 +23,33 @@ function formatDuration(start: Date, end: Date): string {
 const badgeStyle = (color: string) =>
   `border:2px solid color-mix(in oklab, ${color} 50%, transparent);background-color:color-mix(in oklab, ${color} 12%, transparent);color:${color};border-radius:var(--radius-selector);height:auto;`;
 
+const badgeContent = (svg: string, label: unknown) =>
+  html`<span
+      class="size-[1.1em] shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+      >${unsafeHTML(svg)}</span
+    >${label}`;
+
 const detailBadge = (color: string, svg: string, label: unknown) =>
   html`<span
     class="badge badge-lg gap-1.5 px-2.5 text-sm font-semibold"
     style="${badgeStyle(color)}"
-    ><span
-      class="size-[1.1em] shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-      >${unsafeHTML(svg)}</span
-    >${label}</span
+    >${badgeContent(svg, label)}</span
   >`;
+
+const detailBadgeButton = (
+  color: string,
+  svg: string,
+  label: unknown,
+  onClick: () => void,
+) =>
+  html`<button
+    type="button"
+    class="badge badge-lg gap-1.5 px-2.5 text-sm font-semibold cursor-pointer transition-all hover:brightness-110 active:scale-95"
+    style="${badgeStyle(color)}"
+    @click=${onClick}
+  >
+    ${badgeContent(svg, label)}
+  </button>`;
 
 /** Opens a small dialog with the event's title, description and details. */
 export function openEventDialog(e: CalendarEvent): void {
@@ -94,11 +113,18 @@ export function openEventDialog(e: CalendarEvent): void {
               formatDuration(start, end),
             )}
             ${subs
-              ? detailBadge(
-                  "var(--color-accent)",
-                  USERS_SVG,
-                  `${subs} subscribed`,
-                )
+              ? e.id
+                ? detailBadgeButton(
+                    "var(--color-accent)",
+                    USERS_SVG,
+                    `${subs} subscribed`,
+                    () => openSubscribersDialog(e.id!, e.name),
+                  )
+                : detailBadge(
+                    "var(--color-accent)",
+                    USERS_SVG,
+                    `${subs} subscribed`,
+                  )
               : ""}
             ${e.location
               ? detailBadge("var(--color-success)", MAP_PIN_SVG, e.location)

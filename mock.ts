@@ -462,6 +462,32 @@ export const mock = {
       url: "https://events.intra.42.fr/exams/105",
     },
   ],
+  eventSubscribers: (id: number) => {
+    const count = (id % 12) + 6;
+    const names = [
+      "alex",
+      "sam",
+      "jordan",
+      "riley",
+      "casey",
+      "morgan",
+      "taylor",
+      "quinn",
+      "avery",
+      "drew",
+      "robin",
+      "jamie",
+    ];
+    return Array.from({ length: count }, (_, i) => {
+      const login = `${names[(id + i) % names.length]}${id}${i}`;
+      return {
+        login,
+        displayName: login.charAt(0).toUpperCase() + login.slice(1),
+        avatar: `https://cataas.com/cat?width=200&height=200&r=${id * 100 + i}`,
+        location: (id + i) % 3 !== 0 ? "c1r2p1" : null,
+      };
+    });
+  },
   studentsPage: (offset: number) => {
     const list: StudentEntry[] = [
       {
