@@ -365,6 +365,7 @@ function achievementsTab(m: Me) {
                   src="${a.image}"
                   alt=""
                   loading="lazy"
+                  referrerpolicy="no-referrer"
                   onerror="this.style.visibility='hidden'"
                 />`
               : html`<div class="size-10 rounded-box bg-base-200"></div>`}

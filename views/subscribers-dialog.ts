@@ -4,17 +4,11 @@ import X_SVG from "../assets/x.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { eventSubscribers, type EventSubscriber } from "../data.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
+import { avatarErrorFallback } from "../lib/avatar.ts";
 
 const DIALOG_ID = "ft-subscribers-dialog";
 
 const LOCATION_STYLE = `border:2px solid color-mix(in oklab, var(--color-success) 50%, transparent);background-color:color-mix(in oklab, var(--color-success) 12%, transparent);color:var(--color-success);border-radius:var(--radius-selector);height:auto;`;
-
-function avatarFallback(e: Event): void {
-  const img = e.target as HTMLImageElement;
-  if (img.dataset.fallback === "1") return;
-  img.dataset.fallback = "1";
-  img.src = "/icons/icon-192.png";
-}
 
 function row(u: EventSubscriber) {
   return html`
@@ -32,7 +26,8 @@ function row(u: EventSubscriber) {
             alt="${u.login}"
             loading="lazy"
             decoding="async"
-            @error=${avatarFallback}
+            referrerpolicy="no-referrer"
+            @error=${avatarErrorFallback}
           />
         </div>
       </div>

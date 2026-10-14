@@ -124,6 +124,7 @@ function renderFriendRow(
                       src="${currentSrc}"
                       alt="${friend.login}"
                       loading="lazy"
+                      referrerpolicy="no-referrer"
                       data-tip="${toggleTitle}"
                       @click="${toggleCustom}"
                       @error="${(e: Event) => {

@@ -215,6 +215,7 @@ function avatarBlock() {
   return html`<img
     src="${m.image ?? "/icons/icon-192.png"}"
     onerror="this.onerror=null;this.src='/icons/icon-192.png'"
+    referrerpolicy="no-referrer"
     class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
     alt=""
   />`;
