@@ -28,7 +28,7 @@ function row(u: EventSubscriber) {
         <div class="w-10 h-10 rounded-full bg-base-300">
           <img
             class="w-full h-full rounded-full object-cover"
-            src="${u.avatar ?? "/icons/icon-192.png"}"
+            src="${u.avatar || "/icons/icon-192.png"}"
             alt="${u.login}"
             loading="lazy"
             decoding="async"
