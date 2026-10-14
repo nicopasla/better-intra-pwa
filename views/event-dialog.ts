@@ -1,7 +1,12 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import X_SVG from "../assets/x.svg?raw";
+import CALENDAR_SVG from "../assets/calendar.svg?raw";
+import CLOCK_SVG from "../assets/clock.svg?raw";
+import USERS_SVG from "../assets/users.svg?raw";
+import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { dateTime } from "../lib/format.ts";
+import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import type { CalendarEvent } from "../data.ts";
 
 const DIALOG_ID = "ft-event-dialog";
@@ -13,6 +18,19 @@ function formatDuration(start: Date, end: Date): string {
   const m = min % 60;
   return m ? `${h}h${m}m` : `${h}h`;
 }
+
+const badgeStyle = (color: string) =>
+  `border:2px solid color-mix(in oklab, ${color} 50%, transparent);background-color:color-mix(in oklab, ${color} 12%, transparent);color:${color};border-radius:0.75rem;height:auto;`;
+
+const detailBadge = (color: string, svg: string, label: unknown) =>
+  html`<span
+    class="badge badge-lg gap-1.5 px-2.5 text-sm font-semibold"
+    style="${badgeStyle(color)}"
+    ><span
+      class="size-[1.1em] shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+      >${unsafeHTML(svg)}</span
+    >${label}</span
+  >`;
 
 /** Opens a small dialog with the event's title, description and details. */
 export function openEventDialog(e: CalendarEvent): void {
@@ -65,27 +83,33 @@ export function openEventDialog(e: CalendarEvent): void {
         </div>
         <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="badge badge-accent badge-outline"
-              >${dateTime(e.beginAt)}</span
-            >
-            <span class="badge badge-accent badge-outline"
-              >${formatDuration(start, end)}</span
-            >
+            ${detailBadge(
+              "var(--color-info)",
+              CALENDAR_SVG,
+              dateTime(e.beginAt),
+            )}
+            ${detailBadge(
+              "var(--color-primary)",
+              CLOCK_SVG,
+              formatDuration(start, end),
+            )}
             ${subs
-              ? html`<span class="badge badge-accent badge-outline"
-                  >${subs} subscribed</span
-                >`
+              ? detailBadge(
+                  "var(--color-accent)",
+                  USERS_SVG,
+                  `${subs} subscribed`,
+                )
               : ""}
             ${e.location
-              ? html`<span class="badge badge-accent badge-outline"
-                  >${e.location}</span
-                >`
+              ? detailBadge("var(--color-success)", MAP_PIN_SVG, e.location)
               : ""}
           </div>
           ${e.description
             ? html`<p
                 class="text-sm whitespace-pre-wrap wrap-break-word opacity-90"
-              >${e.description.trim()}</p>`
+              >
+                ${e.description.trim()}
+              </p>`
             : html`<p class="text-sm opacity-60">No description.</p>`}
           ${href
             ? html`<a
@@ -105,7 +129,11 @@ export function openEventDialog(e: CalendarEvent): void {
   dialog.addEventListener("click", (ev) => {
     if (ev.target === dialog) close();
   });
-  dialog.addEventListener("close", () => dialog.remove());
+  dialog.addEventListener("close", () => {
+    unlockScroll();
+    dialog.remove();
+  });
   document.body.appendChild(dialog);
+  lockScroll();
   dialog.showModal();
 }

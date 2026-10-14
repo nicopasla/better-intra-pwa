@@ -2,6 +2,7 @@ import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
 import { dateTime } from "../lib/format.ts";
+import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
@@ -160,7 +161,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
     render(
       html`
         <div
-          class="bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden"
+          class="bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
         >
           <div
             class="flex items-center justify-between gap-3 px-4 py-3 border-b border-base-300"
@@ -181,7 +182,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
               )}
             </button>
           </div>
-          <div class="px-4 py-4">${body()}</div>
+          <div class="px-4 py-4 overflow-y-auto">${body()}</div>
         </div>
       `,
       dialog,
@@ -191,9 +192,13 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   dialog.addEventListener("click", (ev) => {
     if (ev.target === dialog) close();
   });
-  dialog.addEventListener("close", () => dialog.remove());
+  dialog.addEventListener("close", () => {
+    unlockScroll();
+    dialog.remove();
+  });
 
   document.body.appendChild(dialog);
+  lockScroll();
   dialog.showModal();
   draw();
 
