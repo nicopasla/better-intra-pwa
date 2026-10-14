@@ -5,6 +5,7 @@ import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
 import USERS_SVG from "../assets/users.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
+import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 import { dateTime } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import { openSubscribersDialog } from "./subscribers-dialog.ts";
@@ -49,6 +50,10 @@ const detailBadgeButton = (
     @click=${onClick}
   >
     ${badgeContent(svg, label)}
+    <span
+      class="size-[1em] shrink-0 -rotate-90 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+      >${unsafeHTML(CHEVRON_DOWN_SVG)}</span
+    >
   </button>`;
 
 /** Opens a small dialog with the event's title, description and details. */
