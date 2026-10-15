@@ -73,12 +73,13 @@ function renderFriendRow(
   );
   const showingOriginal = showingOriginalAvatars.get(friend.login) ?? false;
   const showCustom = hasCustom && !showingOriginal;
-  const currentSrc =
-    !AVATARS_ENABLED || saveData
-      ? null
-      : hasCustom && !showingOriginal
-        ? friend.customAvatar
-        : friend.avatar;
+  const currentSrc = saveData
+    ? null
+    : hasCustom && !showingOriginal
+      ? friend.customAvatar
+      : AVATARS_ENABLED
+        ? friend.avatar
+        : null;
   const toggleTitle = hasCustom
     ? showingOriginal
       ? "Click to view custom avatar"
