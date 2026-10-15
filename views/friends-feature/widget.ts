@@ -14,6 +14,7 @@ import { loginUrl, getSession } from "../../api.ts";
 import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { headerBadge, pageHeader } from "../../lib/page-header.ts";
+import { AVATARS_ENABLED } from "../../lib/avatar.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -72,11 +73,12 @@ function renderFriendRow(
   );
   const showingOriginal = showingOriginalAvatars.get(friend.login) ?? false;
   const showCustom = hasCustom && !showingOriginal;
-  const currentSrc = saveData
-    ? null
-    : hasCustom && !showingOriginal
-      ? friend.customAvatar
-      : friend.avatar;
+  const currentSrc =
+    !AVATARS_ENABLED || saveData
+      ? null
+      : hasCustom && !showingOriginal
+        ? friend.customAvatar
+        : friend.avatar;
   const toggleTitle = hasCustom
     ? showingOriginal
       ? "Click to view custom avatar"

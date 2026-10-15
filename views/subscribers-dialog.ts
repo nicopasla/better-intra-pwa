@@ -4,7 +4,11 @@ import X_SVG from "../assets/x.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { eventSubscribers, type EventSubscriber } from "../data.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
-import { avatarErrorFallback } from "../lib/avatar.ts";
+import {
+  AVATARS_ENABLED,
+  avatarErrorFallback,
+  initialsAvatar,
+} from "../lib/avatar.ts";
 
 const DIALOG_ID = "ft-subscribers-dialog";
 
@@ -20,15 +24,17 @@ function row(u: EventSubscriber) {
     >
       <div class="avatar ${u.location ? "avatar-online" : ""} shrink-0">
         <div class="w-10 h-10 rounded-full bg-base-300">
-          <img
-            class="w-full h-full rounded-full object-cover"
-            src="${u.avatar || "/icons/icon-192.png"}"
-            alt="${u.login}"
-            loading="lazy"
-            decoding="async"
-            referrerpolicy="no-referrer"
-            @error=${avatarErrorFallback}
-          />
+          ${AVATARS_ENABLED
+            ? html`<img
+                class="w-full h-full rounded-full object-cover"
+                src="${u.avatar || "/icons/icon-192.png"}"
+                alt="${u.login}"
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
+                @error=${avatarErrorFallback}
+              />`
+            : initialsAvatar(u.login, "w-full h-full")}
         </div>
       </div>
       <div class="min-w-0 flex-1 flex flex-col">

@@ -18,7 +18,11 @@ import CHECK_SVG from "../../assets/check.svg?raw";
 import FORTY_TWO_SVG from "../../assets/42_Logo.svg?raw";
 import { segmentedTabs } from "../../lib/segmented-tabs.ts";
 import { pageHeader } from "../../lib/page-header.ts";
-import { avatarErrorFallback } from "../../lib/avatar.ts";
+import {
+  AVATARS_ENABLED,
+  avatarErrorFallback,
+  initialsAvatar,
+} from "../../lib/avatar.ts";
 import {
   formatAlumniDate,
   formatBlackholeDate,
@@ -432,16 +436,17 @@ export function renderStudentsDialogTemplate(
           ? futureGroups.map((i) => i.label).join(" · ")
           : "future students"
         : "all students";
-  const renderAvatar = (r: StudentEntry) => html`
-    <img
-      class="avatar"
-      src="${r.image_url}"
-      alt="${r.login}"
-      loading="lazy"
-      referrerpolicy="no-referrer"
-      @error=${avatarErrorFallback}
-    />
-  `;
+  const renderAvatar = (r: StudentEntry) =>
+    AVATARS_ENABLED
+      ? html`<img
+          class="avatar"
+          src="${r.image_url}"
+          alt="${r.login}"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          @error=${avatarErrorFallback}
+        />`
+      : initialsAvatar(r.login, "avatar");
 
   const renderStatusBadges = (r: StudentEntry) =>
     html`${isBlackholed(r) && tab !== "pisciners"

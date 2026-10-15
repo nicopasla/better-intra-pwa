@@ -4,7 +4,11 @@ import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
-import { avatarErrorFallback } from "../lib/avatar.ts";
+import {
+  AVATARS_ENABLED,
+  avatarErrorFallback,
+  initialsAvatar,
+} from "../lib/avatar.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
 import { sortActiveUsers } from "./clusters-feature/render.ts";
 import {
@@ -169,14 +173,16 @@ function row(e: OccupancyEntry): unknown {
           rel="noopener noreferrer"
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
-          <img
-            class="size-10 rounded-full object-cover shrink-0 bg-base-200"
-            src="${e.cdn_uri}"
-            alt="${e.login}"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            @error=${avatarErrorFallback}
-          />
+          ${AVATARS_ENABLED
+            ? html`<img
+                class="size-10 rounded-full object-cover shrink-0 bg-base-200"
+                src="${e.cdn_uri}"
+                alt="${e.login}"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                @error=${avatarErrorFallback}
+              />`
+            : initialsAvatar(e.login, "size-10 shrink-0")}
           <div class="flex-1 min-w-0">
             <div class="font-semibold truncate">${e.name || e.login}</div>
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>

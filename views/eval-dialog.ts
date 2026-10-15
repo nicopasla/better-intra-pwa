@@ -3,7 +3,11 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
 import { dateTime } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
-import { avatarErrorFallback } from "../lib/avatar.ts";
+import {
+  AVATARS_ENABLED,
+  avatarErrorFallback,
+  initialsAvatar,
+} from "../lib/avatar.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
@@ -75,13 +79,15 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           class="avatar ${u.location ? "avatar-online" : ""} shrink-0"
         >
           <div class="w-16 h-16 rounded-full bg-base-300">
-            <img
-              class="w-full h-full rounded-full object-cover"
-              src="${u.avatar ?? "/icons/icon-192.png"}"
-              alt="${u.login}"
-              referrerpolicy="no-referrer"
-              @error=${avatarErrorFallback}
-            />
+            ${AVATARS_ENABLED
+              ? html`<img
+                  class="w-full h-full rounded-full object-cover"
+                  src="${u.avatar ?? "/icons/icon-192.png"}"
+                  alt="${u.login}"
+                  referrerpolicy="no-referrer"
+                  @error=${avatarErrorFallback}
+                />`
+              : initialsAvatar(u.login, "w-full h-full")}
           </div>
         </a>
 

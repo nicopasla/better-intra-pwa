@@ -23,6 +23,7 @@ import {
   pushSupported,
 } from "../push.ts";
 import { saveData } from "../lib/network.ts";
+import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort } from "../lib/format.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
@@ -211,6 +212,9 @@ function avatarBlock() {
       class="w-20 h-20 rounded-full shadow-lg flex-none"
       style="background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
     ></div>`;
+  }
+  if (!AVATARS_ENABLED) {
+    return initialsAvatar(m.login, "w-20 h-20 shadow-lg flex-none text-2xl");
   }
   return html`<img
     src="${m.image ?? "/icons/icon-192.png"}"
