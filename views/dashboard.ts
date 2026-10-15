@@ -328,7 +328,7 @@ function evalRow(e: UpcomingEval) {
           : "badge-warning"}"
         >${countdown(e.beginAt)}</span
       >
-      ${started && !isCorrected
+      ${started
         ? html`<button
             class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
             title="Mark as done"
