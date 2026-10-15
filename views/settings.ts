@@ -3,7 +3,6 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { until } from "lit-html/directives/until.js";
 import { clearSession, getDeviceName, getSession } from "../api.ts";
 import {
-  BlobSettings,
   SessionItem,
   getBlob,
   logout,
@@ -41,6 +40,8 @@ import {
   setThemePreference,
   ThemePreference,
 } from "../theme.ts";
+import BELL_SVG from "../assets/bell.svg?raw";
+import BELL_SLASH_SVG from "../assets/bell-slash.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
 import PR_SVG from "../assets/pr.svg?raw";
@@ -97,7 +98,6 @@ function groupSessions(items: SessionItem[]): SessionGroup[] {
   );
 }
 
-let blob: BlobSettings | null = null;
 let sessions: SessionItem[] = [];
 let loaded = false;
 let busy = false;
@@ -105,10 +105,24 @@ let testing = false;
 let logmeError = "";
 let pushEnabled = false;
 let pushMessage = "";
-const NOTIFY_TYPES: { key: string; label: string }[] = [
-  { key: "EVAL_NOTIFY_EVALUATOR_BOOKED", label: "Booked to evaluate" },
-  { key: "EVAL_NOTIFY_EVALUATOR_REVEALED", label: "In 15 min" },
-  { key: "EVAL_NOTIFY_CORRECTED_REVEALED", label: "Your evaluator" },
+const NOTIFY_GROUPS: {
+  title: string;
+  hint: string;
+  types: { key: string; label: string }[];
+}[] = [
+  {
+    title: "Evaluations you give",
+    hint: "When you're booked to evaluate someone.",
+    types: [
+      { key: "EVAL_NOTIFY_EVALUATOR_BOOKED", label: "Booked to evaluate" },
+      { key: "EVAL_NOTIFY_EVALUATOR_REVEALED", label: "In 15 min" },
+    ],
+  },
+  {
+    title: "Evaluations you receive",
+    hint: "When someone is assigned to evaluate you.",
+    types: [{ key: "EVAL_NOTIFY_CORRECTED_REVEALED", label: "Your evaluator" }],
+  },
 ];
 let notifyTypes: Record<string, boolean> = {
   EVAL_NOTIFY_EVALUATOR_BOOKED: true,
@@ -118,7 +132,6 @@ let notifyTypes: Record<string, boolean> = {
 let quietEnabled = false;
 let quietStart = "22:00";
 let quietEnd = "08:00";
-let discordEnabled = false;
 let themeMode: ThemePreference = getThemePreference();
 let storageUsed: number | null = null;
 let storageQuota: number | null = null;
@@ -275,22 +288,32 @@ function notificationsSection() {
           ${pushMessage}
         </p>`
       : ""}
-    <div class="flex flex-col gap-1.5 mt-1">
-      <span class="text-xs opacity-60">Push notifications you receive</span>
-      <div class="flex flex-wrap gap-2">
-        ${NOTIFY_TYPES.map(
-          (t) => html`<button
-            type="button"
-            class="btn btn-sm ${notifyTypes[t.key]
-              ? "btn-primary"
-              : "btn-outline"}"
-            @click=${() => void toggleNotifyType(t.key)}
-          >
-            ${t.label}
-          </button>`,
-        )}
-      </div>
-    </div>
+    ${NOTIFY_GROUPS.map(
+      (g, i) => html`
+        ${i > 0 ? html`<div class="divider my-0"></div>` : ""}
+        <div class="flex flex-col gap-1.5 mt-1">
+          <span class="text-sm font-semibold">${g.title}</span>
+          <span class="text-xs opacity-60">${g.hint}</span>
+          <div class="flex flex-wrap gap-2 mt-0.5">
+            ${g.types.map(
+              (t) =>
+                html`<button
+                  type="button"
+                  class="btn btn-sm gap-1.5 ${notifyTypes[t.key]
+                    ? "btn-primary"
+                    : "btn-outline"}"
+                  @click=${() => void toggleNotifyType(t.key)}
+                >
+                  <span class="size-4 flex items-center justify-center">
+                    ${svgIcon(notifyTypes[t.key] ? BELL_SVG : BELL_SLASH_SVG)}
+                  </span>
+                  ${t.label}
+                </button>`,
+            )}
+          </div>
+        </div>
+      `,
+    )}
     <div class="divider my-0"></div>
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span>Quiet hours</span>
@@ -322,9 +345,6 @@ function notificationsSection() {
           })}
       />
     </div>
-    ${discordEnabled
-      ? html`<p class="text-xs opacity-60">Discord DMs are also enabled.</p>`
-      : ""}
   `;
 }
 
@@ -764,9 +784,7 @@ export async function loadSettings(force = false): Promise<void> {
   loaded = true;
   try {
     const [b, s] = await Promise.all([getBlob(), sessionsList()]);
-    blob = b;
     sessions = s.sessions;
-    discordEnabled = Boolean(b.discordId);
     quietEnabled = Boolean(b.settings.DISCORD_QUIET_ENABLED);
     quietStart = String(b.settings.DISCORD_QUIET_START || "22:00");
     quietEnd = String(b.settings.DISCORD_QUIET_END || "08:00");
