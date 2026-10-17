@@ -13,6 +13,7 @@ import {
 import {
   disablePush,
   enablePushWithTest,
+  evalTrackingStatus,
   getExistingSubscription,
   pushSupported,
   sendTest,
@@ -481,6 +482,14 @@ function pushPermission(): string {
   return Notification.permission;
 }
 
+function evalTrackingBadge(): TemplateResult {
+  if (evalTracked === null)
+    return html`<span class="badge badge-ghost badge-sm">unknown</span>`;
+  return evalTracked
+    ? html`<span class="badge badge-success badge-sm">tracked</span>`
+    : html`<span class="badge badge-warning badge-sm">not tracked</span>`;
+}
+
 function aboutSection(): TemplateResult {
   const session = getSession();
   const version =
@@ -552,6 +561,17 @@ function aboutSection(): TemplateResult {
         ${diagRow("Worker", workerBadge())}
         ${diagRow("Endpoint", endpointHost())}
         ${diagRow("Push permission", pushPermission())}
+      `,
+    )}
+    ${diagGroup(
+      "Evaluations",
+      html`
+        ${diagRow("Eval tracking", evalTrackingBadge())}
+        ${diagRow(
+          "Push tested",
+          evalTestedAt == null ? "never" : relativeTime(evalTestedAt),
+        )}
+        ${diagRow("Subscriptions", evalSubscriptions ?? "—")}
       `,
     )}
     ${diagGroup(
@@ -662,6 +682,9 @@ let workerOk: boolean | null = null;
 let workerOkChecked = false;
 let subHost = "";
 let persistentStorage: boolean | null = null;
+let evalTracked: boolean | null = null;
+let evalTestedAt: number | null = null;
+let evalSubscriptions: number | null = null;
 
 function endpointHost(): string {
   return subHost || "—";
@@ -838,6 +861,22 @@ export async function loadSettings(force = false): Promise<void> {
     workerOk = true;
   }
   workerOkChecked = true;
+  if (mockMode) {
+    evalTracked = true;
+    evalTestedAt = Date.now() - 15 * 60000;
+    evalSubscriptions = 1;
+  } else {
+    try {
+      const status = await evalTrackingStatus();
+      evalTracked = status.tracked;
+      evalTestedAt = status.pushTestedAt;
+      evalSubscriptions = status.subscriptions;
+    } catch {
+      evalTracked = null;
+      evalTestedAt = null;
+      evalSubscriptions = null;
+    }
+  }
   if (!mockMode) persistentStorage = await hasPersistentStorage();
   try {
     const est = await navigator.storage?.estimate?.();

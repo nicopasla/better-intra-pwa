@@ -265,6 +265,28 @@ export async function enablePushWithTest(): Promise<EnablePushResult> {
   };
 }
 
+export interface EvalTrackingStatus {
+  tracked: boolean;
+  pushTestedAt: number | null;
+  subscriptions: number;
+}
+
+/** Read-only snapshot of the worker's eval tracking state, for the debug page. */
+export async function evalTrackingStatus(): Promise<EvalTrackingStatus> {
+  const res = await workerFetch("/api/v1/private/evaluations?action=status", {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = (await res.json()) as Partial<EvalTrackingStatus>;
+  return {
+    tracked: data.tracked === true,
+    pushTestedAt:
+      typeof data.pushTestedAt === "number" ? data.pushTestedAt : null,
+    subscriptions:
+      typeof data.subscriptions === "number" ? data.subscriptions : 0,
+  };
+}
+
 /** Re-asserts eval tracking on app open when this device has push enabled.
  *  The worker no-ops until a test has been delivered. */
 export async function syncEvalTrackingIfEnabled(): Promise<void> {
