@@ -118,7 +118,7 @@ export function openEventDialog(e: CalendarEvent): void {
               formatDuration(start, end),
             )}
             ${subs
-              ? e.id
+              ? e.id && !isExam
                 ? detailBadgeButton(
                     "var(--color-accent)",
                     USERS_SVG,
