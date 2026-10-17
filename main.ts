@@ -47,6 +47,7 @@ import {
   ensurePushSubscription,
   onPushSubscriptionChange,
   registerServiceWorker,
+  syncEvalTrackingIfEnabled,
   syncPushSubscription,
 } from "./push.ts";
 import { storeDeviceTimeZone } from "./lib/push-store.ts";
@@ -318,6 +319,7 @@ function healPush(): void {
   if (mockMode || !getSession()) return;
   void syncPushSubscription();
   void ensurePushSubscription();
+  void syncEvalTrackingIfEnabled();
 }
 
 function renderBody(): void {

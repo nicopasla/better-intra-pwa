@@ -182,3 +182,100 @@ export async function sendTest(
     reason: data.reason,
   };
 }
+
+export interface EvalTrackingResult {
+  tracked: boolean;
+  reason?: string;
+}
+
+/** Tells the worker whether this device still wants evals tracked. Enabling
+ *  only sticks once a test push has been delivered (gated server-side via
+ *  `pushTestedAt`); disabling clears tracking only when no Discord is linked. */
+export async function syncEvalTracking(
+  enabled: boolean,
+): Promise<EvalTrackingResult> {
+  const res = await workerFetch("/api/v1/private/evaluations?action=sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  let data: { tracked?: unknown; reason?: unknown } = {};
+  try {
+    data = (await res.json()) as { tracked?: unknown; reason?: unknown };
+  } catch {
+    /* non-JSON response */
+  }
+  return {
+    tracked: data.tracked === true,
+    reason: typeof data.reason === "string" ? data.reason : undefined,
+  };
+}
+
+export interface EnablePushResult {
+  /** The test notification was accepted by the push service. */
+  delivered: boolean;
+  /** The worker now has eval tracking enabled for this account. */
+  tracked: boolean;
+  status: number;
+  host?: string;
+  reason?: string;
+}
+
+/** Subscribes this device then verifies delivery with a test push. If the test
+ *  fails the subscription is rolled back so notifications stay disabled. */
+export async function enablePushWithTest(): Promise<EnablePushResult> {
+  await enablePush();
+  let res: PushTestResult;
+  try {
+    res = await sendTest();
+  } catch {
+    try {
+      await disablePush();
+    } catch {
+      /* best effort */
+    }
+    return { delivered: false, tracked: false, status: 0 };
+  }
+  if (!res.ok) {
+    try {
+      await disablePush();
+    } catch {
+      /* best effort */
+    }
+    return {
+      delivered: false,
+      tracked: false,
+      status: res.status,
+      host: res.host,
+      reason: res.reason,
+    };
+  }
+  let tracked = false;
+  try {
+    tracked = (await syncEvalTracking(true)).tracked;
+  } catch {
+    /* tracking is best effort; notification delivery already succeeded */
+  }
+  return {
+    delivered: true,
+    tracked,
+    status: res.status,
+    host: res.host,
+    reason: res.reason,
+  };
+}
+
+/** Re-asserts eval tracking on app open when this device has push enabled.
+ *  The worker no-ops until a test has been delivered. */
+export async function syncEvalTrackingIfEnabled(): Promise<void> {
+  if (!pushSupported()) return;
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  const sub = await getExistingSubscription();
+  if (!sub) return;
+  try {
+    await syncEvalTracking(true);
+  } catch {
+    /* best effort */
+  }
+}

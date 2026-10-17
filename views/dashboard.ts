@@ -18,9 +18,10 @@ import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { switchSubTab } from "./profile.ts";
 import {
   disablePush,
-  enablePush,
+  enablePushWithTest,
   getExistingSubscription,
   pushSupported,
+  syncEvalTracking,
 } from "../push.ts";
 import { saveData } from "../lib/network.ts";
 import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
@@ -375,12 +376,22 @@ async function onTogglePush(e: Event) {
   refresh();
   try {
     if (on) {
-      await enablePush();
-      pushSubscribed = true;
-      loadDashboard(true);
+      const res = await enablePushWithTest();
+      pushSubscribed = res.delivered;
+      if (!res.delivered) {
+        pushError = `Couldn't deliver a test notification${
+          res.host ? ` via ${res.host}` : ""
+        }${res.reason ? ` (${res.reason})` : ""}. Notifications stay off.`;
+      } else {
+        if (!res.tracked) {
+          pushError = "Notifications work, but eval tracking is unavailable.";
+        }
+        loadDashboard(true);
+      }
     } else {
       await disablePush();
       pushSubscribed = false;
+      void syncEvalTracking(false);
     }
   } catch (err) {
     pushError =

@@ -12,10 +12,11 @@ import {
 } from "../data.ts";
 import {
   disablePush,
-  enablePush,
+  enablePushWithTest,
   getExistingSubscription,
   pushSupported,
   sendTest,
+  syncEvalTracking,
 } from "../push.ts";
 import { refresh } from "../refresh.ts";
 import { mockMode } from "../mock.ts";
@@ -673,12 +674,19 @@ async function onTogglePush(e: Event) {
   try {
     const on = (e.target as HTMLInputElement).checked;
     if (on) {
-      await enablePush();
-      pushEnabled = true;
-      void onTest();
+      const res = await enablePushWithTest();
+      pushEnabled = res.delivered;
+      pushMessage = res.delivered
+        ? `Delivered by ${res.host} (${res.status}).${
+            res.tracked ? "" : " Eval tracking is unavailable."
+          }`
+        : `Couldn't deliver a test notification${
+            res.host ? ` via ${res.host}` : ""
+          }${res.reason ? ` (${res.reason})` : ""}. Notifications stay off.`;
     } else {
       await disablePush();
       pushEnabled = false;
+      void syncEvalTracking(false);
     }
   } catch (err) {
     pushMessage =
