@@ -49,6 +49,7 @@ import {
   registerServiceWorker,
   syncPushSubscription,
 } from "./push.ts";
+import { storeDeviceTimeZone } from "./lib/push-store.ts";
 import { initConnectivityIndicator } from "./lib/connectivity.ts";
 import {
   canInstall,
@@ -304,6 +305,7 @@ function initAppListeners(): void {
   if (!mockMode) void requestPersistentStorage();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
+      void storeDeviceTimeZone();
       refreshActiveTab();
       healPush();
     }
@@ -385,6 +387,7 @@ function hydrateCaches(): void {
 async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
+  void storeDeviceTimeZone();
   initTheme();
   initConnectivityIndicator();
   initInstall();

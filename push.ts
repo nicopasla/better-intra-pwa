@@ -21,7 +21,26 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/sw.js");
+    // Android WebAPKs can otherwise keep serving an outdated sw.js from cache,
+    // which left installed apps rendering the server's UTC fallback time.
+    const reg = await navigator.serviceWorker.register("/sw.js", {
+      updateViaCache: "none",
+    });
+    reg.update().catch(() => {
+      /* best effort */
+    });
+    reg.addEventListener("updatefound", () => {
+      const worker = reg.installing;
+      worker?.addEventListener("statechange", () => {
+        if (
+          worker.state === "installed" &&
+          navigator.serviceWorker.controller
+        ) {
+          worker.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+    });
+    return reg;
   } catch {
     return null;
   }
@@ -121,7 +140,9 @@ export async function ensurePushSubscription(): Promise<void> {
 export function onPushSubscriptionChange(cb: () => void): void {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.addEventListener("message", (e: MessageEvent) => {
-    if ((e.data as { type?: string } | null)?.type === "push-subscription-changed") {
+    if (
+      (e.data as { type?: string } | null)?.type === "push-subscription-changed"
+    ) {
       cb();
     }
   });

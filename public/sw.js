@@ -1,6 +1,7 @@
 /* Better Intra PWA service worker — Web Push + offline app shell. */
 
-const SHELL_CACHE = "bi-shell-v3";
+const SW_VERSION = "sw-4";
+const SHELL_CACHE = "bi-shell-v4";
 const SHELL = [
   "/",
   "/index.html",
@@ -14,7 +15,6 @@ const SHELL = [
   "/icons/icon-512.png",
   "/icons/icon-192-maskable.png",
   "/icons/icon-512-maskable.png",
-  "/sw.js",
 ];
 
 self.addEventListener("install", (event) => {
@@ -53,19 +53,92 @@ self.addEventListener("fetch", (event) => {
           (hit) =>
             hit ||
             // Offline fallback: serve the cached app shell for navigations.
-            caches.match(self.registration.scope + (req.mode === "navigate" ? "index.html" : "")),
+            caches.match(
+              self.registration.scope +
+                (req.mode === "navigate" ? "index.html" : ""),
+            ),
         ),
       ),
   );
 });
 
+/**
+ * Push events can be handled by a background worker whose Date/Intl timezone is
+ * UTC on Android. The page stores the device's IANA timezone in IndexedDB, so
+ * format with that explicit zone whenever it is available.
+ */
+function makeFormatters(timeZone) {
+  const build = (tz) => {
+    const withZone = (options) => (tz ? { ...options, timeZone: tz } : options);
+    return {
+      clock: new Intl.DateTimeFormat(
+        "en-GB",
+        withZone({ hour: "2-digit", minute: "2-digit", hour12: false }),
+      ),
+      day: new Intl.DateTimeFormat(
+        "en-GB",
+        withZone({ year: "numeric", month: "2-digit", day: "2-digit" }),
+      ),
+      shortDate: new Intl.DateTimeFormat(
+        "en-GB",
+        withZone({ day: "2-digit", month: "2-digit", year: "2-digit" }),
+      ),
+    };
+  };
+  try {
+    return build(timeZone);
+  } catch {
+    return build(null);
+  }
+}
+
+async function readDeviceTimeZone() {
+  try {
+    const db = await openStore();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction("kv", "readonly");
+        const req = tx.objectStore("kv").get("deviceTimeZone");
+        req.onsuccess = () =>
+          resolve(typeof req.result === "string" ? req.result : null);
+        req.onerror = () => reject(req.error);
+      });
+    } finally {
+      db.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
+/** Formats an eval time in the device's timezone: "HH:MM" when it is today,
+ *  otherwise "DD/MM/YY HH:MM". */
+function formatLocalStamp(iso, formatters, now = new Date()) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const time = formatters.clock.format(date);
+  return formatters.day.format(date) === formatters.day.format(now)
+    ? time
+    : `${formatters.shortDate.format(date)} ${time}`;
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("push", (event) => {
+  event.waitUntil(handlePush(event));
+});
+
+async function handlePush(event) {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch {
     data = { title: "Notification", body: event.data ? event.data.text() : "" };
   }
+  console.log(`[sw] push version=${SW_VERSION}`);
+  const formatters = makeFormatters(await readDeviceTimeZone());
 
   const title = data.title || "Notification";
   let body = data.body || "";
@@ -77,19 +150,7 @@ self.addEventListener("push", (event) => {
       data.kind === "corrected")
   ) {
     try {
-      const d = new Date(data.beginAt);
-      const now = new Date();
-      const sameDay =
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate();
-      const p = (n) => String(n).padStart(2, "0");
-      const time = `${p(d.getHours())}:${p(d.getMinutes())}`;
-      const stamp = sameDay
-        ? time
-        : `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(
-            d.getFullYear(),
-          ).slice(2)} ${time}`;
+      const stamp = formatLocalStamp(data.beginAt, formatters);
       const names = Array.isArray(data.correcteds) ? data.correcteds : [];
       const detail = [];
       if (data.kind === "corrected") {
@@ -117,8 +178,8 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
-});
+  await self.registration.showNotification(title, options);
+}
 
 /* --- Push subscription self-heal -----------------------------------------
    iOS/Safari can rotate or expire push endpoints while the app is closed. When

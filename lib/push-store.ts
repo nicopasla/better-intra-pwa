@@ -7,6 +7,7 @@
 const DB_NAME = "bi-store";
 const STORE = "kv";
 const PENDING_KEY = "pendingPushSubscription";
+const TIME_ZONE_KEY = "deviceTimeZone";
 
 export interface StoredPushSubscription {
   endpoint: string;
@@ -56,4 +57,19 @@ export async function readPendingPush(): Promise<StoredPushSubscription | null> 
 
 export function clearPendingPush(): Promise<void> {
   return run("readwrite", (s) => s.delete(PENDING_KEY)).then(() => undefined);
+}
+
+/**
+ * Shares the page's IANA timezone with the service worker. Push events can be
+ * handled by a background worker whose Date/Intl timezone is UTC on Android, so
+ * the SW formats eval times with this explicit zone instead of the default.
+ */
+export async function storeDeviceTimeZone(): Promise<void> {
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!timeZone) return;
+    await run("readwrite", (s) => s.put(timeZone, TIME_ZONE_KEY));
+  } catch {
+    /* best effort */
+  }
 }
