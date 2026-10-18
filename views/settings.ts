@@ -329,7 +329,7 @@ function notificationsSection() {
     <div class="flex gap-2 items-center">
       <input
         type="time"
-        class="input input-bordered input-sm"
+        class="input input-sm"
         .value=${quietStart}
         @change=${(e: Event) =>
           void setQuietTimes({
@@ -339,7 +339,7 @@ function notificationsSection() {
       <span>to</span>
       <input
         type="time"
-        class="input input-bordered input-sm"
+        class="input input-sm"
         .value=${quietEnd}
         @change=${(e: Event) =>
           void setQuietTimes({

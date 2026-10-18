@@ -287,7 +287,7 @@ function renderFriendRow(
 
     ${deleteMode
       ? html`<label
-          class="list-col shrink-0 self-center flex items-center cursor-pointer"
+          class="shrink-0 self-center flex items-center cursor-pointer"
           data-ft-delete-col
           @click="${(e: Event) => e.stopPropagation()}"
         >
@@ -1054,7 +1054,7 @@ function renderWidget(state: WidgetState) {
                         ${state.addOpen
                           ? html`<input
                               type="text"
-                              class="input input-bordered input-primary input-sm"
+                              class="input input-primary input-sm"
                               placeholder="Login..."
                               .value="${state.addInput}"
                               @input="${(e: Event) =>
