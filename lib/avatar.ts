@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from "lit-html";
 import { WORKER_URL } from "../api.ts";
+import { mockMode } from "../mock.ts";
 
 const LOGIN_RE = /^[a-z0-9_-]{1,32}$/;
 
@@ -7,8 +8,11 @@ const LOGIN_RE = /^[a-z0-9_-]{1,32}$/;
  * Temporary switch: 42's CDN (`cdn.intra.42.fr`) returns 403 to any off-origin
  * request, so avatars can't load in the PWA. While false, avatar render sites
  * show initials instead. Flip back to true once a working image source lands.
+ *
+ * Mock mode is exempt: its fixtures point at images that do load, so `?mock`
+ * renders real avatars for previewing layouts.
  */
-export const AVATARS_ENABLED = false;
+export const AVATARS_ENABLED: boolean = mockMode;
 
 /** Renders a circular initials placeholder. `className` controls the sizing. */
 export function initialsAvatar(
@@ -46,7 +50,9 @@ export function avatarErrorFallback(e: Event): void {
   const img = e.target as HTMLImageElement;
   if (!img.isConnected) return;
 
-  if (img.dataset.proxy !== "1") {
+  // Mock fixtures never resolve through the worker proxy, so go straight to
+  // the letter placeholder instead of calling the real API.
+  if (!mockMode && img.dataset.proxy !== "1") {
     const login = (img.alt || "").trim().toLowerCase();
     if (LOGIN_RE.test(login)) {
       img.dataset.proxy = "1";
