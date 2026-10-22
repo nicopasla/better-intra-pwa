@@ -17,7 +17,6 @@ import {
   getExistingSubscription,
   pushSupported,
   sendTest,
-  syncEvalTracking,
 } from "../push.ts";
 import { refresh } from "../refresh.ts";
 import { mockMode } from "../mock.ts";
@@ -131,9 +130,6 @@ let notifyTypes: Record<string, boolean> = {
   EVAL_NOTIFY_EVALUATOR_REVEALED: true,
   EVAL_NOTIFY_CORRECTED_REVEALED: true,
 };
-let quietEnabled = false;
-let quietStart = "22:00";
-let quietEnd = "08:00";
 let themeMode: ThemePreference = getThemePreference();
 let storageUsed: number | null = null;
 let storageQuota: number | null = null;
@@ -316,37 +312,6 @@ function notificationsSection() {
         </div>
       `,
     )}
-    <div class="divider my-0"></div>
-    <label class="flex items-center justify-between gap-3 cursor-pointer">
-      <span>Quiet hours</span>
-      <input
-        type="checkbox"
-        class="toggle toggle-primary"
-        .checked=${quietEnabled}
-        @change=${(e: Event) => void setQuietToggle(e)}
-      />
-    </label>
-    <div class="flex gap-2 items-center">
-      <input
-        type="time"
-        class="input input-sm"
-        .value=${quietStart}
-        @change=${(e: Event) =>
-          void setQuietTimes({
-            DISCORD_QUIET_START: (e.target as HTMLInputElement).value,
-          })}
-      />
-      <span>to</span>
-      <input
-        type="time"
-        class="input input-sm"
-        .value=${quietEnd}
-        @change=${(e: Event) =>
-          void setQuietTimes({
-            DISCORD_QUIET_END: (e.target as HTMLInputElement).value,
-          })}
-      />
-    </div>
   `;
 }
 
@@ -698,18 +663,21 @@ async function onTogglePush(e: Event) {
     const on = (e.target as HTMLInputElement).checked;
     if (on) {
       const res = await enablePushWithTest();
-      pushEnabled = res.delivered;
+      pushEnabled = res.subscribed;
       pushMessage = res.delivered
         ? `Delivered by ${res.host} (${res.status}).${
             res.tracked ? "" : " Eval tracking is unavailable."
           }`
         : `Couldn't deliver a test notification${
             res.host ? ` via ${res.host}` : ""
-          }${res.reason ? ` (${res.reason})` : ""}. Notifications stay off.`;
+          }${res.reason ? ` (${res.reason})` : ""}.${
+            res.subscribed
+              ? " Push remains enabled."
+              : " Notifications stay off."
+          }`;
     } else {
       await disablePush();
       pushEnabled = false;
-      void syncEvalTracking(false);
     }
   } catch (err) {
     pushMessage =
@@ -739,37 +707,11 @@ async function onTest() {
   }
 }
 
-function setQuietToggle(e: Event) {
-  quietEnabled = (e.target as HTMLInputElement).checked;
-  void updateQuiet({ DISCORD_QUIET_ENABLED: quietEnabled });
-}
-
-function setQuietTimes(patch: Record<string, string>) {
-  void updateQuiet(patch);
-}
-
 async function toggleNotifyType(key: string) {
   notifyTypes = { ...notifyTypes, [key]: !notifyTypes[key] };
   refresh();
   try {
     await updateBlob({ [key]: notifyTypes[key] });
-  } catch {
-    /* ignore */
-  }
-}
-
-async function updateQuiet(patch: Record<string, unknown>) {
-  try {
-    const next = {
-      DISCORD_QUIET_ENABLED: quietEnabled,
-      DISCORD_QUIET_START: quietStart,
-      DISCORD_QUIET_END: quietEnd,
-      ...patch,
-    };
-    quietEnabled = Boolean(next.DISCORD_QUIET_ENABLED);
-    quietStart = String(next.DISCORD_QUIET_START || "22:00");
-    quietEnd = String(next.DISCORD_QUIET_END || "08:00");
-    await updateBlob(next);
   } catch {
     /* ignore */
   }
@@ -816,9 +758,6 @@ export async function loadSettings(force = false): Promise<void> {
   try {
     const [b, s] = await Promise.all([getBlob(), sessionsList()]);
     sessions = s.sessions;
-    quietEnabled = Boolean(b.settings.DISCORD_QUIET_ENABLED);
-    quietStart = String(b.settings.DISCORD_QUIET_START || "22:00");
-    quietEnd = String(b.settings.DISCORD_QUIET_END || "08:00");
     const bs = b.settings as Record<string, unknown>;
     notifyTypes = {
       EVAL_NOTIFY_EVALUATOR_BOOKED: bs.EVAL_NOTIFY_EVALUATOR_BOOKED !== false,

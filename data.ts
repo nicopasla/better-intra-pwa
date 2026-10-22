@@ -136,8 +136,6 @@ export interface Friend {
 export interface BlobSettings {
   settings: Record<string, unknown>;
   revision: string | null;
-  discordId?: string | null;
-  discordUsername?: string | null;
 }
 
 export interface SessionItem {

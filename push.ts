@@ -190,7 +190,8 @@ export interface EvalTrackingResult {
 
 /** Tells the worker whether this device still wants evals tracked. Enabling
  *  only sticks once a test push has been delivered (gated server-side via
- *  `pushTestedAt`); disabling clears tracking only when no Discord is linked. */
+ *  `pushTestedAt`). Disabling keeps tracking while another device still has a
+ *  subscription. */
 export async function syncEvalTracking(
   enabled: boolean,
 ): Promise<EvalTrackingResult> {
@@ -214,6 +215,8 @@ export async function syncEvalTracking(
 export interface EnablePushResult {
   /** The test notification was accepted by the push service. */
   delivered: boolean;
+  /** This device still has a usable push subscription. */
+  subscribed: boolean;
   /** The worker now has eval tracking enabled for this account. */
   tracked: boolean;
   status: number;
@@ -221,29 +224,36 @@ export interface EnablePushResult {
   reason?: string;
 }
 
-/** Subscribes this device then verifies delivery with a test push. If the test
- *  fails the subscription is rolled back so notifications stay disabled. */
+/** Subscribes this device then verifies delivery with a test push. Permanent
+ *  push-service rejections roll the subscription back; transient failures keep
+ *  it so a working device is not disabled by a 429/5xx/network blip. */
 export async function enablePushWithTest(): Promise<EnablePushResult> {
   await enablePush();
   let res: PushTestResult;
   try {
     res = await sendTest();
   } catch {
-    try {
-      await disablePush();
-    } catch {
-      /* best effort */
-    }
-    return { delivered: false, tracked: false, status: 0 };
+    const sub = await getExistingSubscription().catch(() => null);
+    return {
+      delivered: false,
+      subscribed: Boolean(sub),
+      tracked: false,
+      status: 0,
+    };
   }
   if (!res.ok) {
-    try {
-      await disablePush();
-    } catch {
-      /* best effort */
+    const permanent =
+      res.status === 403 || res.status === 404 || res.status === 410;
+    if (permanent) {
+      try {
+        await disablePush();
+      } catch {
+        /* best effort */
+      }
     }
     return {
       delivered: false,
+      subscribed: !permanent,
       tracked: false,
       status: res.status,
       host: res.host,
@@ -258,6 +268,7 @@ export async function enablePushWithTest(): Promise<EnablePushResult> {
   }
   return {
     delivered: true,
+    subscribed: true,
     tracked,
     status: res.status,
     host: res.host,

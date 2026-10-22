@@ -21,7 +21,6 @@ import {
   enablePushWithTest,
   getExistingSubscription,
   pushSupported,
-  syncEvalTracking,
 } from "../push.ts";
 import { saveData } from "../lib/network.ts";
 import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
@@ -377,11 +376,13 @@ async function onTogglePush(e: Event) {
   try {
     if (on) {
       const res = await enablePushWithTest();
-      pushSubscribed = res.delivered;
+      pushSubscribed = res.subscribed;
       if (!res.delivered) {
         pushError = `Couldn't deliver a test notification${
           res.host ? ` via ${res.host}` : ""
-        }${res.reason ? ` (${res.reason})` : ""}. Notifications stay off.`;
+        }${res.reason ? ` (${res.reason})` : ""}.${
+          res.subscribed ? " Push remains enabled." : " Notifications stay off."
+        }`;
       } else {
         if (!res.tracked) {
           pushError = "Notifications work, but eval tracking is unavailable.";
@@ -391,7 +392,6 @@ async function onTogglePush(e: Event) {
     } else {
       await disablePush();
       pushSubscribed = false;
-      void syncEvalTracking(false);
     }
   } catch (err) {
     pushError =

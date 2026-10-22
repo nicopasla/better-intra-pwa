@@ -381,16 +381,11 @@ export const mock = {
   blob: {
     settings: {
       FRIENDS_LIST: ["amelie", "bdurand", "cpetit", "dleroy", "vmoreau"],
-      DISCORD_QUIET_ENABLED: false,
-      DISCORD_QUIET_START: "22:00",
-      DISCORD_QUIET_END: "08:00",
       SHOW_CUSTOM_AVATARS_IN_FRIENDS: true,
       PROFILE_USE_CUSTOM_COLOR: true,
       LOGTIME_CALENDAR_COLOR: "#00BCBA",
     },
     revision: "mock",
-    discordId: "123456",
-    discordUsername: "jsmith",
   },
   sessions: {
     max: 20,

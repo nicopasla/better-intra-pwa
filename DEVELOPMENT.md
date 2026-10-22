@@ -130,30 +130,30 @@ Base URL: `https://api.betterintra.com` (`WORKER_URL` in `api.ts`).
 
 Private (bearer + hashed login):
 
-| Endpoint | Used for |
-| --- | --- |
-| `GET /api/v1/private/me` | profile header, wallet, level, projects, achievements |
-| `GET /api/v1/private/evaluations?action=upcoming` | upcoming evaluations |
-| `POST /api/v1/private/evaluations?action=sync` | enable/disable eval tracking |
-| `GET /api/v1/private/evaluations?action=status` | debug panel (tracked, `pushTestedAt`, subscriptions) |
-| `GET /api/v1/private/profile-stats?target=` | eval/roulette stats |
-| `GET /api/v1/private/user?target=` | minimal user lookup for the eval dialog |
-| `GET /api/v1/private/outstanding?target=&count=` | outstanding-corrector star counts |
-| `GET /api/v1/private/friends/data?logins=` | friend rows |
-| `GET/POST/DELETE /api/v1/private/settings` | cloud settings blob (POST is revision-based, returns 409 on conflict) |
-| `GET /api/v1/private/sessions`, `DELETE ?id=` | session list and revocation |
-| `GET /api/v1/private/events` | 42 calendar events |
-| `GET /api/v1/private/event-subscribers?event=` | subscribers for an event |
-| `POST /api/v1/private/push/subscribe`, `/unsubscribe`, `/test` | push lifecycle |
+| Endpoint                                                       | Used for                                                              |
+|----------------------------------------------------------------|-----------------------------------------------------------------------|
+| `GET /api/v1/private/me`                                       | profile header, wallet, level, projects, achievements                 |
+| `GET /api/v1/private/evaluations?action=upcoming`              | upcoming evaluations                                                  |
+| `POST /api/v1/private/evaluations?action=sync`                 | enable/disable eval tracking                                          |
+| `GET /api/v1/private/evaluations?action=status`                | debug panel (tracked, `pushTestedAt`, subscriptions)                  |
+| `GET /api/v1/private/profile-stats?target=`                    | eval/roulette stats                                                   |
+| `GET /api/v1/private/user?target=`                             | minimal user lookup for the eval dialog                               |
+| `GET /api/v1/private/outstanding?target=&count=`               | outstanding-corrector star counts                                     |
+| `GET /api/v1/private/friends/data?logins=`                     | friend rows                                                           |
+| `GET/POST/DELETE /api/v1/private/settings`                     | cloud settings blob (POST is revision-based, returns 409 on conflict) |
+| `GET /api/v1/private/sessions`, `DELETE ?id=`                  | session list and revocation                                           |
+| `GET /api/v1/private/events`                                   | 42 calendar events                                                    |
+| `GET /api/v1/private/event-subscribers?event=`                 | subscribers for an event                                              |
+| `POST /api/v1/private/push/subscribe`, `/unsubscribe`, `/test` | push lifecycle                                                        |
 
 Public / unauthenticated:
 
-| Endpoint | Used for |
-| --- | --- |
-| `GET /login?redirect_uri=&ft_device=` | full-page OAuth entry |
-| `POST /api/v1/public/auth/exchange` | `code` to `{ token, login }` |
-| `GET /api/v1/public/push/key` | VAPID public key (also doubles as the worker reachability check) |
-| `GET /api/v1/students?limit=&offset=&sort=&dir=&filter=&pool_month=&pool_year=&q=` | Belgium student directory pages |
+| Endpoint                                                                           | Used for                                                         |
+|------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| `GET /login?redirect_uri=&ft_device=`                                              | full-page OAuth entry                                            |
+| `POST /api/v1/public/auth/exchange`                                                | `code` to `{ token, login }`                                     |
+| `GET /api/v1/public/push/key`                                                      | VAPID public key (also doubles as the worker reachability check) |
+| `GET /api/v1/students?limit=&offset=&sort=&dir=&filter=&pool_month=&pool_year=&q=` | Belgium student directory pages                                  |
 
 `data.ts` wraps these in typed fetchers and short-circuits to `mock.ts` when `mockMode` is on. Failures throw `HTTP <status>` (or `not_authenticated`), which `lib/retry.ts` classifies: 5xx/429/`TypeError` are retryable via `Retrier` (3s base, 30s cap), other 4xx are not, and `friendlyError()` maps them to user-facing text.
 
@@ -163,7 +163,7 @@ Dashboard and profile payloads are cached in `localStorage` under a versioned, l
 
 `enablePush()` deliberately asks for `Notification.requestPermission()` **first**, before any other async work, because iOS only allows the prompt from a user gesture.
 
-`enablePushWithTest()` is what the Settings toggle calls: subscribe, send a test push **to this device's own endpoint** (not just the first stored one), and if the test fails, unsubscribe and leave notifications off. It then calls `syncEvalTracking(true)`. Tracking is gated server-side on `pushTestedAt`, so enabling only sticks after a delivered test.
+`enablePushWithTest()` is what the Settings toggle calls: subscribe, send a test push **to this device's own endpoint** (not just the first stored one), and if the push service permanently rejects it (403/404/410), unsubscribe and leave notifications off. Transient failures (0/429/5xx) keep the subscription. It then calls `syncEvalTracking(true)`. Tracking is gated server-side on `pushTestedAt`, so enabling only sticks after a delivered test.
 
 `healPush()` runs on boot and whenever the app becomes visible: it re-registers a rotated subscription, re-asserts the current subscription, and re-asserts eval tracking.
 
@@ -179,15 +179,15 @@ The service worker (`public/sw.js`):
 
 `localStorage`:
 
-| Key | Purpose |
-| --- | --- |
-| `ft_pwa_token`, `ft_pwa_login` | session (`api.ts`) |
-| `ft_pwa_device` | stable per-device name used as the server session label |
-| `ft_theme` | theme preference (`system`/`dark`/`light`) |
-| `PROFILE_SUB_TAB` | last selected profile sub-tab |
-| `ft_pwa_cache_*` | versioned, login-scoped response caches (`dashboard`, `profile`) |
-| `ft_pwa_evals`, `ft_pwa_evals_done` | upcoming-eval cache and the set of dismissed evals |
-| `ft_dismissed_events` | dismissed 42 events |
+| Key                                 | Purpose                                                          |
+|-------------------------------------|------------------------------------------------------------------|
+| `ft_pwa_token`, `ft_pwa_login`      | session (`api.ts`)                                               |
+| `ft_pwa_device`                     | stable per-device name used as the server session label          |
+| `ft_theme`                          | theme preference (`system`/`dark`/`light`)                       |
+| `PROFILE_SUB_TAB`                   | last selected profile sub-tab                                    |
+| `ft_pwa_cache_*`                    | versioned, login-scoped response caches (`dashboard`, `profile`) |
+| `ft_pwa_evals`, `ft_pwa_evals_done` | upcoming-eval cache and the set of dismissed evals               |
+| `ft_dismissed_events`               | dismissed 42 events                                              |
 
 `sessionStorage`: `ft_pwa_expired` (shown once on the sign-in screen after a 401).
 

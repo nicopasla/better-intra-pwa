@@ -46,7 +46,7 @@ On your phone the site only works once it's installed. If you open it in a brows
 
 **🏫 Clusters** 🇧🇪: see which seats are taken right now, and who's sitting in them. Updates by itself every minute.
 
-**🔔 Notifications**: get a push notification when you're booked to evaluate someone, 15 minutes before it starts, and when someone is assigned to evaluate you. Turn any of them off individually, or set quiet hours so nothing disturbs you at night. There's a **Send test** button so you can check it works.
+**🔔 Notifications**: get a push notification when you're booked to evaluate someone, 15 minutes before it starts, and when someone is assigned to evaluate you. Turn any of them off individually. There's a **Send test** button so you can check it works.
 
 **🌗 Light & dark**: follows your phone's setting automatically, or pick one yourself.
 
