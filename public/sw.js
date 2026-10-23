@@ -1,7 +1,7 @@
 /* Better Intra PWA service worker — Web Push + offline app shell. */
 
-const SW_VERSION = "sw-4";
-const SHELL_CACHE = "bi-shell-v4";
+const SW_VERSION = "sw-5";
+const SHELL_CACHE = "bi-shell-v5";
 const SHELL = [
   "/",
   "/index.html",
@@ -28,7 +28,17 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key !== SHELL_CACHE)
+          .map((key) => caches.delete(key)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -62,66 +72,6 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-/**
- * Push events can be handled by a background worker whose Date/Intl timezone is
- * UTC on Android. The page stores the device's IANA timezone in IndexedDB, so
- * format with that explicit zone whenever it is available.
- */
-function makeFormatters(timeZone) {
-  const build = (tz) => {
-    const withZone = (options) => (tz ? { ...options, timeZone: tz } : options);
-    return {
-      clock: new Intl.DateTimeFormat(
-        "en-GB",
-        withZone({ hour: "2-digit", minute: "2-digit", hour12: false }),
-      ),
-      day: new Intl.DateTimeFormat(
-        "en-GB",
-        withZone({ year: "numeric", month: "2-digit", day: "2-digit" }),
-      ),
-      shortDate: new Intl.DateTimeFormat(
-        "en-GB",
-        withZone({ day: "2-digit", month: "2-digit", year: "2-digit" }),
-      ),
-    };
-  };
-  try {
-    return build(timeZone);
-  } catch {
-    return build(null);
-  }
-}
-
-async function readDeviceTimeZone() {
-  try {
-    const db = await openStore();
-    try {
-      return await new Promise((resolve, reject) => {
-        const tx = db.transaction("kv", "readonly");
-        const req = tx.objectStore("kv").get("deviceTimeZone");
-        req.onsuccess = () =>
-          resolve(typeof req.result === "string" ? req.result : null);
-        req.onerror = () => reject(req.error);
-      });
-    } finally {
-      db.close();
-    }
-  } catch {
-    return null;
-  }
-}
-
-/** Formats an eval time in the device's timezone: "HH:MM" when it is today,
- *  otherwise "DD/MM/YY HH:MM". */
-function formatLocalStamp(iso, formatters, now = new Date()) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const time = formatters.clock.format(date);
-  return formatters.day.format(date) === formatters.day.format(now)
-    ? time
-    : `${formatters.shortDate.format(date)} ${time}`;
-}
-
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
@@ -138,37 +88,12 @@ async function handlePush(event) {
     data = { title: "Notification", body: event.data ? event.data.text() : "" };
   }
   console.log(`[sw] push version=${SW_VERSION}`);
-  const formatters = makeFormatters(await readDeviceTimeZone());
 
+  // The worker renders eval times in this device's timezone (it knows the zone
+  // we registered with), because service workers report UTC on Android. Never
+  // re-format `body` here.
   const title = data.title || "Notification";
-  let body = data.body || "";
-  // Render the eval time in the device's local timezone when provided.
-  if (
-    data.beginAt &&
-    (data.kind === "booked" ||
-      data.kind === "revealed" ||
-      data.kind === "corrected")
-  ) {
-    try {
-      const stamp = formatLocalStamp(data.beginAt, formatters);
-      const names = Array.isArray(data.correcteds) ? data.correcteds : [];
-      const detail = [];
-      if (data.kind === "corrected") {
-        detail.push(`Your evaluator: ${data.corrector || "someone"}`);
-      } else if (data.kind === "revealed") {
-        if (names.length) detail.push(`Correcting ${names.join(", ")}`);
-        if (data.project) detail.push(data.project);
-      } else {
-        detail.push("Evaluating someone");
-      }
-      if (stamp) detail.push(`at ${stamp}`);
-      title =
-        data.kind === "booked" ? "Evaluation Booked" : "Evaluation in 15 min";
-      body = detail.join(" ");
-    } catch {
-      /* keep the fallback body */
-    }
-  }
+  const body = data.body || "";
   const options = {
     body,
     tag: data.tag,

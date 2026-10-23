@@ -18,6 +18,16 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** IANA timezone of this device. Sent with every push registration so the
+ *  worker renders eval times locally — service workers report UTC on Android. */
+export function deviceTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
@@ -78,7 +88,11 @@ export async function enablePush(): Promise<void> {
   await workerFetch("/api/v1/private/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+    body: JSON.stringify({
+      endpoint: json.endpoint,
+      keys: json.keys,
+      timeZone: deviceTimeZone(),
+    }),
   });
 }
 
@@ -105,7 +119,11 @@ async function postSubscription(sub: {
   await workerFetch("/api/v1/private/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.keys }),
+    body: JSON.stringify({
+      endpoint: sub.endpoint,
+      keys: sub.keys,
+      timeZone: deviceTimeZone(),
+    }),
   });
 }
 
@@ -167,7 +185,12 @@ export async function sendTest(
   const res = await workerFetch("/api/v1/private/push/test", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, variant }),
+    body: JSON.stringify({
+      endpoint: json.endpoint,
+      keys: json.keys,
+      variant,
+      timeZone: deviceTimeZone(),
+    }),
   });
   let data: Partial<PushTestResult> = {};
   try {

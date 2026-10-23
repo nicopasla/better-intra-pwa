@@ -88,7 +88,7 @@ lib/                 shared utilities
   network.ts         navigator.connection helpers (save-data)
   page-header.ts     sticky page header + count badge
   persist.ts         navigator.storage persist/persisted
-  push-store.ts      IndexedDB KV bridge for push hand-off + device timezone
+  push-store.ts      IndexedDB KV bridge for the push subscription hand-off
   retry.ts           Retrier, isRetryableError(), friendlyError()
   router.ts          Navigation API with hashchange fallback
   scroll-lock.ts     modal scroll lock
@@ -106,7 +106,7 @@ assets/              SVG icons imported with ?raw
 
 `boot()` in `main.ts` runs in this order:
 
-1. Render the loading spinner; register the service worker; store the device timezone; `initTheme()`, `initConnectivityIndicator()`, `initInstall()`, `initAppListeners()`.
+1. Render the loading spinner; register the service worker; `initTheme()`, `initConnectivityIndicator()`, `initInstall()`, `initAppListeners()`.
 2. **Mock mode** short-circuits here.
 3. **Install gate**: on `isMobileOS() && !isStandalone()` the app renders an "Install Better Intra" screen and stops. This avoids signing in twice (browser, then installed app).
 4. **`?error=not_registered`** renders the "Not available" screen (the account doesn't exist in the worker yet).
@@ -169,8 +169,8 @@ Dashboard and profile payloads are cached in `localStorage` under a versioned, l
 
 The service worker (`public/sw.js`):
 
-- **Offline shell**: installs a precache list into `bi-shell-v4`, network-first for GETs, caches successful same-origin responses, and falls back to the cached `index.html` for navigations. The cache name and `SW_VERSION` are bumped together with the `SHELL` list when the precache changes.
-- **Push rendering**: formats the eval timestamp using the device's IANA timezone read from IndexedDB, because push events can be handled by a background worker whose `Date`/`Intl` timezone is UTC on Android. Handles the `booked`, `revealed` and `corrected` payload shapes and builds the notification body from `data.correcteds`, `data.corrector` and `data.project`.
+- **Offline shell**: installs a precache list into `bi-shell-v5`, network-first for GETs, caches successful same-origin responses, and falls back to the cached `index.html` for navigations. The cache name and `SW_VERSION` are bumped together with the `SHELL` list when the precache changes; `activate` deletes every other cache.
+- **Push rendering**: shows `data.title` / `data.body` verbatim. Eval times are formatted by the worker, which stores each device's IANA timezone on its push subscription (`timeZone` on `PushSubscription`) — service workers report UTC on Android, so formatting there is unreliable.
 - **Subscription self-heal**: `pushsubscriptionchange` re-subscribes, stores the new subscription in IndexedDB (`bi-store` → `kv` → `pendingPushSubscription`), and posts `push-subscription-changed` to clients. The page picks it up with `syncPushSubscription()` and re-registers it against the worker, since the SW has no access to the session token in `localStorage`.
 - **Updates**: the worker is registered with `updateViaCache: "none"` (Android WebAPKs otherwise keep serving a stale `sw.js`), and a newly installed worker is sent `SKIP_WAITING` when there's an active controller.
 - **Notification clicks**: `preventDefault()` is required for `notificationclick` to fire on iOS; the app then focuses an existing window and navigates it to `notification.data.url`, or opens a new one.
@@ -191,9 +191,9 @@ The service worker (`public/sw.js`):
 
 `sessionStorage`: `ft_pwa_expired` (shown once on the sign-in screen after a 401).
 
-IndexedDB `bi-store` → `kv`: `pendingPushSubscription` (SW to page hand-off) and `deviceTimeZone`.
+IndexedDB `bi-store` → `kv`: `pendingPushSubscription` (SW to page hand-off).
 
-Cache Storage: `bi-shell-v4`.
+Cache Storage: `bi-shell-v5`.
 
 The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`) and the friends keys (`FRIENDS_LIST`, `SHOW_CUSTOM_AVATARS_IN_FRIENDS`, `ft_pwa_friends_custom`), refreshing the active tab, or reloading when the session disappears.
 
