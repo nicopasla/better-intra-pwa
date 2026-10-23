@@ -420,8 +420,8 @@ function eventsCard() {
       html`<div class="flex flex-col items-center text-center gap-2 py-2">
         <p class="font-bold text-lg" style="color:${TEAL};">Calendar</p>
         <p class="text-sm opacity-70">
-          No subscribed events yet. Open the extension hub → Calendar to sync
-          your events.
+          No upcoming events. Events you subscribe to on the intra will appear
+          here automatically.
         </p>
       </div>`,
       "Events",
