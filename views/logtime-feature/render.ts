@@ -8,6 +8,7 @@ import {
 import type { LogtimeConfig } from "./config.ts";
 import { toRgba } from "./color.ts";
 import { fmtHours, pad2 } from "./format.ts";
+import { goalProgress } from "./goal.ts";
 import LOGTIME_CSS from "./logtime.css?inline";
 
 const MAX_INTENSITY_SECS = 3600 * 12;
@@ -130,8 +131,9 @@ export function renderMonthCard(
   }).format(monthDate);
   const forceShort = (config.font_scale ?? 100) > 100;
   const goalSecs = config.goal_hours * 3600;
-  const goalPercent = Math.round((total / goalSecs) * 100);
-  const isGoalMet = goalPercent >= 100;
+  const goal = goalProgress(total, config.goal_hours);
+  const goalPercent = goal.percent;
+  const isGoalMet = goal.met;
   const isPast = !isCurrent;
   const fillClass = isGoalMet ? "liquid-fill-full" : "liquid-fill";
 
