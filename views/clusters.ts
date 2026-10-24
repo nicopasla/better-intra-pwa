@@ -28,8 +28,6 @@ import type {
   OccupancyEntry,
 } from "./clusters-feature/types.ts";
 
-type SubTab = "active" | "map";
-
 const POLL_INTERVAL = 60_000;
 const LATEST_LIMIT = 5;
 
@@ -47,11 +45,10 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
- * The Active/Map sub-tab is intentionally not persisted. The selected map tab
- * defaults to FU, the only cluster map available for now.
+ * The selected bottom tab: a cluster map id, or "active" for the online list.
+ * Cluster maps other than FU are disabled for now.
  */
-let subTab: SubTab = "active";
-let activeMap = "fu";
+let activeTab = "active";
 
 const sortState = loadActiveSort();
 
@@ -60,16 +57,10 @@ function setSort(mode: ActiveSortMode): void {
   refresh();
 }
 
-function switchSubTab(tab: SubTab): void {
-  if (tab === subTab) return;
-  subTab = tab;
-  refresh();
-}
-
-function switchMap(id: string): void {
-  const map = findClusterMap(id);
-  if (!map?.available || id === activeMap) return;
-  activeMap = id;
+function switchTab(id: string): void {
+  if (id === activeTab) return;
+  if (id !== "active" && !findClusterMap(id)?.available) return;
+  activeTab = id;
   refresh();
 }
 
@@ -110,7 +101,10 @@ function startTimers(): void {
 }
 
 export function clustersView(): unknown {
-  if (subTab === "map") return mapView();
+  if (activeTab !== "active") {
+    const map = findClusterMap(activeTab);
+    if (map) return mapView(map);
+  }
   return html`
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
@@ -286,48 +280,21 @@ function latestRow(entry: OccupancyEntry): unknown {
   `;
 }
 
-function mapView(): unknown {
-  const map = findClusterMap(activeMap) ?? findClusterMap("fu")!;
+function mapView(map: ClusterMapDef): unknown {
   const seated = seatedEntries(map);
   const latest = latestConnections(seated);
   const taken = seated.length;
   const svg = map.svg;
   return html`
     <div class="flex flex-col gap-3 mb-4">
-      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
-        <div
-          class="flex gap-1 overflow-x-auto rounded-lg bg-base-200 p-1"
-          role="tablist"
-          aria-label="Cluster maps"
-        >
-          ${CLUSTER_MAPS.map(
-            (m) => html`
-              <button
-                role="tab"
-                aria-selected=${m.id === activeMap ? "true" : "false"}
-                class="tab-btn ${m.id === activeMap ? "active" : ""}"
-                style="flex:0 0 auto;${m.available
-                  ? ""
-                  : "opacity:.45;cursor:not-allowed"}"
-                ?disabled=${!m.available}
-                title=${m.available ? m.label : `${m.label} — coming soon`}
-                @click=${() => switchMap(m.id)}
-              >
-                ${m.label}
-              </button>
-            `,
-          )}
-        </div>
-      </div>
-
       <div class="rounded-xl bg-base-100 p-2 shadow-lg">
         <div
           class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2"
         >
           <div class="flex items-center gap-2 min-w-0">
-            <span class="font-semibold">${map.label}</span>
             <span
               class="badge badge-outline font-mono tabular-nums"
+              style="height:2.5rem;min-width:2.5rem;justify-content:center"
               title="occupied seats"
             >
               ${taken} / ${map.seatIds.size}
@@ -337,6 +304,7 @@ function mapView(): unknown {
             <div class="join">
               <button
                 class="btn btn-sm join-item"
+                style="height:2.5rem;min-width:2.5rem;padding:0"
                 aria-label="Zoom out"
                 title="Zoom out"
                 @click=${() => zoomMapBy(mapElement(), 0.8)}
@@ -345,6 +313,7 @@ function mapView(): unknown {
               </button>
               <button
                 class="btn btn-sm join-item"
+                style="height:2.5rem;min-width:2.5rem;padding:0"
                 aria-label="Zoom in"
                 title="Zoom in"
                 @click=${() => zoomMapBy(mapElement(), 1.25)}
@@ -353,6 +322,7 @@ function mapView(): unknown {
               </button>
               <button
                 class="btn btn-sm join-item"
+                style="height:2.5rem;padding-inline:0.75rem"
                 aria-label="Fit map"
                 title="Fit map"
                 @click=${() => resetMapZoom(mapElement())}
@@ -418,27 +388,42 @@ function mapComingSoon(label = "Map"): unknown {
   `;
 }
 
-/** The Clusters sub-tab bar, rendered by the shell above the dock. */
+/** The Clusters bottom tab bar, rendered by the shell above the dock. */
 export function clustersBottomBar(): unknown {
   return html`
     <div class="ft-subtabs px-4 pb-2">
       <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
         <div class="segmented-tabs-host">
           <div
-            class="flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
+            class="clusters-tabs flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
             style="border-radius:var(--radius-field)"
+            role="tablist"
+            aria-label="Clusters"
           >
+            ${CLUSTER_MAPS.map(
+              (m) => html`
+                <button
+                  role="tab"
+                  aria-selected=${activeTab === m.id ? "true" : "false"}
+                  class="tab-btn ${activeTab === m.id ? "active" : ""}"
+                  style="${m.available
+                    ? ""
+                    : "opacity:.45;cursor:not-allowed"}"
+                  ?disabled=${!m.available}
+                  title=${m.available ? m.label : `${m.label} — coming soon`}
+                  @click=${() => switchTab(m.id)}
+                >
+                  ${m.label}
+                </button>
+              `,
+            )}
             <button
-              class="tab-btn ${subTab === "active" ? "active" : ""}"
-              @click=${() => switchSubTab("active")}
+              role="tab"
+              aria-selected=${activeTab === "active" ? "true" : "false"}
+              class="tab-btn ${activeTab === "active" ? "active" : ""}"
+              @click=${() => switchTab("active")}
             >
               Active
-            </button>
-            <button
-              class="tab-btn ${subTab === "map" ? "active" : ""}"
-              @click=${() => switchSubTab("map")}
-            >
-              Map
             </button>
           </div>
         </div>

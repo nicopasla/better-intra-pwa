@@ -92,6 +92,12 @@ body {
   color: var(--color-primary-content);
 }
 
+/* Six short tabs (SHI, FU, MI, A2, A3, Active) in the clusters dock bar. */
+.clusters-tabs .tab-btn {
+  font-size: 0.68rem;
+  padding: 0.4rem 0.1rem;
+}
+
 /* Cross-document view transitions: smooths full page loads (e.g. returning
    from the OAuth redirect). Ignored by browsers without support. */
 @view-transition {
