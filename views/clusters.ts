@@ -10,12 +10,19 @@ import {
   initialsAvatar,
 } from "../lib/avatar.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
-import { sortActiveUsers } from "./clusters-feature/render.ts";
+import {
+  attachMapGestures,
+  resetMapZoom,
+  zoomMapBy,
+} from "./clusters-feature/map-gestures.ts";
+import { CLUSTER_MAPS, findClusterMap } from "./clusters-feature/maps.ts";
+import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
   activeSortControl,
   loadActiveSort,
   toggleActiveSort,
 } from "./clusters-feature/sort.ts";
+import type { ClusterMapDef } from "./clusters-feature/maps.ts";
 import type {
   ActiveSortMode,
   OccupancyEntry,
@@ -24,6 +31,10 @@ import type {
 type SubTab = "active" | "map";
 
 const POLL_INTERVAL = 60_000;
+const LATEST_LIMIT = 5;
+
+const mapElement = (): HTMLElement | null =>
+  document.getElementById("ft-cluster-map");
 
 const SEP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
 
@@ -36,11 +47,11 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
- * Only the Active tab is reachable for now — the Map tab is disabled. The
- * sub-tab is intentionally not persisted so a locked "map" can never be
- * restored.
+ * The Active/Map sub-tab is intentionally not persisted. The selected map tab
+ * defaults to FU, the only cluster map available for now.
  */
 let subTab: SubTab = "active";
+let activeMap = "fu";
 
 const sortState = loadActiveSort();
 
@@ -50,9 +61,15 @@ function setSort(mode: ActiveSortMode): void {
 }
 
 function switchSubTab(tab: SubTab): void {
-  if (tab === "map") return; // locked — "coming soon"
   if (tab === subTab) return;
   subTab = tab;
+  refresh();
+}
+
+function switchMap(id: string): void {
+  const map = findClusterMap(id);
+  if (!map?.available || id === activeMap) return;
+  activeMap = id;
   refresh();
 }
 
@@ -93,7 +110,7 @@ function startTimers(): void {
 }
 
 export function clustersView(): unknown {
-  if (subTab === "map") return mapComingSoon();
+  if (subTab === "map") return mapView();
   return html`
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
@@ -212,7 +229,178 @@ function row(e: OccupancyEntry): unknown {
   `;
 }
 
-function mapComingSoon(): unknown {
+function seatedEntries(map: ClusterMapDef): OccupancyEntry[] {
+  return entries.filter((entry) =>
+    map.seatIds.has((entry.host || "").trim().toLowerCase()),
+  );
+}
+
+function latestConnections(seated: OccupancyEntry[]): OccupancyEntry[] {
+  return seated
+    .slice()
+    .sort((a, b) => {
+      const at = Date.parse(a.begin_at || "") || 0;
+      const bt = Date.parse(b.begin_at || "") || 0;
+      return bt - at || a.login.localeCompare(b.login);
+    })
+    .slice(0, LATEST_LIMIT);
+}
+
+function latestRow(entry: OccupancyEntry): unknown {
+  const since = new Date(entry.begin_at);
+  const valid = Boolean(entry.begin_at) && !Number.isNaN(since.getTime());
+  const time = valid
+    ? since.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const ago = valid ? formatTimeAgo(since.getTime()) : "—";
+  return html`
+    <li>
+      <a
+        href="#/u/${entry.login}"
+        class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
+        title="${entry.host} · since ${time}"
+      >
+        ${AVATARS_ENABLED
+          ? html`<img
+              class="size-8 rounded-full object-cover shrink-0 bg-base-200"
+              src="${entry.cdn_uri}"
+              alt="${entry.login}"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              @error=${avatarErrorFallback}
+            />`
+          : initialsAvatar(entry.login, "size-8 shrink-0")}
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold truncate">
+            ${entry.name || entry.login}
+          </div>
+          <div class="text-xs opacity-60 truncate">${entry.login}</div>
+        </div>
+        <span
+          class="badge badge-ghost badge-sm shrink-0 tabular-nums"
+          title="connected at ${time}"
+          >${ago}</span
+        >
+      </a>
+    </li>
+  `;
+}
+
+function mapView(): unknown {
+  const map = findClusterMap(activeMap) ?? findClusterMap("fu")!;
+  const seated = seatedEntries(map);
+  const latest = latestConnections(seated);
+  const taken = seated.length;
+  const svg = map.svg;
+  return html`
+    <div class="flex flex-col gap-3 mb-4">
+      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
+        <div
+          class="flex gap-1 overflow-x-auto rounded-lg bg-base-200 p-1"
+          role="tablist"
+          aria-label="Cluster maps"
+        >
+          ${CLUSTER_MAPS.map(
+            (m) => html`
+              <button
+                role="tab"
+                aria-selected=${m.id === activeMap ? "true" : "false"}
+                class="tab-btn ${m.id === activeMap ? "active" : ""}"
+                style="flex:0 0 auto;${m.available
+                  ? ""
+                  : "opacity:.45;cursor:not-allowed"}"
+                ?disabled=${!m.available}
+                title=${m.available ? m.label : `${m.label} — coming soon`}
+                @click=${() => switchMap(m.id)}
+              >
+                ${m.label}
+              </button>
+            `,
+          )}
+        </div>
+      </div>
+
+      <div class="rounded-xl bg-base-100 p-2 shadow-lg">
+        <div
+          class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="font-semibold">${map.label}</span>
+            <span
+              class="badge badge-outline font-mono tabular-nums"
+              title="occupied seats"
+            >
+              ${taken} / ${map.seatIds.size}
+            </span>
+          </div>
+          <div class="flex items-center gap-1">
+            <div class="join">
+              <button
+                class="btn btn-sm join-item"
+                aria-label="Zoom out"
+                title="Zoom out"
+                @click=${() => zoomMapBy(mapElement(), 0.8)}
+              >
+                &minus;
+              </button>
+              <button
+                class="btn btn-sm join-item"
+                aria-label="Zoom in"
+                title="Zoom in"
+                @click=${() => zoomMapBy(mapElement(), 1.25)}
+              >
+                +
+              </button>
+              <button
+                class="btn btn-sm join-item"
+                aria-label="Fit map"
+                title="Fit map"
+                @click=${() => resetMapZoom(mapElement())}
+              >
+                Fit
+              </button>
+            </div>
+            <span
+              id="ft-clusters-countdown"
+              class="badge badge-outline tabular-nums opacity-70"
+              style="height:2.5rem;min-width:2.5rem;justify-content:center"
+              title="Auto-refreshes every minute"
+            ></span>
+          </div>
+        </div>
+        ${svg
+          ? html`<div
+              id="ft-cluster-map"
+              class="cluster-map"
+              aria-label="${map.label} cluster map"
+            >
+              ${unsafeHTML(svg)}
+            </div>`
+          : mapComingSoon(map.label)}
+      </div>
+
+      <div class="rounded-xl bg-base-100 p-3 shadow-lg">
+        <div class="flex items-center justify-between gap-2 pb-1">
+          <h2 class="font-semibold">Latest connections</h2>
+          ${seated.length > latest.length
+            ? html`<span class="text-xs opacity-60 tabular-nums"
+                >latest ${latest.length} of ${seated.length}</span
+              >`
+            : ""}
+        </div>
+        ${latest.length
+          ? html`<ul class="flex flex-col divide-y divide-base-300">
+              ${latest.map((entry) => latestRow(entry))}
+            </ul>`
+          : html`<p class="py-3 text-center text-sm opacity-60">
+              No one is seated in this cluster right now.
+            </p>`}
+      </div>
+    </div>
+  `;
+}
+
+function mapComingSoon(label = "Map"): unknown {
   return html`
     <div
       class="flex flex-col items-center justify-center gap-2 py-16 text-center"
@@ -222,9 +410,9 @@ function mapComingSoon(): unknown {
           MAP_PIN_SVG.replace("<svg", '<svg width="40" height="40"'),
         )}</span
       >
-      <h2 class="text-lg font-bold">Map coming soon</h2>
+      <h2 class="text-lg font-bold">${label} coming soon</h2>
       <p class="text-sm opacity-60 max-w-xs">
-        The cluster map isn't available yet. Check back later.
+        This cluster map isn't available yet. Check back later.
       </p>
     </div>
   `;
@@ -247,11 +435,8 @@ export function clustersBottomBar(): unknown {
               Active
             </button>
             <button
-              class="tab-btn"
-              disabled
-              aria-disabled="true"
-              title="Coming soon"
-              style="cursor:not-allowed;opacity:.45"
+              class="tab-btn ${subTab === "map" ? "active" : ""}"
+              @click=${() => switchSubTab("map")}
             >
               Map
             </button>
@@ -291,8 +476,40 @@ function ensureOutsideClose(): void {
   });
 }
 
+const XLINK_NS = "http://www.w3.org/1999/xlink";
+
+/** Fills each seat's empty <image> with the avatar of whoever is sitting there. */
+function applyMapOccupancy(): void {
+  const mapEl = document.getElementById("ft-cluster-map");
+  if (!mapEl) return;
+  const svg = mapEl.querySelector("svg");
+  if (!svg) return;
+
+  const byHost = new Map<string, OccupancyEntry>();
+  for (const entry of entries) {
+    const host = entry.host?.trim().toLowerCase();
+    if (host) byHost.set(host, entry);
+  }
+
+  svg.querySelectorAll<SVGImageElement>("image[id]").forEach((img) => {
+    const entry = byHost.get(img.id.toLowerCase());
+    if (entry?.cdn_uri) {
+      img.setAttribute("href", entry.cdn_uri);
+      img.setAttributeNS(XLINK_NS, "xlink:href", entry.cdn_uri);
+      img.setAttribute("data-login", entry.login);
+    } else {
+      img.removeAttribute("href");
+      img.removeAttributeNS(XLINK_NS, "href");
+      img.removeAttribute("data-login");
+    }
+  });
+
+  attachMapGestures(mapEl);
+}
+
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
   ensureOutsideClose();
   refreshLabel();
+  applyMapOccupancy();
 }

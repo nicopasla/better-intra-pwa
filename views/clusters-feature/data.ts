@@ -20,8 +20,20 @@ const MOCK_PEOPLE: { login: string; name: string }[] = [
   { login: "vmarquet", name: "Victor Marquet" },
 ];
 
+const MOCK_HOSTS = [
+  "fu-r1-p1",
+  "fu-r1-p2",
+  "fu-r2-p3",
+  "fu-r5-p5",
+  "fu-r10-p1",
+  "fu-c1-p1",
+  "fu-c2-p2",
+  "fu-c3-p1",
+  "fu-c4-p1",
+];
+
 const MOCK_OCCUPANCY: OccupancyEntry[] = MOCK_PEOPLE.map((p, i) => ({
-  host: i % 4 === 3 ? `wifi-${i + 1}` : `shi-r${(i % 6) + 1}-p${(i % 8) + 1}`,
+  host: i % 4 === 3 ? `wifi-${i + 1}` : MOCK_HOSTS[i % MOCK_HOSTS.length],
   login: p.login,
   name: p.name,
   cdn_uri: `https://cataas.com/cat?width=80&height=80&r=${i}`,

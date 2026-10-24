@@ -218,3 +218,132 @@ body {
   width: 0.875rem;
   height: 0.875rem;
 }
+
+/* Cluster maps: the SVG is inlined, so scope its classes under .cluster-map. */
+.cluster-map {
+  --zone-fill: #d5d5d5;
+  --zone-stroke: #a5a8ab;
+  --zone-text: #4b5866;
+  --seat-fill: #e5e5e5;
+  --seat-stroke: #7f7f7f;
+  --chair-fill: #cfd8e0;
+  --wall-fill: #46525e;
+  --slot-fill: #00babc2e;
+  --slot-stroke: #c3ccd5;
+  --door-fill: #c98a2b;
+  --window-fill: #cfe9f7;
+  --window-stroke: #5aa1c8;
+  --pillar-fill: #7a8794;
+  --exit-fill: #2e9e5b;
+  background: #f7f8fa;
+  border-radius: var(--radius-box, 0.75rem);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+[data-theme="dark"] .cluster-map {
+  --zone-fill: #232c36;
+  --zone-stroke: #4a545e;
+  --zone-text: #e5ebf1;
+  --seat-fill: #2c3946;
+  --seat-stroke: #6f7f8d;
+  --chair-fill: #3a4856;
+  --wall-fill: #8796a4;
+  --slot-fill: #1f6a6e80;
+  --slot-stroke: #4a545e;
+  --door-fill: #d9a24a;
+  --window-fill: #27475a;
+  --window-stroke: #4b87ab;
+  --pillar-fill: #6f7f8d;
+  --exit-fill: #3cb371;
+  background: #10161c;
+}
+
+.cluster-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.cluster-map .posts rect {
+  fill: var(--seat-fill, #e5e5e5);
+  stroke: var(--seat-stroke, #7f7f7f);
+}
+
+.cluster-map .zone {
+  fill: var(--zone-fill, #d5d5d5);
+  stroke: var(--zone-stroke, #a5a8ab);
+  stroke-width: 1;
+}
+
+.cluster-map .wall {
+  fill: var(--wall-fill, #46525e);
+}
+
+.cluster-map .slot {
+  fill: var(--slot-fill, #00babc2e);
+  stroke: var(--slot-stroke, #c3ccd5);
+  stroke-width: 1;
+}
+
+.cluster-map .door {
+  fill: var(--door-fill, #c98a2b);
+}
+
+.cluster-map .window {
+  fill: var(--window-fill, #cfe9f7);
+  stroke: var(--window-stroke, #5aa1c8);
+  stroke-width: 1;
+}
+
+.cluster-map .pillar {
+  fill: var(--pillar-fill, #7a8794);
+}
+
+.cluster-map .exit rect {
+  fill: var(--exit-fill, #2e9e5b);
+}
+
+.cluster-map .chair rect {
+  fill: var(--chair-fill, #cfd8e0);
+  stroke: var(--seat-stroke, #7b8896);
+  stroke-width: 1;
+}
+
+.cluster-map .zone-text {
+  fill: var(--zone-text, #4b5866);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.cluster-map .exit text {
+  fill: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* The exported map hardcodes light C1-C4 labels; use the theme colour instead. */
+.cluster-map .text text {
+  fill: var(--zone-text, #4b5866);
+}
+
+.cluster-map image[data-login] {
+  cursor: pointer;
+}
+
+.cluster-map.is-panning {
+  cursor: grabbing;
+}
+
+.cluster-map.is-panning image[data-login] {
+  cursor: grabbing;
+}
