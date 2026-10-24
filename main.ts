@@ -67,6 +67,7 @@ import {
   promptInstall,
 } from "./lib/install.ts";
 import { initRouter } from "./lib/router.ts";
+import { initTooltips } from "./lib/tooltip.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
 import { me } from "./data.ts";
@@ -316,6 +317,7 @@ function onStorage(e: StorageEvent): void {
 }
 
 function initAppListeners(): void {
+  initTooltips();
   if (!mockMode) void requestPersistentStorage();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {

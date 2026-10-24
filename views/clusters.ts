@@ -168,9 +168,7 @@ function row(e: OccupancyEntry): unknown {
     <li>
       <div class="flex items-center gap-3 py-2">
         <a
-          href="https://profile.intra.42.fr/users/${e.login}"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="#/u/${e.login}"
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
           ${AVATARS_ENABLED

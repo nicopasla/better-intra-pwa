@@ -29,13 +29,16 @@ function renderDayCell(
       ? "var(--primary-foreground)"
       : "var(--muted-foreground)";
 
+  const [year, month, dayOfMonth] = dKey.split("-");
+  const dateLabel = `${dayOfMonth}/${month}/${year}`;
+
   return html`<div
     class="day-cell aspect-square flex items-center justify-center text-[11px] font-bold font-mono ${dKey ===
     todayStr
       ? "today-highlight"
       : ""}"
     style="border-radius: ${CELL_RADIUS}; background: ${bgColor}; color: ${textColor};"
-    title="${hasData ? `${fmtHours(secs)} · ${dKey}` : ""}"
+    data-tip="${dateLabel} · ${hasData ? fmtHours(secs) : "no logtime"}"
   >
     ${String(day)}
   </div>`;
