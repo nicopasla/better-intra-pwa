@@ -1,5 +1,4 @@
 import { html, type TemplateResult } from "lit-html";
-import { WORKER_URL } from "../api.ts";
 import { mockMode } from "../mock.ts";
 
 /**
@@ -23,15 +22,13 @@ export function initialsAvatar(
   </div>`;
 }
 
-/** Only accept avatars uploaded to our own public image route. */
+/** Accepts normal http(s) links; broken/hotlink-blocked images fall back to initials. */
 export function customAvatarUrl(value?: string | null): string | null {
   const raw = (value || "").trim();
   if (!raw) return null;
   try {
     const url = new URL(raw);
-    const base = new URL(WORKER_URL);
-    if (url.origin !== base.origin) return null;
-    if (!url.pathname.startsWith("/api/v1/public/images/")) return null;
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
     return url.toString();
   } catch {
     return null;
