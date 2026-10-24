@@ -1,6 +1,7 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
+import { navigateToUser } from "../shell.ts";
 import { dateTime, evalCountdown } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
@@ -85,7 +86,17 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
 
         <div class="min-w-0 flex flex-col gap-1.5">
           <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span class="font-bold text-xl text-primary">${u.login}</span>
+            <button
+              type="button"
+              class="font-bold text-xl text-primary hover:underline cursor-pointer text-left p-0 border-0 bg-transparent"
+              title="Open ${u.login}'s profile"
+              @click=${() => {
+                close();
+                navigateToUser(login);
+              }}
+            >
+              ${u.login}
+            </button>
             ${u.displayName && u.displayName !== u.login
               ? html`<span class="text-base opacity-80 truncate"
                   >${u.displayName}</span

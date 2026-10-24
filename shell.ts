@@ -52,6 +52,14 @@ export function currentTab(): Tab {
   return "dashboard";
 }
 
+const USER_ROUTE = /^\/?u\/([a-z0-9_-]{1,32})$/i;
+
+/** Login of the user profile view (`#/u/<login>`), or null on a tab route. */
+export function userLoginFromHash(): string | null {
+  const match = USER_ROUTE.exec(location.hash.replace(/^#/, ""));
+  return match ? match[1].toLowerCase() : null;
+}
+
 type RouteRenderer = () => void;
 let routeRenderer: RouteRenderer = () => {};
 
@@ -60,8 +68,18 @@ export function setRouteRenderer(fn: RouteRenderer): void {
   routeRenderer = fn;
 }
 
+/** Pushes a user profile route; back/forward are handled by the browser. */
+export function navigateToUser(login: string): void {
+  const normalized = login.trim().toLowerCase();
+  if (!normalized || !/^[a-z0-9_-]{1,32}$/.test(normalized)) return;
+  const target = `#/u/${normalized}`;
+  if (location.hash === target) return;
+  location.hash = target.slice(1);
+  routeRenderer();
+}
+
 export function navigate(tab: Tab): void {
-  if (currentTab() === tab) return;
+  if (location.hash === `#/${tab}`) return;
   location.hash = `/${tab}`;
   routeRenderer();
 }
@@ -72,7 +90,7 @@ const icon24 = (raw: string) =>
 const app = () => document.getElementById("app")!;
 
 export function renderShell(
-  active: Tab,
+  active: Tab | null,
   body: unknown,
   bottomBar?: unknown,
 ): void {

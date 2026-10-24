@@ -5,13 +5,15 @@ import {
   upcomingEvals,
   events,
   getBlob,
+  logtimeHistory,
   Me,
   UpcomingEval,
   UpcomingResponse,
   CalendarEvent,
+  type LogtimeSettings,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { currentTab, navigate } from "../shell.ts";
+import { currentTab, navigate, navigateToUser } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { readScopedCache, writeCache } from "../lib/cache.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
@@ -26,6 +28,8 @@ import { saveData } from "../lib/network.ts";
 import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort, evalCountdown } from "../lib/format.ts";
+import { logtimeSection } from "./logtime-feature/index.ts";
+import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
@@ -37,6 +41,7 @@ import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
 import INFO_SVG from "../assets/info.svg?raw";
+import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -49,6 +54,14 @@ let pushError = "";
 let pushSubscribed: boolean | null = null;
 /** User's profile color (synced custom color), used for the stat badges. */
 let profileColor = "#00BABC";
+
+let logtimeOpen = false;
+let logtimeDays: Record<string, number> | null = null;
+let logtimeSettings: LogtimeSettings | null = null;
+let logtimePartial = false;
+let logtimeLoading = false;
+let logtimeError = "";
+let logtimeScrollKey: string | null = null;
 
 const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -89,8 +102,8 @@ export function dashboardView(): unknown {
     `;
   }
   return html`
-    ${stale ? staleBanner() : ""} ${profileCard()} ${upcomingCard()}
-    ${liveEventsCard()} ${projectsCard()} ${eventsCard()}
+    ${stale ? staleBanner() : ""} ${profileCard()} ${logtimeCard()}
+    ${upcomingCard()} ${liveEventsCard()} ${projectsCard()} ${eventsCard()}
   `;
 }
 
@@ -120,7 +133,18 @@ function profileCard() {
     <div class="card bg-base-100 shadow-xl mb-4">
       <div class="card-body">
         <div class="flex items-center gap-4">
-          ${avatarBlock()}
+          <div
+            class="flex-none cursor-pointer rounded-full"
+            role="button"
+            tabindex="0"
+            title="View full profile"
+            @click=${() => navigateToUser(m.login)}
+            @keydown=${(e: KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") navigateToUser(m.login);
+            }}
+          >
+            ${avatarBlock()}
+          </div>
           <div class="min-w-0">
             <div class="flex items-center gap-2 min-w-0">
               <span class="font-bold text-lg truncate">${m.displayName}</span>
@@ -223,6 +247,102 @@ function avatarBlock() {
     class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
     alt=""
   />`;
+}
+
+// ---------------------------------------------------------------------------
+// Logtime (collapsed by default; the same calendar as the user profile)
+// ---------------------------------------------------------------------------
+
+function logtimeCard() {
+  return html`<div class="card bg-base-100 shadow-xl mb-4">
+    <div class="card-body py-3 gap-1">
+      <button
+        type="button"
+        class="flex items-center justify-between gap-2 w-full text-left"
+        aria-expanded="${logtimeOpen ? "true" : "false"}"
+        @click=${toggleLogtime}
+      >
+        <h2 class="card-title text-base m-0">Logtime</h2>
+        <span
+          class="size-5 flex items-center justify-center opacity-60 transition-transform ${logtimeOpen
+            ? "rotate-180"
+            : ""}"
+          >${svg18(CHEVRON_DOWN_SVG)}</span
+        >
+      </button>
+      ${logtimeOpen ? html`<div class="mt-2">${logtimeContent()}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+function toggleLogtime(): void {
+  logtimeOpen = !logtimeOpen;
+  if (logtimeOpen && !logtimeDays && !logtimeLoading && !logtimeError) {
+    void loadLogtime();
+  }
+  refresh();
+}
+
+function logtimeContent() {
+  if (logtimeError) {
+    return html`<div class="flex flex-col items-center gap-3 py-2">
+      <p class="text-sm opacity-70">Couldn't load your logtime.</p>
+      <p class="text-xs text-error">${logtimeError}</p>
+      <button
+        class="btn btn-sm btn-outline"
+        @click=${() => {
+          logtimeError = "";
+          void loadLogtime();
+        }}
+      >
+        Retry
+      </button>
+    </div>`;
+  }
+  if (!logtimeDays) {
+    return html`<div class="flex flex-col items-center gap-2 py-6">
+      <span class="loading loading-spinner loading-md"></span>
+      <p class="text-xs opacity-60 text-center">
+        Fetching your locations… the first load can take a few seconds.
+      </p>
+    </div>`;
+  }
+  return logtimeSection({
+    days: logtimeDays,
+    settings: logtimeSettings,
+    partial: logtimePartial,
+    syncing: logtimeLoading,
+    onSyncMore: () => void loadLogtime(),
+    onSliderRendered: scrollLogtimeToLatest,
+  });
+}
+
+async function loadLogtime(): Promise<void> {
+  if (logtimeLoading) return;
+  const session = getSession();
+  if (!session) return;
+  logtimeLoading = true;
+  logtimeError = "";
+  refresh();
+  try {
+    const { days, partial } = await logtimeHistory(session.login);
+    logtimeDays = { ...(logtimeDays ?? {}), ...(days ?? {}) };
+    logtimePartial = Boolean(partial);
+  } catch (e) {
+    logtimeError = friendlyError(e);
+  } finally {
+    logtimeLoading = false;
+    refresh();
+  }
+}
+
+function scrollLogtimeToLatest(el: HTMLElement): void {
+  const key = `${Object.keys(logtimeDays ?? {}).length}:${logtimePartial}`;
+  if (logtimeScrollKey === key) return;
+  logtimeScrollKey = key;
+  requestAnimationFrame(() => {
+    el.scrollLeft = el.scrollWidth;
+  });
 }
 
 let upcomingTab: "evaluator" | "corrected" | null = null;
@@ -663,8 +783,10 @@ export function loadDashboard(silent = false): void {
   void refreshPushState();
   void Promise.allSettled([me(), upcomingEvals(), events(), getBlob()]).then(
     ([m, u, ev, bl]) => {
-      if (bl.status === "fulfilled")
+      if (bl.status === "fulfilled") {
         profileColor = resolveProfileColor(bl.value.settings ?? {});
+        logtimeSettings = logtimeSettingsFromBlob(bl.value.settings);
+      }
       let failure: unknown = null;
       if (m.status === "fulfilled") meData = m.value;
       else failure = m.reason;

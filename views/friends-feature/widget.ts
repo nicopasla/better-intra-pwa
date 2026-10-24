@@ -105,9 +105,7 @@ function renderFriendRow(
     <!-- Avatar -->
     <div class="shrink-0 flex items-center" data-ft-avatar-col>
       <a
-        href="https://profile-v3.intra.42.fr/users/${friend.login}"
-        target="_blank"
-        rel="noopener noreferrer"
+        href="#/u/${friend.login}"
         class="flex"
         @click="${(e: Event) => e.stopPropagation()}"
       >
@@ -190,9 +188,7 @@ function renderFriendRow(
 
     <!-- Main info -->
     <a
-      href="https://profile-v3.intra.42.fr/users/${friend.login}"
-      target="_blank"
-      rel="noopener noreferrer"
+      href="#/u/${friend.login}"
       class="no-underline text-base-content"
       data-ft-info
       @click="${(e: Event) => e.stopPropagation()}"

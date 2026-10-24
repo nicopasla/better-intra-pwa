@@ -197,6 +197,112 @@ export const userLookup = (login: string) =>
         `/api/v1/private/user?target=${encodeURIComponent(login)}`,
       );
 
+export interface UserVisuals {
+  profileColor: string | null;
+  customAvatar: string | null;
+  avatarBg: string;
+  avatarPosX: number;
+  avatarPosY: number;
+  avatarScale: number;
+  banner: string | null;
+  bannerMode: string;
+  bannerColor: string | null;
+  background: string | null;
+  backgroundMode: string;
+  backgroundColor: string | null;
+}
+
+/** The owner's LOGTIME_* preferences, so their calendar renders as they see it. */
+export interface LogtimeSettings {
+  goalHours: number;
+  showAverage: boolean;
+  showGoal: boolean;
+  showTacos: boolean;
+  showTotalTacos: boolean;
+  showStreak: boolean;
+  emoji: string;
+  divisor: number;
+  rate: number;
+  maxEarnings: number;
+  showDaysMode: "date" | "days" | "both";
+  calendarColor: string;
+  labelsColor: string;
+  rainbowPalette: string;
+  calendarView: "normal" | "compact" | "heatmap" | "carousel";
+  fontScale: number;
+  disableAnimations: boolean;
+}
+
+export interface UserRecentProject extends MeProject {
+  finalMark: number | null;
+  validated: boolean;
+  markedAt: string | null;
+}
+
+export interface UserProjects {
+  total: number;
+  validated: number;
+  failed: number;
+  inProgress: number;
+  active: MeProject[];
+  recent: UserRecentProject[];
+}
+
+/** Full profile of any 42 user, as rendered by the PWA profile view. */
+export interface UserProfile {
+  login: string;
+  displayName: string;
+  usualFullName: string;
+  avatar: string | null;
+  kind: string | null;
+  staff: boolean;
+  alumni: boolean;
+  active: boolean;
+  memberSince: string | null;
+  alumnizedAt: string | null;
+  wallet: number;
+  correctionPoints: number;
+  level: number;
+  grade: string | null;
+  location: string | null;
+  campusId: number | null;
+  campusName: string | null;
+  poolMonth: string | null;
+  poolYear: string | null;
+  poolLabel: string | null;
+  groups: string[];
+  cursus: MeCursus | null;
+  blackholedAt: string | null;
+  projects: UserProjects;
+  visuals: UserVisuals;
+  logtime: LogtimeSettings;
+}
+
+export const userProfile = (login: string) =>
+  mockMode
+    ? Promise.resolve(mock.userProfile(login))
+    : json<UserProfile>(
+        `/api/v1/private/profile?target=${encodeURIComponent(login)}`,
+      );
+
+export interface LogtimeHistory {
+  days: Record<string, number>;
+  /** Older months are still available: another call continues the sync. */
+  partial?: boolean;
+}
+
+/**
+ * Logtime (seconds per UTC day) collected by the worker from 42 locations.
+ * `back=1` loads the most recent days first, so the calendar shows current
+ * months immediately; older months stream in on demand.
+ */
+export const logtimeHistory = (login: string): Promise<LogtimeHistory> =>
+  mockMode
+    ? Promise.resolve({ days: mock.logtime(login).days })
+    : json<LogtimeHistory>(
+        `/api/v1/private/logtime/history?user=${encodeURIComponent(login)}&back=1`,
+      );
+
 /** Outstanding-corrector counts keyed by projects_user id. Triggers a sync. */
 export async function outstandingIds(
   count: number,

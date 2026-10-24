@@ -1,5 +1,6 @@
 import type { TemplateResult } from "lit-html";
 import { loginUrl } from "../../api.ts";
+import { navigateToUser } from "../../shell.ts";
 import { observeTabsOverflow } from "../../lib/segmented-tabs.ts";
 import {
   INITIAL_VISIBLE_COUNT,
@@ -326,7 +327,7 @@ export function initStudentsFeature(onUpdate: () => void): void {
   };
 
   const openRow = (login: string) => {
-    window.open(`https://profile.intra.42.fr/users/${login}`, "_blank");
+    navigateToUser(login);
   };
 
   const handlers: StudentsTemplateHandlers = {

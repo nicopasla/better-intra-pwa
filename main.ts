@@ -15,6 +15,7 @@ import {
   renderShell,
   Tab,
   setRouteRenderer,
+  userLoginFromHash,
 } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import {
@@ -42,6 +43,11 @@ import {
   clustersAttachObservers,
   clustersBottomBar,
 } from "./views/clusters.ts";
+import {
+  hydrateUserProfileCache,
+  loadUserProfile,
+  userProfileView,
+} from "./views/user-profile.ts";
 import { settingsView, loadSettings } from "./views/settings.ts";
 import {
   ensurePushSubscription,
@@ -230,6 +236,7 @@ function blockedScreen() {
 
 const triggered = new Set<Tab>();
 const lastLoadedAt: Partial<Record<Tab, number>> = {};
+let lastProfileLoadedAt = 0;
 const FRESH_MS = 30_000;
 
 /** Set once when the worker rejects the session, so parallel 401s only reload once. */
@@ -263,6 +270,13 @@ function triggerLoad(tab: Tab, force = false): void {
 
 /** Re-fetch the active tab's data (used by visibility/storage sync). */
 function refreshActiveTab(force = false): void {
+  const profileLogin = userLoginFromHash();
+  if (profileLogin) {
+    if (!force && Date.now() - lastProfileLoadedAt < FRESH_MS) return;
+    lastProfileLoadedAt = Date.now();
+    void loadUserProfile(profileLogin, true);
+    return;
+  }
   const tab = currentTab();
   if (!force && Date.now() - (lastLoadedAt[tab] ?? 0) < FRESH_MS) return;
   lastLoadedAt[tab] = Date.now();
@@ -321,6 +335,11 @@ function healPush(): void {
 }
 
 function renderBody(): void {
+  const profileLogin = userLoginFromHash();
+  if (profileLogin) {
+    renderShell(null, userProfileView(profileLogin));
+    return;
+  }
   const tab = currentTab();
   let body: unknown;
   let bottomBar: unknown = "";
@@ -375,13 +394,15 @@ function gateCampusTabs(): void {
 }
 
 function renderRoute(): void {
-  triggerLoad(currentTab());
+  if (userLoginFromHash()) lastProfileLoadedAt = Date.now();
+  else triggerLoad(currentTab());
   renderBody();
 }
 
 function hydrateCaches(): void {
   hydrateDashboardCache();
   hydrateProfileCache();
+  hydrateUserProfileCache();
 }
 
 async function boot(): Promise<void> {

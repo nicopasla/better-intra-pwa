@@ -654,46 +654,6 @@ export function renderStudentsDialogTemplate(
       .grid .displayname {
         justify-content: center;
       }
-      .blackhole-badge,
-      .freeze-badge,
-      .alumni-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        border-radius: 9999px;
-        padding: 0.3rem;
-        line-height: 0;
-      }
-      .blackhole-badge {
-        color: var(--color-error-content);
-        background: var(--color-error);
-      }
-      .blackhole-badge.with-text,
-      .freeze-badge.with-text,
-      .alumni-badge.with-text {
-        gap: 0.3rem;
-        height: 1.6rem;
-        padding: 0 0.5rem;
-        line-height: normal;
-        font-size: 0.7rem;
-        font-weight: 600;
-        font-family: var(--font-sans);
-        white-space: nowrap;
-      }
-      .freeze-badge {
-        color: var(--color-info-content);
-        background: var(--color-info);
-      }
-      .alumni-badge {
-        color: var(--color-secondary-content);
-        background: var(--color-secondary);
-      }
-      .blackhole-badge svg,
-      .freeze-badge svg,
-      .alumni-badge svg {
-        fill: currentColor;
-      }
       .row.inactive {
         opacity: 0.45;
       }
@@ -730,64 +690,6 @@ export function renderStudentsDialogTemplate(
       }
       .list .row-meta {
         margin-left: auto;
-      }
-      .pool-badge,
-      .date-badge,
-      .level-badge,
-      .eval-badge,
-      .wallet-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        height: 1.8rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: var(--font-sans);
-        color: var(--color-base-content);
-        background: var(--color-base-200);
-        border-radius: var(--radius-field);
-        padding: 0 0.6rem;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .pool-badge {
-        color: var(--color-info-content);
-        background: color-mix(in oklch, var(--color-info) 60%, transparent);
-      }
-      .date-badge {
-        background: color-mix(in oklch, var(--color-accent) 40%, transparent);
-      }
-      .level-badge {
-        color: var(--color-primary-content);
-        background: color-mix(in oklch, var(--color-primary) 45%, transparent);
-      }
-      .wallet-badge {
-        color: var(--color-secondary-content);
-        background: color-mix(
-          in oklch,
-          var(--color-secondary) 45%,
-          transparent
-        );
-      }
-      .eval-badge {
-        color: var(--color-warning-content);
-        background: color-mix(in oklch, var(--color-warning) 50%, transparent);
-      }
-      .pool-badge svg,
-      .date-badge svg,
-      .level-badge svg,
-      .eval-badge svg,
-      .wallet-badge svg {
-        fill: currentColor;
-        width: 0.875rem;
-        height: 0.875rem;
-        flex-shrink: 0;
-      }
-      .level-badge svg {
-        fill: none;
-        stroke: currentColor;
-        width: 0.75rem;
-        height: 0.75rem;
       }
       .grid {
         display: grid;

@@ -1,8 +1,9 @@
-import { currentTab } from "./shell.ts";
+import { currentTab, userLoginFromHash } from "./shell.ts";
 import { loadDashboard } from "./views/dashboard.ts";
 import { loadProfile } from "./views/profile.ts";
 import { loadFriends } from "./views/friends.ts";
 import { loadSettings } from "./views/settings.ts";
+import { loadUserProfile } from "./views/user-profile.ts";
 
 const THRESHOLD = 90;
 
@@ -99,6 +100,11 @@ function settle(y: number): void {
 }
 
 function reloadCurrent(): void {
+  const profileLogin = userLoginFromHash();
+  if (profileLogin) {
+    void loadUserProfile(profileLogin, true);
+    return;
+  }
   switch (currentTab()) {
     case "dashboard":
       loadDashboard();

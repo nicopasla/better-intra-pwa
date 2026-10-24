@@ -14,13 +14,12 @@ const DIALOG_ID = "ft-subscribers-dialog";
 
 const LOCATION_STYLE = `border:2px solid color-mix(in oklab, var(--color-success) 50%, transparent);background-color:color-mix(in oklab, var(--color-success) 12%, transparent);color:var(--color-success);border-radius:var(--radius-selector);height:auto;`;
 
-function row(u: EventSubscriber) {
+function row(u: EventSubscriber, onOpen: () => void) {
   return html`
     <a
-      href="https://profile-v3.intra.42.fr/users/${u.login}"
-      target="_blank"
-      rel="noopener noreferrer"
+      href="#/u/${u.login}"
       class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors no-underline text-base-content hover:bg-base-200 active:bg-base-200"
+      @click=${onOpen}
     >
       <div class="avatar ${u.location ? "avatar-online" : ""} shrink-0">
         <div class="w-10 h-10 rounded-full bg-base-300">
@@ -97,7 +96,9 @@ export function openSubscribersDialog(
         No one has subscribed yet.
       </p>`;
     }
-    return html`<div class="flex flex-col gap-0.5">${users.map(row)}</div>`;
+    return html`<div class="flex flex-col gap-0.5">
+      ${users.map((u) => row(u, close))}
+    </div>`;
   };
 
   const draw = () => {

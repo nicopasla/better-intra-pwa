@@ -1,4 +1,4 @@
-import type { StudentEntry } from "./data.ts";
+import type { StudentEntry, UserProfile } from "./data.ts";
 
 export const mockMode =
   typeof window !== "undefined" &&
@@ -12,6 +12,165 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 function mins(m: number): string {
   const d = new Date(now + m * 60000);
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
+/** Stable small hash so mock profiles/logtime are deterministic per login. */
+function mockHash(login: string): number {
+  let hash = 0;
+  for (const ch of login.toLowerCase())
+    hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+const MOCK_NAMES: Record<string, string> = {
+  "mock.user": "Mock User",
+  jsmith: "Jane Smith",
+  amelie: "Amélie Martin",
+  bdurand: "Bob Durand",
+  cpetit: "Charlie Petit",
+  dleroy: "Diana Leroy",
+  vmoreau: "Victor Moreau",
+};
+
+/** Mock profile used by the in-app user profile view (`?mock`). */
+function mockProfile(login: string): UserProfile {
+  const l = login.trim().toLowerCase();
+  const hash = mockHash(l);
+  const isSelf = l === "mock.user";
+  const name = MOCK_NAMES[l] ?? l.charAt(0).toUpperCase() + l.slice(1);
+  const customAvatar =
+    isSelf || l === "bdurand"
+      ? `https://cataas.com/cat?width=400&height=400&r=${isSelf ? 11 : 4}`
+      : null;
+  return {
+    login: l,
+    displayName: name,
+    usualFullName: name,
+    avatar: `https://cataas.com/cat?width=200&height=200&r=${hash % 100000}`,
+    kind: "student",
+    staff: false,
+    alumni: l === "dleroy",
+    active: l !== "cpetit",
+    memberSince: new Date(now - 420 * 86400000).toISOString(),
+    alumnizedAt:
+      l === "dleroy" ? new Date(now - 90 * 86400000).toISOString() : null,
+    wallet: 200 + (hash % 3000),
+    correctionPoints: hash % 40,
+    level: Number(((hash % 1800) / 100).toFixed(2)),
+    grade: hash % 3 === 0 ? "Cadet" : "Member",
+    location:
+      l === "amelie" || l === "bdurand"
+        ? "c3r1p2"
+        : hash % 2 === 0
+          ? "shi-r12-p2"
+          : null,
+    campusId: 12,
+    campusName: "Belgium",
+    poolMonth: "february",
+    poolYear: "2024",
+    poolLabel: "02/2024",
+    groups: ["42 Network", "Piscine C"],
+    cursus: {
+      name: "42cursus",
+      slug: "42cursus",
+      kind: "main",
+      beginAt: new Date(now - 400 * 86400000).toISOString(),
+      endAt: null,
+    },
+    blackholedAt:
+      l === "cpetit"
+        ? new Date(now - 20 * 86400000).toISOString()
+        : new Date(now + 120 * 86400000).toISOString(),
+    projects: {
+      total: 24,
+      validated: 18,
+      failed: 3,
+      inProgress: 2,
+      active: [
+        { id: 1, name: "Fly-in", slug: "fly-in", occurrence: 1 },
+        {
+          id: 2,
+          name: "Python Module 10",
+          slug: "python-module-10",
+          occurrence: 0,
+        },
+      ],
+      recent: [
+        {
+          id: 101,
+          name: "Born2beroot",
+          slug: "42next-born2beroot",
+          occurrence: 2,
+          finalMark: 100,
+          validated: true,
+          markedAt: new Date(now - 3 * 86400000).toISOString(),
+        },
+        {
+          id: 102,
+          name: "Libft",
+          slug: "libft",
+          occurrence: 0,
+          finalMark: 42,
+          validated: false,
+          markedAt: new Date(now - 12 * 86400000).toISOString(),
+        },
+      ],
+    },
+    visuals: {
+      profileColor: "#00BCBA",
+      customAvatar,
+      avatarBg: customAvatar ? "#0f766e" : "transparent",
+      avatarPosX: 50,
+      avatarPosY: 40,
+      avatarScale: 120,
+      banner: null,
+      bannerMode: "fill",
+      bannerColor: null,
+      background: isSelf
+        ? "https://cataas.com/cat?width=800&height=400&r=12"
+        : null,
+      backgroundMode: "fill",
+      backgroundColor: null,
+    },
+    logtime: {
+      goalHours: 140,
+      showAverage: true,
+      showGoal: true,
+      showTacos: true,
+      showTotalTacos: false,
+      showStreak: true,
+      emoji: "🌮",
+      divisor: 8.7,
+      rate: 2,
+      maxEarnings: 500,
+      showDaysMode: "date",
+      calendarColor: "#00BCBA",
+      labelsColor: "#26a641",
+      rainbowPalette: "rainbow",
+      calendarView: "normal",
+      fontScale: 100,
+      disableAnimations: false,
+    },
+  };
+}
+
+/** Mock logtime: seconds per day for roughly a year, weekends quieter. */
+function mockLogtimeDays(login: string): Record<string, number> {
+  const hash = mockHash(login);
+  const days: Record<string, number> = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 900; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const weekday = d.getDay();
+    const weekend = weekday === 0 || weekday === 6;
+    if ((hash + i) % (weekend ? 3 : 11) === 0) continue;
+    const base = weekend ? 3600 : 3600 * 4;
+    days[key] = base + ((hash + i * 37) % 4) * 3600 + ((hash + i) % 60) * 60;
+  }
+  return days;
 }
 
 export const mock = {
@@ -282,9 +441,16 @@ export const mock = {
       avatar: `https://cataas.com/cat?width=200&height=200&r=${hash % 100000}`,
       level: Number(((hash % 1800) / 100).toFixed(2)),
       grade: "Cadet",
-      location: hash % 2 === 0 ? "shi-r12-p2" : null,
+      location:
+        l === "amelie" || l === "bdurand"
+          ? "c3r1p2"
+          : hash % 2 === 0
+            ? "shi-r12-p2"
+            : null,
     };
   },
+  userProfile: (login: string): UserProfile => mockProfile(login),
+  logtime: (login: string) => ({ days: mockLogtimeDays(login) }),
   outstanding: { 101: 3, 102: 1 } as Record<number, number>,
   friends: [
     {
