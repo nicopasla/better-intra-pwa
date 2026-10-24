@@ -288,7 +288,7 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   const px = (x + w / 2 - vb[0]) * k;
   const py = (y + h / 2 - vb[1]) * k;
 
-  state.scale = clamp(2.5, MIN_SCALE, MAX_SCALE);
+  state.scale = clamp(1.6, MIN_SCALE, MAX_SCALE);
   state.x = Math.min(
     0,
     Math.max(
