@@ -212,11 +212,19 @@ function projectStat(label: string, value: number) {
 function logtimeCard() {
   return html`<div class="card bg-base-100 shadow-xl mb-4">
     <div class="card-body py-3 gap-1">
-      <button
-        type="button"
-        class="flex items-center gap-2 w-full text-left"
+      <div
+        class="flex items-center gap-2 w-full text-left cursor-pointer select-none"
+        role="button"
+        tabindex="0"
         aria-expanded="${logtimeOpen ? "true" : "false"}"
         @click=${toggleLogtime}
+        @keydown=${(e: KeyboardEvent) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleLogtime();
+          }
+        }}
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
@@ -233,7 +241,7 @@ function logtimeCard() {
             >${svg18(CHEVRON_DOWN_SVG)}</span
           >
         </span>
-      </button>
+      </div>
       ${logtimeOpen ? html`<div class="mt-2">${logtimeContent()}</div>` : ""}
     </div>
   </div>`;

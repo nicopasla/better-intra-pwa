@@ -78,8 +78,7 @@ function zoomAt(
 }
 
 /** Wires drag, pinch and wheel zoom on a map container. Safe to call repeatedly. */
-export function attachMapGestures(container: HTMLElement): void {
-  const existing = states.get(container);
+export function attachMapGestures(container: HTMLElement): void {  const existing = states.get(container);
   if (existing) {
     // The inline SVG can be swapped by a re-render; re-apply the transform.
     apply(container, existing);
@@ -240,4 +239,70 @@ export function attachMapGestures(container: HTMLElement): void {
 
   new ResizeObserver(() => apply(container, state)).observe(container);
   apply(container, state);
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Zooms to a seat and keeps a pulsing ring around it (like the extension's
+ * cluster dialog). The ring stays until another seat is focused or the map is
+ * left; the animation is pure CSS.
+ */
+export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!svg) return false;
+
+  const target = seatId.trim().toLowerCase();
+  const image = [...svg.querySelectorAll<SVGImageElement>("image[id]")].find(
+    (el) => (el.id || "").trim().toLowerCase() === target,
+  );
+  if (!image) return false;
+
+  const x = Number(image.getAttribute("x")) || 0;
+  const y = Number(image.getAttribute("y")) || 0;
+  const w = Number(image.getAttribute("width")) || 0;
+  const h = Number(image.getAttribute("height")) || 0;
+
+  svg.querySelectorAll(".seat-focus").forEach((el) => el.remove());
+  const ring = document.createElementNS(SVG_NS, "rect");
+  ring.setAttribute("class", "seat-focus");
+  ring.setAttribute("x", String(x));
+  ring.setAttribute("y", String(y));
+  ring.setAttribute("width", String(w));
+  ring.setAttribute("height", String(h));
+  ring.setAttribute("rx", "3");
+  svg.appendChild(ring);
+
+  const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+  if (vb.length < 4 || !vb[2] || !vb[3]) return true;
+
+  attachMapGestures(container);
+  const state = states.get(container);
+  if (!state) return true;
+
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  if (width <= 0 || height <= 0) return true;
+
+  const k = width / vb[2];
+  const px = (x + w / 2 - vb[0]) * k;
+  const py = (y + h / 2 - vb[1]) * k;
+
+  state.scale = clamp(2.5, MIN_SCALE, MAX_SCALE);
+  state.x = Math.min(
+    0,
+    Math.max(
+      width - width * state.scale,
+      width / 2 - px * state.scale,
+    ),
+  );
+  state.y = Math.min(
+    0,
+    Math.max(
+      height - height * state.scale,
+      height / 2 - py * state.scale,
+    ),
+  );
+  apply(container, state);
+  return true;
 }

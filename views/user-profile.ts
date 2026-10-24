@@ -270,11 +270,19 @@ function logtimeCard(p: UserProfile) {
   const s = state!;
   return html`<div class="card bg-base-100 shadow-xl mb-4">
     <div class="card-body py-3 gap-1">
-      <button
-        type="button"
-        class="flex items-center gap-2 w-full text-left"
+      <div
+        class="flex items-center gap-2 w-full text-left cursor-pointer select-none"
+        role="button"
+        tabindex="0"
         aria-expanded="${s.logtimeOpen ? "true" : "false"}"
         @click=${toggleLogtime}
+        @keydown=${(e: KeyboardEvent) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleLogtime();
+          }
+        }}
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
@@ -291,7 +299,7 @@ function logtimeCard(p: UserProfile) {
             >${svg18(CHEVRON_DOWN_SVG)}</span
           >
         </span>
-      </button>
+      </div>
       ${s.logtimeOpen ? html`<div class="mt-2">${logtimeContent(p)}</div>` : ""}
     </div>
   </div>`;

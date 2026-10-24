@@ -38,7 +38,7 @@ export function setTabHidden(tab: Tab, isHidden: boolean): void {
 }
 
 export function currentTab(): Tab {
-  const hash = location.hash.replace(/^#\/?/, "");
+  const hash = location.hash.replace(/^#\/?/, "").split("?")[0];
   if (
     hash === "dashboard" ||
     hash === "profile" ||
@@ -81,6 +81,19 @@ export function navigateToUser(login: string): void {
 export function navigate(tab: Tab): void {
   if (location.hash === `#/${tab}`) return;
   location.hash = `/${tab}`;
+  routeRenderer();
+}
+
+/** Opens the Clusters tab focused on a seat (like the extension's map dialog). */
+export function navigateToSeat(seat: string): void {
+  const normalized = seat.trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,64}$/.test(normalized)) return;
+  const target = `/clusters?seat=${encodeURIComponent(normalized)}`;
+  if (location.hash === `#${target}`) {
+    routeRenderer();
+    return;
+  }
+  location.hash = target;
   routeRenderer();
 }
 

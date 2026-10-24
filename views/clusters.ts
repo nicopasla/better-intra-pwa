@@ -4,13 +4,13 @@ import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
-import {
-  customAvatarUrl,
-  initialAvatarDataUrl,
-} from "../lib/avatar.ts";
+import { customAvatarUrl, initialAvatarDataUrl } from "../lib/avatar.ts";
 import { mockMode } from "../mock.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
-import { attachMapGestures } from "./clusters-feature/map-gestures.ts";
+import {
+  attachMapGestures,
+  focusMapSeat,
+} from "./clusters-feature/map-gestures.ts";
 import { CLUSTER_MAPS, findClusterMap } from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
@@ -42,8 +42,29 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
  * Cluster maps other than FU are disabled for now.
  */
 let activeTab = "active";
+/** Seat route (`#/clusters?seat=…`), applied once per change. */
+let focusedSeat: string | null = null;
 
 const sortState = loadActiveSort();
+
+function seatFromHash(): string | null {
+  const raw = location.hash.replace(/^#\/?/, "");
+  const query = raw.indexOf("?");
+  if (query === -1) return null;
+  const seat = new URLSearchParams(raw.slice(query + 1))
+    .get("seat")
+    ?.trim()
+    .toLowerCase();
+  return seat || null;
+}
+
+/** Longest available map id that prefixes the seat (`shi-r1-p1` → `shi`). */
+function mapIdForSeat(seat: string): string | null {
+  const match = CLUSTER_MAPS.filter(
+    (m) => m.available && seat.startsWith(`${m.id}-`),
+  ).sort((a, b) => b.id.length - a.id.length)[0];
+  return match?.id ?? null;
+}
 
 function setSort(mode: ActiveSortMode): void {
   toggleActiveSort(sortState, mode);
@@ -54,6 +75,7 @@ function switchTab(id: string): void {
   if (id === activeTab) return;
   if (id !== "active" && !findClusterMap(id)?.available) return;
   activeTab = id;
+  focusedSeat = null;
   refresh();
 }
 
@@ -94,6 +116,13 @@ function startTimers(): void {
 }
 
 export function clustersView(): unknown {
+  const seat = seatFromHash();
+  if (seat) {
+    const mapId = mapIdForSeat(seat);
+    activeTab = mapId ?? "active";
+  } else {
+    focusedSeat = null;
+  }
   if (activeTab !== "active") {
     const map = findClusterMap(activeTab);
     if (map) return mapView(map);
@@ -484,4 +513,14 @@ export function clustersAttachObservers(): void {
   ensureOutsideClose();
   refreshLabel();
   applyMapOccupancy();
+  const seat = seatFromHash();
+  if (!seat) return;
+  const mapEl = document.getElementById("ft-cluster-map");
+  if (activeTab !== "active" && mapEl && focusedSeat !== seat) {
+    if (focusMapSeat(mapEl, seat)) focusedSeat = seat;
+  }
+  // Consume the route once handled, so switching tabs afterwards doesn't snap
+  // back to the seat's map on every render.
+  const clean = location.hash.replace(/\?.*$/, "");
+  if (clean !== location.hash) history.replaceState(null, "", clean);
 }

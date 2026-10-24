@@ -1,7 +1,8 @@
 import type { LogtimeSettings } from "../../data.ts";
 import { html, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import MAP_PIN_SVG from "../../assets/map-pin.svg?raw";
+import ARROW_SHARE_SVG from "../../assets/arrow_share.svg?raw";
+import { navigateToSeat } from "../../shell.ts";
 import { toLogtimeConfig } from "./config.ts";
 import { getLastSeenFormatted } from "./format.ts";
 import {
@@ -92,7 +93,8 @@ export function lastActiveLabel(
   return value === "N/A" ? "" : `Active ${value}`;
 }
 
-/** The logtime card's status badge: seat (with pin) when online, else last active. */
+/** The logtime card's status badge: seat (with an open arrow) when online,
+ *  else the last active day. */
 export function activeLabelBadge(
   days: Record<string, number> | null | undefined,
   settings?: LogtimeSettings | null,
@@ -102,11 +104,24 @@ export function activeLabelBadge(
   const label = lastActiveLabel(days, settings, online, location);
   if (!label) return "";
   const seat = online ? location?.trim() : "";
-  const pin = seat
-    ? unsafeHTML(MAP_PIN_SVG.replace("<svg", '<svg width="12" height="12"'))
-    : "";
-  return html`<span
-    class="badge badge-success gap-1 font-bold font-mono tracking-tight lt-active-badge"
-    >${pin}${label}</span
+  if (!seat) {
+    return html`<span
+      class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
+      >${label}</span
+    >`;
+  }
+  const arrow = unsafeHTML(
+    ARROW_SHARE_SVG.replace("<svg", '<svg width="12" height="12"'),
+  );
+  return html`<a
+    class="badge badge-success gap-1 font-bold font-mono tracking-tight lt-active-badge no-underline"
+    href="#/clusters?seat=${seat}"
+    title="Show ${seat} on the cluster map"
+    @click=${(event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      navigateToSeat(seat);
+    }}
+    >${label}${arrow}</a
   >`;
 }
