@@ -1,15 +1,18 @@
 /**
- * Lightweight tooltip for `[data-tip]` elements (the extension's tooltip, minus
- * floating-ui). Hover/focus on desktop, tap on touch. The tooltip is mounted in
- * the topmost open <dialog> when there is one, so it also shows inside modals.
+ * Debounced-free tooltip / popover for `[data-tip]` elements, matching the
+ * Clusters active list popovers: hover on desktop, tap on touch, and a tapped
+ * tooltip stays open until you tap somewhere else (it no longer times out).
+ *
+ * The bubble is mounted in the topmost open <dialog> when there is one, so it
+ * also shows inside modals.
  */
 
 const OFFSET = 8;
-const TOUCH_HIDE_MS = 2200;
 
 let tip: HTMLDivElement | null = null;
 let active: HTMLElement | null = null;
-let touchTimer: ReturnType<typeof setTimeout> | null = null;
+/** Opened by a tap: stays until an outside tap (hover bubbles still auto-hide). */
+let sticky = false;
 let initialized = false;
 
 function container(): HTMLElement {
@@ -26,15 +29,18 @@ function element(): HTMLDivElement {
     "position:fixed",
     "z-index:2147483647",
     "pointer-events:none",
-    "max-width:16rem",
-    "padding:0.35rem 0.55rem",
-    "border-radius:0.5rem",
-    "font-size:12px",
+    "max-width:18rem",
+    "padding:0.6rem 0.75rem",
+    "border-radius:var(--radius-box,1rem)",
+    "background:var(--color-base-100)",
+    "color:var(--color-base-content)",
+    "border:1px solid var(--color-base-300)",
+    "font-size:0.875rem",
     "font-weight:500",
-    "line-height:1.25",
+    "line-height:1.3",
     "white-space:normal",
     "text-align:center",
-    "box-shadow:0 4px 14px rgba(0,0,0,.25)",
+    "box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1)",
     "opacity:0",
     "visibility:hidden",
   ].join(";");
@@ -48,25 +54,8 @@ function targetOf(node: EventTarget | null): HTMLElement | null {
   return el.closest<HTMLElement>("[data-tip]");
 }
 
-function show(target: HTMLElement): void {
-  const text = target.dataset.tip?.trim();
-  if (!text) return;
-
+function place(target: HTMLElement): void {
   const el = element();
-  const host = container();
-  if (el.parentElement !== host) host.appendChild(el);
-
-  const dark = document.documentElement.dataset.theme === "dark";
-  el.style.background = dark ? "#181b23" : "#ffffff";
-  el.style.color = dark ? "#e8eaf0" : "#1a1d24";
-  el.style.border = `1px solid ${
-    dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)"
-  }`;
-  el.textContent = text;
-
-  // Measure invisibly, then place above the target (below if there's no room).
-  el.style.visibility = "hidden";
-  el.style.opacity = "0";
   const rect = target.getBoundingClientRect();
   const width = el.offsetWidth;
   const height = el.offsetHeight;
@@ -78,17 +67,30 @@ function show(target: HTMLElement): void {
 
   el.style.left = `${Math.round(left)}px`;
   el.style.top = `${Math.round(top)}px`;
+}
+
+function show(target: HTMLElement, keep = false): void {
+  const text = target.dataset.tip?.trim();
+  if (!text) return;
+
+  const el = element();
+  const host = container();
+  if (el.parentElement !== host) host.appendChild(el);
+
+  el.textContent = text;
+  el.style.visibility = "hidden";
+  el.style.opacity = "0";
+  place(target);
   el.style.visibility = "visible";
   el.style.opacity = "1";
+
   active = target;
+  sticky = keep;
 }
 
 function hide(): void {
   active = null;
-  if (touchTimer) {
-    clearTimeout(touchTimer);
-    touchTimer = null;
-  }
+  sticky = false;
   if (!tip) return;
   tip.style.opacity = "0";
   tip.style.visibility = "hidden";
@@ -103,35 +105,52 @@ export function initTooltips(): void {
     if (e.pointerType === "touch") return;
     const target = targetOf(e.target);
     if (!target || target === active) return;
-    if (touchTimer) {
-      clearTimeout(touchTimer);
-      touchTimer = null;
-    }
     show(target);
   });
 
   document.addEventListener("pointerout", (e) => {
+    if (sticky) return;
     const target = targetOf(e.target);
     if (target && target === active) hide();
   });
 
   document.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "touch") return;
     const target = targetOf(e.target);
-    if (!target) return;
-    show(target);
-    if (touchTimer) clearTimeout(touchTimer);
-    touchTimer = setTimeout(() => {
-      if (active === target) hide();
-    }, TOUCH_HIDE_MS);
+    if (e.pointerType === "touch") {
+      if (target) {
+        // Tap: open, or close when tapping the same element again.
+        if (target === active) hide();
+        else show(target, true);
+        return;
+      }
+      hide();
+      return;
+    }
+    // Mouse/trackpad: a click elsewhere closes a tapped-open bubble.
+    if (!target && sticky) hide();
   });
 
   document.addEventListener("focusin", (e) => {
     const target = targetOf(e.target);
-    if (target) show(target);
+    if (target && e.target !== active) show(target);
   });
-  document.addEventListener("focusout", () => hide());
+  document.addEventListener("focusout", () => {
+    if (!sticky) hide();
+  });
 
-  document.addEventListener("scroll", () => hide(), true);
-  window.addEventListener("resize", () => hide(), { passive: true });
+  // A fixed bubble would drift away from its cell: drop it when scrolling.
+  document.addEventListener(
+    "scroll",
+    () => {
+      if (active) hide();
+    },
+    true,
+  );
+  window.addEventListener(
+    "resize",
+    () => {
+      if (active) hide();
+    },
+    { passive: true },
+  );
 }
