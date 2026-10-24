@@ -264,10 +264,18 @@ function logtimeCard() {
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
-          ${logtimeDays
+          ${lastActiveLabel(
+            logtimeDays,
+            logtimeSettings,
+            Boolean(meData?.location),
+          )
             ? html`<span
                 class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
-                >${lastActiveLabel(logtimeDays, logtimeSettings)}</span
+                >${lastActiveLabel(
+                  logtimeDays,
+                  logtimeSettings,
+                  Boolean(meData?.location),
+                )}</span
               >`
             : ""}
           <span

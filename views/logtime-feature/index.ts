@@ -73,11 +73,15 @@ export function logtimeSection(props: LogtimeSectionProps) {
   return renderContainer(header, cards, config, props.onSliderRendered);
 }
 
-/** "Active 23/10" (or "" when there is no recorded day yet). */
+/** "Active 23/10" (or "" when there is no recorded day yet). Online users
+ *  read "Active now": their current session is still open, so 42 has no
+ *  completed day for today yet. */
 export function lastActiveLabel(
   days: Record<string, number> | null | undefined,
   settings?: LogtimeSettings | null,
+  online = false,
 ): string {
+  if (online) return "Active now";
   if (!days) return "";
   const config = toLogtimeConfig(settings);
   const value = getLastSeenFormatted(days, config.show_days_mode);

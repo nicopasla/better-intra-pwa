@@ -427,10 +427,10 @@ function logtimeCard(p: UserProfile) {
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
-          ${s.days
+          ${lastActiveLabel(s.days, p.logtime, Boolean(p.location))
             ? html`<span
                 class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
-                >${lastActiveLabel(s.days, p.logtime)}</span
+                >${lastActiveLabel(s.days, p.logtime, Boolean(p.location))}</span
               >`
             : ""}
           <span
