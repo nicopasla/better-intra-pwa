@@ -6,14 +6,16 @@ import {
   events,
   getBlob,
   logtimeHistory,
+  userProfile,
   Me,
   UpcomingEval,
   UpcomingResponse,
   CalendarEvent,
   type LogtimeSettings,
+  type UserProfile,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { currentTab, navigate, navigateToUser } from "../shell.ts";
+import { currentTab, navigate } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { readScopedCache, writeCache } from "../lib/cache.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
@@ -24,8 +26,6 @@ import {
   getExistingSubscription,
   pushSupported,
 } from "../push.ts";
-import { saveData } from "../lib/network.ts";
-import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort, evalCountdown } from "../lib/format.ts";
 import { lastActiveLabel, logtimeSection } from "./logtime-feature/index.ts";
@@ -33,9 +33,7 @@ import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
-import WALLET_SVG from "../assets/wallet.svg?raw";
-import EVAL_SVG from "../assets/eval.svg?raw";
-import STAR_SVG from "../assets/star-lucide.svg?raw";
+import { profileHero } from "./profile-hero.ts";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
@@ -52,8 +50,12 @@ let stale = false;
 let pushBusy = false;
 let pushError = "";
 let pushSubscribed: boolean | null = null;
-/** User's profile color (synced custom color), used for the stat badges. */
+/** User's profile color (synced custom color), used for the project stats. */
 let profileColor = "#00BABC";
+/** Full profile payload: the home header reuses the profile page's hero. */
+let myProfile: UserProfile | null = null;
+let showOriginalAvatar = false;
+let avatarFailed = false;
 
 let logtimeOpen = false;
 let logtimeDays: Record<string, number> | null = null;
@@ -102,7 +104,7 @@ export function dashboardView(): unknown {
     `;
   }
   return html`
-    ${stale ? staleBanner() : ""} ${profileCard()} ${logtimeCard()}
+    ${stale ? staleBanner() : ""} ${heroCard()} ${logtimeCard()}
     ${upcomingCard()} ${liveEventsCard()} ${projectsCard()} ${eventsCard()}
   `;
 }
@@ -127,67 +129,45 @@ function card(content: unknown, title?: string) {
   `;
 }
 
-function profileCard() {
-  const m = meData!;
-  return html`
-    <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body">
-        <div class="flex items-center gap-4">
-          <div
-            class="flex-none cursor-pointer rounded-full"
-            role="button"
-            tabindex="0"
-            title="View full profile"
-            @click=${() => navigateToUser(m.login)}
-            @keydown=${(e: KeyboardEvent) => {
-              if (e.key === "Enter" || e.key === " ") navigateToUser(m.login);
-            }}
-          >
-            ${avatarBlock()}
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="font-bold text-lg truncate">${m.displayName}</span>
-              <span
-                class="status ${m.location
-                  ? "status-success"
-                  : "status-error"} shrink-0"
-                title="${m.location ? `Online · ${m.location}` : "Offline"}"
-              ></span>
-            </div>
-            <div class="text-sm opacity-60 truncate">${m.login}</div>
-            ${(m.groups ?? []).length
-              ? html`<div
-                  class="flex gap-2 mt-2 overflow-x-auto pb-1"
-                  data-no-swipe
-                >
-                  ${(m.groups ?? []).map(
-                    (g) =>
-                      html`<span
-                        class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
-                        >${g}</span
-                      >`,
-                  )}
-                </div>`
-              : ""}
-          </div>
-        </div>
-        <div class="flex gap-2 mt-2">
-          ${statBadge(m.level.toFixed(2), STAR_SVG)}
-          ${statBadge(m.wallet.toLocaleString(), WALLET_SVG)}
-          ${statBadge(String(m.correctionPoints), EVAL_SVG)}
-        </div>
-      </div>
-    </div>
-  `;
+function heroCard() {
+  if (!myProfile) return heroSkeleton();
+  return profileHero(myProfile, {
+    showShare: false,
+    showOriginalAvatar,
+    avatarFailed,
+    onToggleAvatar: () => {
+      showOriginalAvatar = !showOriginalAvatar;
+      refresh();
+    },
+    onAvatarError: () => {
+      if (avatarFailed) return;
+      avatarFailed = true;
+      refresh();
+    },
+  });
 }
 
-function statBadge(value: string, icon?: string) {
+function heroSkeleton() {
   return html`<div
-    class="badge badge-lg h-auto flex-1 justify-center gap-2 py-2"
-    style="border:2px solid ${profileColor};"
+    class="card bg-base-100 shadow-xl mb-4 overflow-hidden relative"
   >
-    ${icon ? svg18(icon) : ""}<span class="font-semibold">${value}</span>
+    <div class="h-28 w-full bg-base-200 animate-pulse"></div>
+    <div class="card-body pt-0 gap-3">
+      <div class="flex items-end gap-3 -mt-12">
+        <div
+          class="w-24 h-24 rounded-full ring-4 ring-base-100 bg-base-300 flex-none"
+        ></div>
+        <div class="min-w-0 pb-1 flex-1 flex flex-col gap-2">
+          <div class="h-4 w-32 rounded bg-base-300"></div>
+          <div class="h-3 w-20 rounded bg-base-300"></div>
+        </div>
+      </div>
+      <div class="flex justify-center gap-1.5">
+        <div class="h-6 w-16 rounded-full bg-base-200"></div>
+        <div class="h-6 w-16 rounded-full bg-base-200"></div>
+        <div class="h-6 w-16 rounded-full bg-base-200"></div>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -220,35 +200,6 @@ function projectStat(label: string, value: number) {
     <span class="text-xs font-medium opacity-70">${label}</span>
     <span class="text-lg font-bold leading-none">${value}</span>
   </div>`;
-}
-
-function avatarBlock() {
-  const m = meData!;
-  if (saveData) {
-    return html`<div
-      class="w-20 h-20 rounded-full shadow-lg flex-none bg-base-300 flex items-center justify-center text-2xl font-bold"
-    >
-      ${m.login[0]?.toUpperCase() ?? "?"}
-    </div>`;
-  }
-  if (m.customAvatar) {
-    return html`<div
-      class="w-20 h-20 rounded-full shadow-lg flex-none"
-      style="border-radius:${m.avatarShape === "square"
-        ? "0"
-        : "9999px"};background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
-    ></div>`;
-  }
-  if (!AVATARS_ENABLED) {
-    return initialsAvatar(m.login, "w-20 h-20 shadow-lg flex-none text-2xl");
-  }
-  return html`<img
-    src="${m.image ?? "/icons/icon-192.png"}"
-    onerror="this.onerror=null;this.src='/icons/icon-192.png'"
-    referrerpolicy="no-referrer"
-    class="w-20 h-20 rounded-full shadow-lg object-cover flex-none"
-    alt=""
-  />`;
 }
 
 // ---------------------------------------------------------------------------
@@ -754,12 +705,13 @@ function formatDuration(start: Date, end: Date): string {
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 const DASHBOARD_CACHE = "dashboard";
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 interface DashboardCache {
   v: number;
   login: string;
   me: Me;
+  myProfile: UserProfile | null;
   upcoming: UpcomingResponse;
   events: CalendarEvent[];
   profileColor: string;
@@ -769,6 +721,7 @@ export function hydrateDashboardCache(): void {
   const cached = readScopedCache<DashboardCache>(DASHBOARD_CACHE);
   if (!cached || cached.v !== CACHE_VERSION) return;
   meData = cached.me;
+  myProfile = cached.myProfile ?? null;
   upcoming = { ...cached.upcoming, items: mergeEvals(cached.upcoming.items) };
   allEvents = cached.events;
   if (cached.profileColor) profileColor = cached.profileColor;
@@ -782,6 +735,7 @@ function writeDashboardCache(): void {
     v: CACHE_VERSION,
     login: session.login,
     me: meData,
+    myProfile,
     upcoming,
     events: allEvents,
     profileColor,
@@ -800,40 +754,49 @@ export function loadDashboard(silent = false): void {
     refresh();
   }
   void refreshPushState();
-  void Promise.allSettled([me(), upcomingEvals(), events(), getBlob()]).then(
-    ([m, u, ev, bl]) => {
-      if (bl.status === "fulfilled") {
-        profileColor = resolveProfileColor(bl.value.settings ?? {});
-        logtimeSettings = logtimeSettingsFromBlob(bl.value.settings);
-      }
-      let failure: unknown = null;
-      if (m.status === "fulfilled") meData = m.value;
-      else failure = m.reason;
-      if (u.status === "fulfilled") {
-        upcoming = { ...u.value, items: mergeEvals(u.value.items) };
-        const now = Date.now();
-        const booked = upcoming.items.filter(
-          (i) => i.state === "booked" && new Date(i.beginAt).getTime() > now,
-        ).length;
-        if (booked > 0) setAppBadge(booked);
-        else clearAppBadge();
-      } else failure ||= u.reason;
-      if (ev.status === "fulfilled") allEvents = ev.value;
-      else failure ||= ev.reason;
-      loading = false;
+  const login = getSession()?.login;
+  const profileRequest = login
+    ? userProfile(login).catch(() => null)
+    : Promise.resolve(null);
+  void Promise.allSettled([
+    me(),
+    upcomingEvals(),
+    events(),
+    getBlob(),
+    profileRequest,
+  ]).then(([m, u, ev, bl, pr]) => {
+    if (bl.status === "fulfilled") {
+      profileColor = resolveProfileColor(bl.value.settings ?? {});
+      logtimeSettings = logtimeSettingsFromBlob(bl.value.settings);
+    }
+    if (pr.status === "fulfilled" && pr.value) myProfile = pr.value;
+    let failure: unknown = null;
+    if (m.status === "fulfilled") meData = m.value;
+    else failure = m.reason;
+    if (u.status === "fulfilled") {
+      upcoming = { ...u.value, items: mergeEvals(u.value.items) };
+      const now = Date.now();
+      const booked = upcoming.items.filter(
+        (i) => i.state === "booked" && new Date(i.beginAt).getTime() > now,
+      ).length;
+      if (booked > 0) setAppBadge(booked);
+      else clearAppBadge();
+    } else failure ||= u.reason;
+    if (ev.status === "fulfilled") allEvents = ev.value;
+    else failure ||= ev.reason;
+    loading = false;
 
-      if (failure && !meData) {
-        error = friendlyError(failure);
-      } else {
-        error = "";
-        writeDashboardCache();
-      }
-      stale = Boolean(failure) && Boolean(meData);
+    if (failure && !meData) {
+      error = friendlyError(failure);
+    } else {
+      error = "";
+      writeDashboardCache();
+    }
+    stale = Boolean(failure) && Boolean(meData);
 
-      if (failure && isRetryableError(failure)) retrier.schedule();
-      else retrier.reset();
-      if (!logtimeDays && !logtimeLoading && !logtimeError) void loadLogtime();
-      refresh();
-    },
-  );
+    if (failure && isRetryableError(failure)) retrier.schedule();
+    else retrier.reset();
+    if (!logtimeDays && !logtimeLoading && !logtimeError) void loadLogtime();
+    refresh();
+  });
 }
