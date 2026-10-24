@@ -5,10 +5,12 @@ import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import {
-  AVATARS_ENABLED,
   avatarErrorFallback,
+  customAvatarUrl,
+  initialAvatarDataUrl,
   initialsAvatar,
 } from "../lib/avatar.ts";
+import { mockMode } from "../mock.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
 import { attachMapGestures } from "./clusters-feature/map-gestures.ts";
 import { CLUSTER_MAPS, findClusterMap } from "./clusters-feature/maps.ts";
@@ -168,6 +170,7 @@ function row(e: OccupancyEntry): unknown {
   const tooltip = e.begin_at
     ? `since ${time} · ${durationLabel(since.getTime())}`
     : "";
+  const avatar = customAvatarUrl(e.custom_avatar) ?? (mockMode ? e.cdn_uri : null);
   return html`
     <li>
       <div class="flex items-center gap-3 py-2">
@@ -175,10 +178,10 @@ function row(e: OccupancyEntry): unknown {
           href="#/u/${e.login}"
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
-          ${AVATARS_ENABLED
+          ${avatar
             ? html`<img
                 class="size-10 rounded-full object-cover shrink-0 bg-base-200"
-                src="${e.cdn_uri}"
+                src="${avatar}"
                 alt="${e.login}"
                 loading="lazy"
                 referrerpolicy="no-referrer"
@@ -240,6 +243,8 @@ function latestRow(entry: OccupancyEntry): unknown {
     ? since.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "—";
   const ago = valid ? formatTimeAgo(since.getTime()) : "—";
+  const avatar =
+    customAvatarUrl(entry.custom_avatar) ?? (mockMode ? entry.cdn_uri : null);
   return html`
     <li>
       <a
@@ -247,10 +252,10 @@ function latestRow(entry: OccupancyEntry): unknown {
         class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
         title="${entry.host} · since ${time}"
       >
-        ${AVATARS_ENABLED
+        ${avatar
           ? html`<img
               class="size-8 rounded-full object-cover shrink-0 bg-base-200"
-              src="${entry.cdn_uri}"
+              src="${avatar}"
               alt="${entry.login}"
               loading="lazy"
               referrerpolicy="no-referrer"
@@ -439,14 +444,24 @@ function applyMapOccupancy(): void {
 
   svg.querySelectorAll<SVGImageElement>("image[id]").forEach((img) => {
     const entry = byHost.get(img.id.toLowerCase());
-    if (entry?.cdn_uri) {
-      img.setAttribute("href", entry.cdn_uri);
-      img.setAttributeNS(XLINK_NS, "xlink:href", entry.cdn_uri);
+    if (entry) {
+      const fallback = initialAvatarDataUrl(entry.login);
+      const src =
+        customAvatarUrl(entry.custom_avatar) ??
+        (mockMode ? entry.cdn_uri : fallback);
+      img.setAttribute("href", src);
+      img.setAttributeNS(XLINK_NS, "xlink:href", src);
       img.setAttribute("data-login", entry.login);
+      img.onerror = () => {
+        img.onerror = null;
+        img.setAttribute("href", fallback);
+        img.setAttributeNS(XLINK_NS, "xlink:href", fallback);
+      };
     } else {
       img.removeAttribute("href");
       img.removeAttributeNS(XLINK_NS, "href");
       img.removeAttribute("data-login");
+      img.onerror = null;
     }
   });
 

@@ -10,12 +10,11 @@ import {
   type UserRecentProject,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { WORKER_URL } from "../api.ts";
 import { mockMode } from "../mock.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
-import { initialsAvatar } from "../lib/avatar.ts";
+import { customAvatarUrl, initialsAvatar } from "../lib/avatar.ts";
 import { saveData } from "../lib/network.ts";
 import { lastActiveLabel, logtimeSection } from "./logtime-feature/index.ts";
 import {
@@ -277,13 +276,11 @@ function hero(p: UserProfile) {
 function avatarBlock(p: UserProfile) {
   const v = p.visuals;
   const size = "w-24 h-24 rounded-full shadow-lg flex-none text-3xl";
-  const hasCustom = Boolean(v.customAvatar);
+  const customSrc = customAvatarUrl(v.customAvatar);
+  const hasCustom = Boolean(customSrc);
   const showCustom = hasCustom && !state?.showOriginalAvatar;
-  // 42's CDN blocks off-origin requests, so avatars go through the worker
-  // proxy here (edge-cached 24h) even though lists still show initials.
-  const src = mockMode
-    ? p.avatar
-    : `${WORKER_URL}/api/v1/public/avatar/${encodeURIComponent(p.login)}`;
+  // 42's CDN is behind a bot challenge; only custom R2 avatars or initials.
+  const src = mockMode ? p.avatar : null;
   const toggleable = hasCustom && !saveData;
   const toggle = () => {
     if (!state) return;
@@ -302,7 +299,7 @@ function avatarBlock(p: UserProfile) {
     if (showCustom) {
       return html`<div
         class="${size} ring-4 ring-base-100"
-        style="background-image:url('${safeUrl(v.customAvatar) ??
+        style="background-image:url('${customSrc ??
         ""}');background-size:${v.avatarScale}%;background-position:${v.avatarPosX}% ${v.avatarPosY}%;background-color:${v.avatarBg};background-repeat:no-repeat;"
       ></div>`;
     }
@@ -325,7 +322,7 @@ function avatarBlock(p: UserProfile) {
     tabindex="0"
     title="${state?.showOriginalAvatar
       ? "Show custom avatar"
-      : "Show 42 avatar"}"
+      : "Show initials"}"
     @click=${toggle}
     @keydown=${(e: KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") toggle();

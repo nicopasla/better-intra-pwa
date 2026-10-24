@@ -29,7 +29,7 @@ npm run deploy     # build, then wrangler deploy
 
 Appending `?mock` to the URL (or building with `VITE_MOCK=1`) skips auth entirely and renders the app with fixture data from `mock.ts`. Useful for UI work without a worker session or network access.
 
-Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Avatar error handling skips the worker proxy in mock mode and falls straight back to the letter placeholder.
+Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production never loads 42 CDN avatars (they sit behind a bot challenge); it uses initials, or a custom avatar uploaded to Better Intra's R2 storage.
 
 ## Toolchain
 

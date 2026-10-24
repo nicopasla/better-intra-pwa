@@ -2,15 +2,10 @@ import { html, type TemplateResult } from "lit-html";
 import { WORKER_URL } from "../api.ts";
 import { mockMode } from "../mock.ts";
 
-const LOGIN_RE = /^[a-z0-9_-]{1,32}$/;
-
 /**
- * Temporary switch: 42's CDN (`cdn.intra.42.fr`) returns 403 to any off-origin
- * request, so avatars can't load in the PWA. While false, avatar render sites
- * show initials instead. Flip back to true once a working image source lands.
- *
- * Mock mode is exempt: its fixtures point at images that do load, so `?mock`
- * renders real avatars for previewing layouts.
+ * Real 42 avatars are not used: the CDN sits behind a bot challenge and must
+ * not be scraped. Production renders initials, or a Better Intra custom avatar
+ * uploaded to our own R2 storage. Mock mode keeps fixture images.
  */
 export const AVATARS_ENABLED: boolean = mockMode;
 
@@ -28,6 +23,41 @@ export function initialsAvatar(
   </div>`;
 }
 
+/** Only accept avatars uploaded to our own public image route. */
+export function customAvatarUrl(value?: string | null): string | null {
+  const raw = (value || "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    const base = new URL(WORKER_URL);
+    if (url.origin !== base.origin) return null;
+    if (!url.pathname.startsWith("/api/v1/public/images/")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fully local avatar for the cluster map: deterministic colour + initial,
+ * emitted as an SVG data URI. No network request and no 42 CDN access.
+ */
+export function initialAvatarDataUrl(login: string): string {
+  const normalized = (login || "?").trim() || "?";
+  let hash = 7;
+  for (const char of normalized) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  const hue = hash % 360;
+  const letter = normalized.charAt(0).toUpperCase() || "?";
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">` +
+    `<rect width="40" height="40" fill="hsl(${hue} 45% 42%)"/>` +
+    `<text x="20" y="27" text-anchor="middle" font-family="system-ui,sans-serif" ` +
+    `font-size="20" font-weight="700" fill="#fff">${letter}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 /** Swaps a broken <img> for a letter placeholder, keeping its sizing classes. */
 function letterFallback(img: HTMLImageElement): void {
   const parent = img.parentElement;
@@ -41,25 +71,8 @@ function letterFallback(img: HTMLImageElement): void {
   parent.replaceChild(span, img);
 }
 
-/**
- * On an avatar load error, retry once through the worker proxy (which fetches
- * the image server-side and bypasses the browser-side CDN rate/bot issues),
- * then fall back to a letter placeholder.
- */
+/** Replaces a failed avatar with a letter placeholder. No proxy retry. */
 export function avatarErrorFallback(e: Event): void {
   const img = e.target as HTMLImageElement;
-  if (!img.isConnected) return;
-
-  // Mock fixtures never resolve through the worker proxy, so go straight to
-  // the letter placeholder instead of calling the real API.
-  if (!mockMode && img.dataset.proxy !== "1") {
-    const login = (img.alt || "").trim().toLowerCase();
-    if (LOGIN_RE.test(login)) {
-      img.dataset.proxy = "1";
-      img.src = `${WORKER_URL}/api/v1/public/avatar/${login}`;
-      return;
-    }
-  }
-
-  letterFallback(img);
+  if (img.isConnected) letterFallback(img);
 }

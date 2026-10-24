@@ -17,6 +17,7 @@ export interface StudentEntry {
   login: string;
   displayname: string;
   image_url: string;
+  custom_avatar?: string | null;
   begin_at?: string | null;
   blackholed_at?: string | null;
   active?: boolean;
