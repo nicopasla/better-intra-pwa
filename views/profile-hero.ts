@@ -13,6 +13,7 @@ import {
   statusBadges,
   walletBadge,
 } from "./user-badges.ts";
+import { contrastText } from "./logtime-feature/color.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 
 const DEFAULT_ACCENT = "#00BABC";
@@ -48,6 +49,9 @@ export function profileHero(
       ? `${p.poolMonth.charAt(0).toUpperCase()}${p.poolMonth.slice(1)} ${p.poolYear}`
       : null;
   const poolLabel = poolFull ?? p.poolLabel ?? "";
+  const groups = (p.groups ?? []).map((g) =>
+    typeof g === "string" ? { name: g, color: null } : g,
+  );
   const poolPart =
     opts.showPool === false ? "" : poolBadge(poolLabel, poolFull);
   const blackholePart =
@@ -88,17 +92,24 @@ export function profileHero(
           </div>
         </div>
 
-        ${(p.groups ?? []).length
+        ${groups.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
               data-no-swipe
             >
-              ${(p.groups ?? []).map(
-                (g) =>
-                  html`<span
-                    class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
-                    >${g}</span
-                  >`,
+              ${groups.map((g) =>
+                g.color
+                  ? html`<span
+                      class="badge badge-lg font-semibold flex-none whitespace-nowrap"
+                      style="background-color:${g.color};border-color:${g.color};color:${contrastText(
+                        g.color,
+                      )};"
+                      >${g.name}</span
+                    >`
+                  : html`<span
+                      class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
+                      >${g.name}</span
+                    >`,
               )}
             </div>`
           : ""}

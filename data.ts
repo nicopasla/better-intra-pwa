@@ -45,6 +45,12 @@ export interface MeAchievement {
   image: string | null;
 }
 
+export interface UserGroup {
+  name: string;
+  /** 42's own group colour, when it has one. */
+  color: string | null;
+}
+
 export interface Me {
   login: string;
   displayName: string;
@@ -65,7 +71,7 @@ export interface Me {
   poolMonth: string | null;
   poolYear: string | null;
   poolLabel: string | null;
-  groups: string[];
+  groups: UserGroup[];
   cursus: MeCursus | null;
   blackholedAt: string | null;
   projects: MeProjects;
@@ -273,7 +279,7 @@ export interface UserProfile {
   poolMonth: string | null;
   poolYear: string | null;
   poolLabel: string | null;
-  groups: string[];
+  groups: UserGroup[];
   cursus: MeCursus | null;
   blackholedAt: string | null;
   projects: UserProjects;
