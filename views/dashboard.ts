@@ -28,7 +28,7 @@ import {
 } from "../push.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort, evalCountdown } from "../lib/format.ts";
-import { logtimeSection } from "./logtime-feature/index.ts";
+import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
@@ -220,6 +220,12 @@ function logtimeCard() {
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
+          ${activeLabelBadge(
+            logtimeDays,
+            logtimeSettings,
+            Boolean(meData?.location),
+            meData?.location,
+          )}
           <span
             class="size-5 flex items-center justify-center opacity-60 transition-transform ${logtimeOpen
               ? "rotate-180"

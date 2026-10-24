@@ -8,7 +8,6 @@ import {
   blackholeBadge,
   evalBadge,
   levelBadge,
-  locationBadge,
   poolBadge,
   statusBadges,
   walletBadge,
@@ -97,7 +96,7 @@ export function profileHero(
 
         <div class="hero-stats">
           ${levelBadge(p.level)} ${walletBadge(p.wallet)}
-          ${evalBadge(p.correctionPoints)} ${locationBadge(p.location)}
+          ${evalBadge(p.correctionPoints)}
         </div>
 
         ${groups.length

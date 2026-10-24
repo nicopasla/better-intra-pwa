@@ -12,7 +12,7 @@ import { refresh } from "../refresh.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
-import { lastActiveLabel, logtimeSection } from "./logtime-feature/index.ts";
+import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { accentFor, profileHero } from "./profile-hero.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
@@ -278,12 +278,12 @@ function logtimeCard(p: UserProfile) {
       >
         <h2 class="text-base font-semibold m-0">Logtime</h2>
         <span class="ml-auto flex items-center gap-2">
-          ${lastActiveLabel(s.days, p.logtime, Boolean(p.location))
-            ? html`<span
-                class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
-                >${lastActiveLabel(s.days, p.logtime, Boolean(p.location))}</span
-              >`
-            : ""}
+          ${activeLabelBadge(
+            s.days,
+            p.logtime,
+            Boolean(p.location),
+            p.location,
+          )}
           <span
             class="size-5 flex items-center justify-center opacity-60 transition-transform ${s.logtimeOpen
               ? "rotate-180"

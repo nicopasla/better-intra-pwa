@@ -1,4 +1,7 @@
 import type { LogtimeSettings } from "../../data.ts";
+import { html, type TemplateResult } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
+import MAP_PIN_SVG from "../../assets/map-pin.svg?raw";
 import { toLogtimeConfig } from "./config.ts";
 import { getLastSeenFormatted } from "./format.ts";
 import {
@@ -80,10 +83,30 @@ export function lastActiveLabel(
   days: Record<string, number> | null | undefined,
   settings?: LogtimeSettings | null,
   online = false,
+  location?: string | null,
 ): string {
-  if (online) return "Active now";
+  if (online) return location?.trim() || "Active now";
   if (!days) return "";
   const config = toLogtimeConfig(settings);
   const value = getLastSeenFormatted(days, config.show_days_mode);
   return value === "N/A" ? "" : `Active ${value}`;
+}
+
+/** The logtime card's status badge: seat (with pin) when online, else last active. */
+export function activeLabelBadge(
+  days: Record<string, number> | null | undefined,
+  settings?: LogtimeSettings | null,
+  online = false,
+  location?: string | null,
+): TemplateResult | "" {
+  const label = lastActiveLabel(days, settings, online, location);
+  if (!label) return "";
+  const seat = online ? location?.trim() : "";
+  const pin = seat
+    ? unsafeHTML(MAP_PIN_SVG.replace("<svg", '<svg width="12" height="12"'))
+    : "";
+  return html`<span
+    class="badge badge-success gap-1 font-bold font-mono tracking-tight lt-active-badge"
+    >${pin}${label}</span
+  >`;
 }
