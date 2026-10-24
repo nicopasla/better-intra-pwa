@@ -1,5 +1,6 @@
 import FU_SVG_RAW from "../../assets/maps/fu.svg?raw";
 import SHI_SVG_RAW from "../../assets/maps/shi.svg?raw";
+import MI_SVG_RAW from "../../assets/maps/mi.svg?raw";
 
 export interface ClusterMapDef {
   /** Matches the cluster name in campuses/belgium.json. */
@@ -19,6 +20,7 @@ const stripStyle = (svg: string): string =>
 
 const FU_SVG = stripStyle(FU_SVG_RAW);
 const SHI_SVG = stripStyle(SHI_SVG_RAW);
+const MI_SVG = stripStyle(MI_SVG_RAW);
 
 function seatIdsFromSvg(svg: string): Set<string> {
   const ids = new Set<string>();
@@ -30,7 +32,7 @@ function seatIdsFromSvg(svg: string): Set<string> {
 }
 
 /**
- * Cluster names come from campuses/belgium.json. Only SHI and FU have maps for
+ * Cluster names come from campuses/belgium.json. SHI, FU and MI have maps for
  * now; the rest are shown as disabled tabs.
  */
 export const CLUSTER_MAPS: ClusterMapDef[] = [
@@ -54,8 +56,9 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     id: "mi",
     label: "MI",
     imageId: "54",
-    available: false,
-    seatIds: new Set(),
+    available: true,
+    svg: MI_SVG,
+    seatIds: seatIdsFromSvg(MI_SVG),
   },
   {
     id: "a2",
