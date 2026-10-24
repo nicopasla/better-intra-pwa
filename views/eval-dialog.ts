@@ -1,12 +1,13 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
+import { userProfile, type UpcomingEval, type UserProfile } from "../data.ts";
 import { navigateToUser } from "../shell.ts";
 import { dateTime, evalCountdown } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
   avatarErrorFallback,
+  customAvatarUrl,
   initialsAvatar,
 } from "../lib/avatar.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
@@ -38,7 +39,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   dialog.style.cssText =
     "margin:auto;padding:0;border:none;outline:none;max-width:24rem;width:calc(100dvw - 2rem);";
 
-  let user: UserLookup | null = null;
+  let user: UserProfile | null = null;
   let error = false;
   let loaded = false;
   /** Empty once the eval has started — then only the date/time badge is shown. */
@@ -61,6 +62,9 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
       </p>`;
     }
     const u = user;
+    const visual = u.visuals;
+    const customSrc = customAvatarUrl(visual.customAvatar);
+    const square = visual.avatarShape === "square";
     return html`
       <div
         class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/40 p-3"
@@ -72,15 +76,22 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           class="avatar ${u.location ? "avatar-online" : ""} shrink-0"
         >
           <div class="w-16 h-16 rounded-full bg-base-300">
-            ${AVATARS_ENABLED
-              ? html`<img
-                  class="w-full h-full rounded-full object-cover"
-                  src="${u.avatar ?? "/icons/icon-192.png"}"
-                  alt="${u.login}"
-                  referrerpolicy="no-referrer"
-                  @error=${avatarErrorFallback}
-                />`
-              : initialsAvatar(u.login, "w-full h-full")}
+            ${customSrc
+              ? html`<div
+                  class="w-full h-full"
+                  style="border-radius:${square
+                    ? "0"
+                    : "9999px"};background-image:url('${customSrc}');background-size:${visual.avatarScale}%;background-position:${visual.avatarPosX}% ${visual.avatarPosY}%;background-color:${visual.avatarBg};background-repeat:no-repeat;"
+                ></div>`
+              : AVATARS_ENABLED
+                ? html`<img
+                    class="w-full h-full rounded-full object-cover"
+                    src="${u.avatar ?? "/icons/icon-192.png"}"
+                    alt="${u.login}"
+                    referrerpolicy="no-referrer"
+                    @error=${avatarErrorFallback}
+                  />`
+                : initialsAvatar(u.login, "w-full h-full")}
           </div>
         </a>
 
@@ -215,7 +226,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   dialog.showModal();
   draw();
 
-  userLookup(login)
+  userProfile(login)
     .then((u) => {
       user = u;
       loaded = true;
