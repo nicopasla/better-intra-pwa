@@ -132,9 +132,6 @@ export async function loadUserProfile(
     retrier.reset();
     cache.set(target, { at: Date.now(), profile, stats });
     writeCache();
-    if (!state.days && !state.logtimeLoading && !state.logtimeError) {
-      void loadLogtime();
-    }
   } catch (e) {
     if (!state || state.login !== target) return;
     if (state.profile) {

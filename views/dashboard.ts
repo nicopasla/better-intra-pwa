@@ -785,7 +785,6 @@ export function loadDashboard(silent = false): void {
 
     if (failure && isRetryableError(failure)) retrier.schedule();
     else retrier.reset();
-    if (!logtimeDays && !logtimeLoading && !logtimeError) void loadLogtime();
     refresh();
   });
 }
