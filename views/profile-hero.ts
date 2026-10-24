@@ -49,9 +49,12 @@ export function profileHero(
       ? `${p.poolMonth.charAt(0).toUpperCase()}${p.poolMonth.slice(1)} ${p.poolYear}`
       : null;
   const poolLabel = poolFull ?? p.poolLabel ?? "";
-  const groups = (p.groups ?? []).map((g) =>
-    typeof g === "string" ? { name: g, color: null } : g,
-  );
+  const groups = (p.groups ?? []).map((g) => {
+    const name = typeof g === "string" ? g : g.name;
+    const color =
+      (typeof g === "string" ? null : g.color) ?? v.groupColors?.[name] ?? null;
+    return { name, color };
+  });
   const poolPart =
     opts.showPool === false ? "" : poolBadge(poolLabel, poolFull);
   const blackholePart =

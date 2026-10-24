@@ -219,6 +219,8 @@ export interface UserVisuals {
   background: string | null;
   backgroundMode: string;
   backgroundColor: string | null;
+  /** Group-name → 42 colour, captured by the extension. */
+  groupColors?: Record<string, string>;
 }
 
 /** The owner's LOGTIME_* preferences, so their calendar renders as they see it. */
