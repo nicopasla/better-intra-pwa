@@ -568,7 +568,7 @@ export function renderStudentsDialogTemplate(
         </div>
         ${pool || date ? html`<div class="row-line">${pool}${date}</div>` : ""}
         ${level || evalBadge || wallet
-          ? html`<div class="row-line">${level}${evalBadge}${wallet}</div>`
+          ? html`<div class="row-line">${level}${wallet}${evalBadge}</div>`
           : ""}
       </div>
     `;
@@ -582,7 +582,7 @@ export function renderStudentsDialogTemplate(
       ${renderAvatar(r)} ${renderInfo(r)}
       <div class="row-meta">
         ${renderPoolBadge(r)}${renderDateBadge(r)}${renderLevelBadge(r)}
-        ${renderEvalBadge(r)}${renderWalletBadge(r)}
+        ${renderWalletBadge(r)}${renderEvalBadge(r)}
       </div>
     </div>
   `;
