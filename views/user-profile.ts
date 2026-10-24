@@ -299,7 +299,9 @@ function avatarBlock(p: UserProfile) {
     if (showCustom) {
       return html`<div
         class="${size} ring-4 ring-base-100"
-        style="background-image:url('${customSrc ??
+        style="border-radius:${v.avatarShape === "square"
+          ? "0"
+          : "9999px"};background-image:url('${customSrc ??
         ""}');background-size:${v.avatarScale}%;background-position:${v.avatarPosX}% ${v.avatarPosY}%;background-color:${v.avatarBg};background-repeat:no-repeat;"
       ></div>`;
     }
@@ -318,6 +320,7 @@ function avatarBlock(p: UserProfile) {
   if (!toggleable) return inner;
   return html`<div
     class="flex-none cursor-pointer rounded-full"
+    style="border-radius:${v.avatarShape === "square" ? "0" : "9999px"}"
     role="button"
     tabindex="0"
     title="${state?.showOriginalAvatar

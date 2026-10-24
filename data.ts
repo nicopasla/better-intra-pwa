@@ -73,6 +73,7 @@ export interface Me {
   achievementsCount: number;
   customAvatar: string | null;
   avatarBg: string;
+  avatarShape?: "round" | "square";
   avatarPosX: number;
   avatarPosY: number;
   avatarScale: number;
@@ -120,6 +121,7 @@ export interface Friend {
   avatar: string | null;
   customAvatar: string | null;
   avatarBg?: string;
+  avatarShape?: "round" | "square";
   avatarPosX?: number;
   avatarPosY?: number;
   avatarScale?: number;
@@ -201,6 +203,7 @@ export interface UserVisuals {
   profileColor: string | null;
   customAvatar: string | null;
   avatarBg: string;
+  avatarShape?: "round" | "square";
   avatarPosX: number;
   avatarPosY: number;
   avatarScale: number;

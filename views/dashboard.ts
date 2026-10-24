@@ -234,7 +234,9 @@ function avatarBlock() {
   if (m.customAvatar) {
     return html`<div
       class="w-20 h-20 rounded-full shadow-lg flex-none"
-      style="background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
+      style="border-radius:${m.avatarShape === "square"
+        ? "0"
+        : "9999px"};background-image:url('${m.customAvatar}');background-size:${m.avatarScale}%;background-position:${m.avatarPosX}% ${m.avatarPosY}%;background-color:${m.avatarBg};background-repeat:no-repeat;"
     ></div>`;
   }
   if (!AVATARS_ENABLED) {
