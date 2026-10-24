@@ -241,27 +241,3 @@ export function attachMapGestures(container: HTMLElement): void {
   new ResizeObserver(() => apply(container, state)).observe(container);
   apply(container, state);
 }
-
-export function zoomMapBy(container: HTMLElement | null, factor: number): void {
-  if (!container) return;
-  const state = states.get(container);
-  if (!state) return;
-  const rect = container.getBoundingClientRect();
-  zoomAt(
-    container,
-    state,
-    rect.left + rect.width / 2,
-    rect.top + rect.height / 2,
-    factor,
-  );
-}
-
-export function resetMapZoom(container: HTMLElement | null): void {
-  if (!container) return;
-  const state = states.get(container);
-  if (!state) return;
-  state.scale = 1;
-  state.x = 0;
-  state.y = 0;
-  apply(container, state);
-}

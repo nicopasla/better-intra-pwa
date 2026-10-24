@@ -10,11 +10,7 @@ import {
   initialsAvatar,
 } from "../lib/avatar.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
-import {
-  attachMapGestures,
-  resetMapZoom,
-  zoomMapBy,
-} from "./clusters-feature/map-gestures.ts";
+import { attachMapGestures } from "./clusters-feature/map-gestures.ts";
 import { CLUSTER_MAPS, findClusterMap } from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
@@ -30,9 +26,6 @@ import type {
 
 const POLL_INTERVAL = 60_000;
 const LATEST_LIMIT = 5;
-
-const mapElement = (): HTMLElement | null =>
-  document.getElementById("ft-cluster-map");
 
 const SEP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
 
@@ -300,43 +293,12 @@ function mapView(map: ClusterMapDef): unknown {
               ${taken} / ${map.seatIds.size}
             </span>
           </div>
-          <div class="flex items-center gap-1">
-            <div class="join">
-              <button
-                class="btn btn-sm join-item"
-                style="height:2.5rem;min-width:2.5rem;padding:0"
-                aria-label="Zoom out"
-                title="Zoom out"
-                @click=${() => zoomMapBy(mapElement(), 0.8)}
-              >
-                &minus;
-              </button>
-              <button
-                class="btn btn-sm join-item"
-                style="height:2.5rem;min-width:2.5rem;padding:0"
-                aria-label="Zoom in"
-                title="Zoom in"
-                @click=${() => zoomMapBy(mapElement(), 1.25)}
-              >
-                +
-              </button>
-              <button
-                class="btn btn-sm join-item"
-                style="height:2.5rem;padding-inline:0.75rem"
-                aria-label="Fit map"
-                title="Fit map"
-                @click=${() => resetMapZoom(mapElement())}
-              >
-                Fit
-              </button>
-            </div>
-            <span
-              id="ft-clusters-countdown"
-              class="badge badge-outline tabular-nums opacity-70"
-              style="height:2.5rem;min-width:2.5rem;justify-content:center"
-              title="Auto-refreshes every minute"
-            ></span>
-          </div>
+          <span
+            id="ft-clusters-countdown"
+            class="badge badge-outline tabular-nums opacity-70"
+            style="height:2.5rem;min-width:2.5rem;justify-content:center"
+            title="Auto-refreshes every minute"
+          ></span>
         </div>
         ${svg
           ? html`<div
