@@ -33,6 +33,7 @@ import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
+import { hideHomeBlackhole } from "../lib/prefs.ts";
 import { profileHero } from "./profile-hero.ts";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
@@ -133,6 +134,8 @@ function heroCard() {
   if (!myProfile) return heroSkeleton();
   return profileHero(myProfile, {
     showShare: false,
+    showPool: false,
+    showBlackhole: !hideHomeBlackhole(),
     showOriginalAvatar,
     avatarFailed,
     onToggleAvatar: () => {

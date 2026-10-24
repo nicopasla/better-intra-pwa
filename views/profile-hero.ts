@@ -25,6 +25,10 @@ export interface ProfileHeroOptions {
   avatarFailed?: boolean;
   /** Show the "open on intra" link (disabled on the home dashboard). */
   showShare?: boolean;
+  /** Show the pool badge (disabled on the home dashboard). */
+  showPool?: boolean;
+  /** Show the blackhole date badge. */
+  showBlackhole?: boolean;
   onToggleAvatar?: () => void;
   onAvatarError?: () => void;
 }
@@ -44,8 +48,17 @@ export function profileHero(
       ? `${p.poolMonth.charAt(0).toUpperCase()}${p.poolMonth.slice(1)} ${p.poolYear}`
       : null;
   const poolLabel = poolFull ?? p.poolLabel ?? "";
+  const poolPart =
+    opts.showPool === false ? "" : poolBadge(poolLabel, poolFull);
+  const blackholePart =
+    opts.showBlackhole === false ? "" : blackholeBadge(p.blackholedAt);
+  const statusPart = statusBadges(p);
+  const hasBottomRow =
+    poolPart !== "" || blackholePart !== "" || statusPart !== "";
   return html`
-    <div class="card bg-base-100 shadow-xl mb-4 overflow-hidden relative">
+    <div
+      class="profile-hero card bg-base-100 shadow-xl mb-4 overflow-hidden relative"
+    >
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
       ${opts.showShare === false
         ? ""
@@ -94,10 +107,11 @@ export function profileHero(
           ${levelBadge(p.level)} ${walletBadge(p.wallet)}
           ${evalBadge(p.correctionPoints)} ${locationBadge(p.location)}
         </div>
-        <div class="flex items-center justify-center gap-1.5 flex-wrap">
-          ${poolBadge(poolLabel, poolFull)} ${blackholeBadge(p.blackholedAt)}
-          ${statusBadges(p)}
-        </div>
+        ${hasBottomRow
+          ? html`<div class="flex items-center justify-center gap-1.5 flex-wrap">
+              ${poolPart} ${blackholePart} ${statusPart}
+            </div>`
+          : ""}
       </div>
     </div>
   `;

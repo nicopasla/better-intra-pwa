@@ -36,6 +36,7 @@ import {
   PWA_REPO_URL,
 } from "../lib/community.ts";
 import { clearCache, resetData } from "../lib/app-data.ts";
+import { hideHomeBlackhole, setHideHomeBlackhole } from "../lib/prefs.ts";
 import {
   getThemePreference,
   setThemePreference,
@@ -165,6 +166,7 @@ export function settingsView(): TemplateResult {
   return html`
     ${section("Notifications", notificationsSection())}
     ${isStandalone() ? "" : section("Install", installSection())}
+    ${section("Home", homeSection())}
     ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("Community", communitySection())}
@@ -207,6 +209,23 @@ function section(title: string, content: unknown) {
         ${content}
       </div>
     </div>
+  `;
+}
+
+function homeSection() {
+  return html`
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="text-sm font-semibold">Hide blackhole date</span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary shrink-0"
+        .checked=${hideHomeBlackhole()}
+        @change=${(e: Event) => {
+          setHideHomeBlackhole((e.target as HTMLInputElement).checked);
+          refresh();
+        }}
+      />
+    </label>
   `;
 }
 
