@@ -93,6 +93,21 @@ const fmtDateShort = new Intl.DateTimeFormat(LOCALE, {
   year: "2-digit",
 });
 
+/** Countdown to an eval: "in 14 min", "in 2h 05m", "in 3d 4h". Returns "" once
+ *  the start has passed, so callers fall back to the clock time instead of
+ *  showing "now"/"12m ago" on an evaluation that is over. */
+export function evalCountdown(iso: string, baseMs: number = Date.now()): string {
+  const diff = new Date(iso).getTime() - baseMs;
+  if (!Number.isFinite(diff) || diff <= 0) return "";
+  const pad2 = (n: number): string => String(n).padStart(2, "0");
+  const totalMin = Math.floor(diff / 60000);
+  if (totalMin < 60) return `in ${totalMin} min`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h < 24) return m ? `in ${h}h ${pad2(m)}m` : `in ${h}h`;
+  return `in ${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
 /** "14:05" when today, else "05/01/26 14:05" (device locale/tz). */
 export function dateTimeShort(iso: string | number | Date): string {
   const date = new Date(iso);

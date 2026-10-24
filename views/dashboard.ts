@@ -25,7 +25,7 @@ import {
 import { saveData } from "../lib/network.ts";
 import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
-import { dateTimeShort } from "../lib/format.ts";
+import { dateTimeShort, evalCountdown } from "../lib/format.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
@@ -300,6 +300,7 @@ function evalRow(e: UpcomingEval) {
         : e.correcteds?.[0]
       : undefined;
   const label = person ?? (e.state === "revealed" ? "Revealed" : "Booked");
+  const countdown = evalCountdown(e.beginAt);
   return html`<li
     class="flex items-center justify-between gap-3 py-2 ${person
       ? "cursor-pointer -mx-2 px-2 rounded-lg hover:bg-base-200 transition-colors"
@@ -309,7 +310,7 @@ function evalRow(e: UpcomingEval) {
     <div class="min-w-0">
       <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
       <div class="text-xs opacity-60">
-        ${label} · ${dateTimeShort(e.beginAt)}
+        ${countdown ? `${label} · ${dateTimeShort(e.beginAt)}` : label}
       </div>
     </div>
     <div class="flex items-center gap-1 flex-none">
@@ -330,7 +331,7 @@ function evalRow(e: UpcomingEval) {
         class="badge badge-lg whitespace-nowrap ${e.state === "revealed"
           ? "badge-success"
           : "badge-warning"}"
-        >${countdown(e.beginAt)}</span
+        >${countdown || dateTimeShort(e.beginAt)}</span
       >
       ${started
         ? html`<button
@@ -612,25 +613,6 @@ function formatDuration(start: Date, end: Date): string {
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
-
-function countdown(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) {
-    const totalMin = Math.floor(-diff / 60000);
-    if (totalMin < 1) return "now";
-    if (totalMin < 60) return `${totalMin}m ago`;
-    const h = Math.floor(totalMin / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  }
-  const totalMin = Math.floor(diff / 60000);
-  if (totalMin < 60) return `in ${totalMin} min`;
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  if (h < 24) return m ? `in ${h}h ${pad2(m)}m` : `in ${h}h`;
-  const d = Math.floor(h / 24);
-  return `in ${d}d ${h % 24}h`;
-}
 
 const DASHBOARD_CACHE = "dashboard";
 const CACHE_VERSION = 1;

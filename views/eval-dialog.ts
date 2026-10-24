@@ -1,7 +1,7 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userLookup, type UpcomingEval, type UserLookup } from "../data.ts";
-import { dateTime } from "../lib/format.ts";
+import { dateTime, evalCountdown } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
@@ -27,16 +27,6 @@ const DIALOG_ID = "ft-eval-dialog";
 const clusterUrl = (seat: string) =>
   `https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(seat)}`;
 
-function countdown(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return "now";
-  const totalMin = Math.floor(diff / 60000);
-  if (totalMin < 60) return `in ${totalMin} min`;
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return m ? `in ${h}h${m}` : `in ${h}h`;
-}
-
 /** Opens a small dialog with the corrected user's profile. */
 export function openEvalDialog(e: UpcomingEval, login: string): void {
   document.getElementById(DIALOG_ID)?.remove();
@@ -50,6 +40,8 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   let user: UserLookup | null = null;
   let error = false;
   let loaded = false;
+  /** Empty once the eval has started — then only the date/time badge is shown. */
+  const countdown = evalCountdown(e.beginAt);
 
   const close = () => {
     dialog.close();
@@ -151,11 +143,13 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
         : ""}
 
       <div class="flex gap-2 mt-3">
-        <span
-          class="badge badge-lg flex-[0.8] justify-center text-base font-semibold"
-          style="${TIME_STYLE}"
-          >${countdown(e.beginAt)}</span
-        >
+        ${countdown
+          ? html`<span
+              class="badge badge-lg flex-[0.8] justify-center text-base font-semibold"
+              style="${TIME_STYLE}"
+              >${countdown}</span
+            >`
+          : ""}
         <span
           class="badge badge-lg flex-1 justify-center text-base font-semibold"
           style="${TIME_STYLE}"
@@ -176,7 +170,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           >
             <div class="min-w-0">
               <div class="font-bold truncate">
-                Evaluation ${countdown(e.beginAt)}
+                Evaluation${countdown ? ` ${countdown}` : ""}
               </div>
             </div>
             <button
