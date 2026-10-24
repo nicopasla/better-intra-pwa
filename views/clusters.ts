@@ -287,7 +287,7 @@ function mapView(map: ClusterMapDef): unknown {
   const svg = map.svg;
   return html`
     <div class="flex flex-col gap-3 mb-4">
-      <div class="rounded-xl bg-base-100 p-2 shadow-lg">
+      <div class="rounded-xl bg-base-100 p-2 shadow-lg" data-no-swipe>
         <div
           class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2"
         >
@@ -342,6 +342,7 @@ function mapView(map: ClusterMapDef): unknown {
           ? html`<div
               id="ft-cluster-map"
               class="cluster-map"
+              data-no-swipe
               aria-label="${map.label} cluster map"
             >
               ${unsafeHTML(svg)}
@@ -406,9 +407,7 @@ export function clustersBottomBar(): unknown {
                   role="tab"
                   aria-selected=${activeTab === m.id ? "true" : "false"}
                   class="tab-btn ${activeTab === m.id ? "active" : ""}"
-                  style="${m.available
-                    ? ""
-                    : "opacity:.45;cursor:not-allowed"}"
+                  style="${m.available ? "" : "opacity:.45;cursor:not-allowed"}"
                   ?disabled=${!m.available}
                   title=${m.available ? m.label : `${m.label} — coming soon`}
                   @click=${() => switchTab(m.id)}
