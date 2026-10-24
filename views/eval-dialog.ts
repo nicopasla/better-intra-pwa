@@ -42,12 +42,19 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   let user: UserProfile | null = null;
   let error = false;
   let loaded = false;
+  let showOriginalAvatar = false;
   /** Empty once the eval has started — then only the date/time badge is shown. */
   const countdown = evalCountdown(e.beginAt);
 
   const close = () => {
     dialog.close();
     dialog.remove();
+  };
+
+  const toggleAvatar = () => {
+    if (!user || !customAvatarUrl(user.visuals.customAvatar)) return;
+    showOriginalAvatar = !showOriginalAvatar;
+    draw();
   };
 
   const body = () => {
@@ -65,18 +72,29 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
     const visual = u.visuals;
     const customSrc = customAvatarUrl(visual.customAvatar);
     const square = visual.avatarShape === "square";
+    const showCustom = Boolean(customSrc) && !showOriginalAvatar;
     return html`
       <div
         class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/40 p-3"
       >
-        <a
-          href="https://profile-v3.intra.42.fr/users/${u.login}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="avatar ${u.location ? "avatar-online" : ""} shrink-0"
+        <div
+          class="avatar ${u.location
+            ? "avatar-online"
+            : ""} shrink-0 ${customSrc ? "cursor-pointer" : ""}"
+          role="${customSrc ? "button" : "presentation"}"
+          tabindex="${customSrc ? "0" : "-1"}"
+          title="${customSrc
+            ? showOriginalAvatar
+              ? "Show custom avatar"
+              : "Show initials"
+            : ""}"
+          @click=${toggleAvatar}
+          @keydown=${(ev: KeyboardEvent) => {
+            if (ev.key === "Enter" || ev.key === " ") toggleAvatar();
+          }}
         >
           <div class="w-16 h-16 rounded-full bg-base-300">
-            ${customSrc
+            ${showCustom
               ? html`<div
                   class="w-full h-full"
                   style="border-radius:${square
@@ -93,7 +111,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
                   />`
                 : initialsAvatar(u.login, "w-full h-full")}
           </div>
-        </a>
+        </div>
 
         <div class="min-w-0 flex flex-col gap-1.5">
           <div class="flex items-center gap-1.5 flex-wrap min-w-0">
