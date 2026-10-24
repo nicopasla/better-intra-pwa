@@ -5,10 +5,8 @@ import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import {
-  avatarErrorFallback,
   customAvatarUrl,
   initialAvatarDataUrl,
-  initialsAvatar,
 } from "../lib/avatar.ts";
 import { mockMode } from "../mock.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
@@ -170,7 +168,11 @@ function row(e: OccupancyEntry): unknown {
   const tooltip = e.begin_at
     ? `since ${time} · ${durationLabel(since.getTime())}`
     : "";
-  const avatar = customAvatarUrl(e.custom_avatar) ?? (mockMode ? e.cdn_uri : null);
+  const fallbackAvatar = initialAvatarDataUrl(e.login);
+  const avatar =
+    customAvatarUrl(e.custom_avatar) ??
+    (mockMode ? e.cdn_uri : null) ??
+    fallbackAvatar;
   return html`
     <li>
       <div class="flex items-center gap-3 py-2">
@@ -178,16 +180,19 @@ function row(e: OccupancyEntry): unknown {
           href="#/u/${e.login}"
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
-          ${avatar
-            ? html`<img
-                class="size-10 rounded-full object-cover shrink-0 bg-base-200"
-                src="${avatar}"
-                alt="${e.login}"
-                loading="lazy"
-                referrerpolicy="no-referrer"
-                @error=${avatarErrorFallback}
-              />`
-            : initialsAvatar(e.login, "size-10 shrink-0")}
+          <img
+            class="size-10 rounded-full object-cover shrink-0 bg-base-200"
+            src="${avatar}"
+            alt="${e.login}"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            @error=${(ev: Event) => {
+              const img = ev.target as HTMLImageElement;
+              if (!img.isConnected || img.dataset.fallbackSet) return;
+              img.dataset.fallbackSet = "1";
+              img.src = fallbackAvatar;
+            }}
+          />
           <div class="flex-1 min-w-0">
             <div class="font-semibold truncate">${e.name || e.login}</div>
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
@@ -243,8 +248,11 @@ function latestRow(entry: OccupancyEntry): unknown {
     ? since.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "—";
   const ago = valid ? formatTimeAgo(since.getTime()) : "—";
+  const fallbackAvatar = initialAvatarDataUrl(entry.login);
   const avatar =
-    customAvatarUrl(entry.custom_avatar) ?? (mockMode ? entry.cdn_uri : null);
+    customAvatarUrl(entry.custom_avatar) ??
+    (mockMode ? entry.cdn_uri : null) ??
+    fallbackAvatar;
   return html`
     <li>
       <a
@@ -252,16 +260,19 @@ function latestRow(entry: OccupancyEntry): unknown {
         class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
         title="${entry.host} · since ${time}"
       >
-        ${avatar
-          ? html`<img
-              class="size-8 rounded-full object-cover shrink-0 bg-base-200"
-              src="${avatar}"
-              alt="${entry.login}"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-              @error=${avatarErrorFallback}
-            />`
-          : initialsAvatar(entry.login, "size-8 shrink-0")}
+        <img
+          class="size-8 rounded-full object-cover shrink-0 bg-base-200"
+          src="${avatar}"
+          alt="${entry.login}"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          @error=${(ev: Event) => {
+            const img = ev.target as HTMLImageElement;
+            if (!img.isConnected || img.dataset.fallbackSet) return;
+            img.dataset.fallbackSet = "1";
+            img.src = fallbackAvatar;
+          }}
+        />
         <div class="flex-1 min-w-0">
           <div class="text-sm font-semibold truncate">
             ${entry.name || entry.login}
