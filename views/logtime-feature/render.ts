@@ -231,7 +231,7 @@ export function renderHeaderContent(
   lastSeenValue: string,
   monthsData: Record<string, Record<string, number>>,
   config: LogtimeConfig,
-) {
+): ReturnType<typeof html> {
   const showTotalTacos = config.show_tacos && config.show_total_tacos;
   let totalTacos = 0;
   if (showTotalTacos) {
@@ -269,7 +269,7 @@ export function renderHeaderContent(
 }
 
 export function renderContainer(
-  header: ReturnType<typeof html>,
+  header: unknown,
   monthCards: unknown[],
   config: LogtimeConfig,
   onSlider?: (el: HTMLElement) => void,

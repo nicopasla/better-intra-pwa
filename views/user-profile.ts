@@ -12,12 +12,12 @@ import {
 import { refresh } from "../refresh.ts";
 import { WORKER_URL } from "../api.ts";
 import { mockMode } from "../mock.ts";
-import { navigate, userLoginFromHash } from "../shell.ts";
+import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
 import { initialsAvatar } from "../lib/avatar.ts";
 import { saveData } from "../lib/network.ts";
-import { logtimeSection } from "./logtime-feature/index.ts";
+import { lastActiveLabel, logtimeSection } from "./logtime-feature/index.ts";
 import {
   blackholeBadge,
   evalBadge,
@@ -28,9 +28,7 @@ import {
   walletBadge,
 } from "./user-badges.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
-
-const BACK_SVG =
-  '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
 const DEFAULT_ACCENT = "#00BABC";
 const CACHE_TTL = 5 * 60_000;
@@ -46,6 +44,7 @@ interface ProfileState {
   logtimeLoading: boolean;
   logtimeError: string;
   logtimePartial: boolean;
+  logtimeOpen: boolean;
   /** Signature of the last layout we jumped to the most recent month for. */
   logtimeScrollKey: string | null;
   showOriginalAvatar: boolean;
@@ -84,6 +83,7 @@ export function userProfileView(login: string): unknown {
       logtimeLoading: false,
       logtimeError: "",
       logtimePartial: false,
+      logtimeOpen: false,
       logtimeScrollKey: null,
       showOriginalAvatar: false,
       avatarFailed: false,
@@ -91,10 +91,8 @@ export function userProfileView(login: string): unknown {
     if (!fresh) void loadUserProfile(target, true);
   }
   const s = state;
-  if (s.profile && s.days === null && !s.logtimeError) void loadLogtime();
   return html`
     <div class="ft-user-profile flex flex-col">
-      ${header(s)}
       ${s.profile
         ? html`
             ${s.stale ? staleBanner() : ""} ${hero(s.profile)}
@@ -135,6 +133,9 @@ export async function loadUserProfile(
     retrier.reset();
     cache.set(target, { at: Date.now(), profile, stats });
     writeCache();
+    if (!state.days && !state.logtimeLoading && !state.logtimeError) {
+      void loadLogtime();
+    }
   } catch (e) {
     if (!state || state.login !== target) return;
     if (state.profile) {
@@ -196,44 +197,6 @@ export function hydrateUserProfileCache(): void {
 // Header / hero
 // ---------------------------------------------------------------------------
 
-function goBack(): void {
-  if (history.length > 1) history.back();
-  else navigate("friends");
-}
-
-function header(s: ProfileState) {
-  return html`
-    <div
-      class="sticky top-[env(safe-area-inset-top)] z-20 -mx-4 -mt-4 mb-4 px-3 py-2 bg-base-200/95 backdrop-blur border-b border-base-300"
-    >
-      <div class="flex items-center gap-1 min-w-0">
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm btn-circle flex-none"
-          aria-label="Back"
-          @click=${goBack}
-        >
-          ${unsafeHTML(BACK_SVG)}
-        </button>
-        <div class="min-w-0 flex-1 leading-tight">
-          <div class="font-bold truncate">
-            ${s.profile?.displayName ?? s.login}
-          </div>
-          <div class="text-xs opacity-60 truncate">@${s.login}</div>
-        </div>
-        <a
-          class="btn btn-ghost btn-sm btn-circle flex-none"
-          href="https://profile-v3.intra.42.fr/users/${s.login}"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open on intra"
-          >${svg18(ARROW_SHARE_SVG)}</a
-        >
-      </div>
-    </div>
-  `;
-}
-
 function staleBanner() {
   return html`<div class="alert alert-warning alert-soft mb-3 py-2 text-sm">
     <span class="flex-1">Couldn't refresh — showing saved data.</span>
@@ -270,8 +233,17 @@ function hero(p: UserProfile) {
       : null;
   const poolLabel = poolFull ?? p.poolLabel ?? "";
   return html`
-    <div class="card bg-base-100 shadow-xl mb-4 overflow-hidden">
+    <div class="card bg-base-100 shadow-xl mb-4 overflow-hidden relative">
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
+      <a
+        class="btn btn-sm btn-circle absolute top-2 right-2 bg-base-100/90 hover:bg-base-100 border-none shadow-md"
+        href="https://profile-v3.intra.42.fr/users/${p.login}"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open ${p.login} on intra"
+        title="Open on intra"
+        >${svg18(ARROW_SHARE_SVG)}</a
+      >
       <div class="card-body pt-0 gap-3">
         <div class="flex items-end gap-3 -mt-12">
           ${avatarBlock(p)}
@@ -285,7 +257,7 @@ function hero(p: UserProfile) {
                 title="${p.location ? `Online · ${p.location}` : "Offline"}"
               ></span>
             </div>
-            <div class="text-sm opacity-60 truncate">@${p.login}</div>
+            <div class="text-sm opacity-60 truncate">${p.login}</div>
           </div>
         </div>
 
@@ -433,48 +405,81 @@ async function loadLogtime(): Promise<void> {
   }
 }
 
+function toggleLogtime(): void {
+  const s = state;
+  if (!s) return;
+  s.logtimeOpen = !s.logtimeOpen;
+  if (s.logtimeOpen && !s.days && !s.logtimeLoading && !s.logtimeError) {
+    void loadLogtime();
+  }
+  refresh();
+}
+
 function logtimeCard(p: UserProfile) {
   const s = state!;
-  if (s.logtimeError) {
-    return card(
-      html`<div class="flex flex-col items-center gap-3">
-        <p class="text-sm opacity-70">Couldn't load the logtime.</p>
-        <p class="text-xs text-error">${s.logtimeError}</p>
-        <button
-          class="btn btn-sm btn-outline"
-          @click=${() => {
-            if (state) state.logtimeError = "";
-            void loadLogtime();
-          }}
-        >
-          Retry
-        </button>
-      </div>`,
-    );
-  }
-  if (!s.days) {
-    return card(
-      html`<div class="flex flex-col items-center gap-2 py-6">
-        <span class="loading loading-spinner loading-md"></span>
-        <p class="text-xs opacity-60 text-center">
-          Fetching locations… the first load of a profile can take a few
-          seconds.
-        </p>
-      </div>`,
-    );
-  }
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body">
-      ${logtimeSection({
-        days: s.days,
-        settings: p.logtime,
-        partial: s.logtimePartial,
-        syncing: s.logtimeLoading,
-        onSyncMore: () => void loadLogtime(),
-        onSliderRendered: scrollLogtimeToLatest,
-      })}
+    <div class="card-body py-3 gap-1">
+      <button
+        type="button"
+        class="flex items-center gap-2 w-full text-left"
+        aria-expanded="${s.logtimeOpen ? "true" : "false"}"
+        @click=${toggleLogtime}
+      >
+        <h2 class="text-base font-semibold m-0">Logtime</h2>
+        <span class="ml-auto flex items-center gap-2">
+          ${s.days
+            ? html`<span
+                class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
+                >${lastActiveLabel(s.days, p.logtime)}</span
+              >`
+            : ""}
+          <span
+            class="size-5 flex items-center justify-center opacity-60 transition-transform ${s.logtimeOpen
+              ? "rotate-180"
+              : ""}"
+            >${svg18(CHEVRON_DOWN_SVG)}</span
+          >
+        </span>
+      </button>
+      ${s.logtimeOpen ? html`<div class="mt-2">${logtimeContent(p)}</div>` : ""}
     </div>
   </div>`;
+}
+
+function logtimeContent(p: UserProfile) {
+  const s = state!;
+  if (s.logtimeError) {
+    return html`<div class="flex flex-col items-center gap-3 py-2">
+      <p class="text-sm opacity-70">Couldn't load the logtime.</p>
+      <p class="text-xs text-error">${s.logtimeError}</p>
+      <button
+        class="btn btn-sm btn-outline"
+        @click=${() => {
+          if (state) state.logtimeError = "";
+          void loadLogtime();
+        }}
+      >
+        Retry
+      </button>
+    </div>`;
+  }
+  if (!s.days) {
+    return html`<div class="flex flex-col items-center gap-2 py-6">
+      <span class="loading loading-spinner loading-md"></span>
+      <p class="text-xs opacity-60 text-center">
+        Fetching locations… the first load of a profile can take a few seconds.
+      </p>
+    </div>`;
+  }
+  return logtimeSection({
+    days: s.days,
+    settings: p.logtime,
+    partial: s.logtimePartial,
+    syncing: s.logtimeLoading,
+    showHeader: false,
+    onSyncMore: () => void loadLogtime(),
+    onSliderRendered: scrollLogtimeToLatest,
+  });
 }
 
 /** Jumps the calendar to the current month whenever its layout changes. */

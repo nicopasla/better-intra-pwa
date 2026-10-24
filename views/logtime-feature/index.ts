@@ -15,6 +15,9 @@ export interface LogtimeSectionProps {
   /** The worker capped the sync: older months are available on demand. */
   partial?: boolean;
   syncing?: boolean;
+  /** Render the section header (title + last-active badge). Cards that show
+   *  their own header (collapsible logtime) pass false. */
+  showHeader?: boolean;
   onSyncMore(): void;
   /** Called with the horizontal slider element after each render. */
   onSliderRendered?(el: HTMLElement): void;
@@ -39,11 +42,14 @@ export function logtimeSection(props: LogtimeSectionProps) {
   const byMonth = groupByMonth(props.days);
   const monthKeys = Object.keys(byMonth).sort();
 
-  const header = renderHeaderContent(
-    getLastSeenFormatted(props.days, config.show_days_mode),
-    byMonth,
-    config,
-  );
+  const header =
+    props.showHeader === false
+      ? ""
+      : renderHeaderContent(
+          getLastSeenFormatted(props.days, config.show_days_mode),
+          byMonth,
+          config,
+        );
 
   const cards: unknown[] = [];
   let prevYear = "";
@@ -65,4 +71,15 @@ export function logtimeSection(props: LogtimeSectionProps) {
   }
 
   return renderContainer(header, cards, config, props.onSliderRendered);
+}
+
+/** "Active 23/10" (or "" when there is no recorded day yet). */
+export function lastActiveLabel(
+  days: Record<string, number> | null | undefined,
+  settings?: LogtimeSettings | null,
+): string {
+  if (!days) return "";
+  const config = toLogtimeConfig(settings);
+  const value = getLastSeenFormatted(days, config.show_days_mode);
+  return value === "N/A" ? "" : `Active ${value}`;
 }

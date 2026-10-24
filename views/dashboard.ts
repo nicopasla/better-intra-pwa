@@ -28,7 +28,7 @@ import { saveData } from "../lib/network.ts";
 import { AVATARS_ENABLED, initialsAvatar } from "../lib/avatar.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dateTimeShort, evalCountdown } from "../lib/format.ts";
-import { logtimeSection } from "./logtime-feature/index.ts";
+import { lastActiveLabel, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
@@ -258,17 +258,25 @@ function logtimeCard() {
     <div class="card-body py-3 gap-1">
       <button
         type="button"
-        class="flex items-center justify-between gap-2 w-full text-left"
+        class="flex items-center gap-2 w-full text-left"
         aria-expanded="${logtimeOpen ? "true" : "false"}"
         @click=${toggleLogtime}
       >
-        <h2 class="card-title text-base m-0">Logtime</h2>
-        <span
-          class="size-5 flex items-center justify-center opacity-60 transition-transform ${logtimeOpen
-            ? "rotate-180"
-            : ""}"
-          >${svg18(CHEVRON_DOWN_SVG)}</span
-        >
+        <h2 class="text-base font-semibold m-0">Logtime</h2>
+        <span class="ml-auto flex items-center gap-2">
+          ${logtimeDays
+            ? html`<span
+                class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
+                >${lastActiveLabel(logtimeDays, logtimeSettings)}</span
+              >`
+            : ""}
+          <span
+            class="size-5 flex items-center justify-center opacity-60 transition-transform ${logtimeOpen
+              ? "rotate-180"
+              : ""}"
+            >${svg18(CHEVRON_DOWN_SVG)}</span
+          >
+        </span>
       </button>
       ${logtimeOpen ? html`<div class="mt-2">${logtimeContent()}</div>` : ""}
     </div>
@@ -312,6 +320,7 @@ function logtimeContent() {
     settings: logtimeSettings,
     partial: logtimePartial,
     syncing: logtimeLoading,
+    showHeader: false,
     onSyncMore: () => void loadLogtime(),
     onSliderRendered: scrollLogtimeToLatest,
   });
@@ -813,6 +822,7 @@ export function loadDashboard(silent = false): void {
 
       if (failure && isRetryableError(failure)) retrier.schedule();
       else retrier.reset();
+      if (!logtimeDays && !logtimeLoading && !logtimeError) void loadLogtime();
       refresh();
     },
   );
