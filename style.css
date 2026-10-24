@@ -364,6 +364,18 @@ body {
   pointer-events: none;
 }
 
+.cluster-map .sign path {
+  fill: var(--exit-fill, #2e9e5b);
+}
+
+.cluster-map .sign text {
+  fill: var(--zone-text, #4b5866);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
 /* The exported map hardcodes light C1-C4 labels; use the theme colour instead. */
 .cluster-map .text text {
   fill: var(--zone-text, #4b5866);
