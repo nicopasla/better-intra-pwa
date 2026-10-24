@@ -95,6 +95,11 @@ export function profileHero(
           </div>
         </div>
 
+        <div class="hero-stats">
+          ${levelBadge(p.level)} ${walletBadge(p.wallet)}
+          ${evalBadge(p.correctionPoints)} ${locationBadge(p.location)}
+        </div>
+
         ${groups.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
@@ -117,10 +122,6 @@ export function profileHero(
             </div>`
           : ""}
 
-        <div class="flex items-center justify-center gap-1.5 flex-wrap">
-          ${levelBadge(p.level)} ${walletBadge(p.wallet)}
-          ${evalBadge(p.correctionPoints)} ${locationBadge(p.location)}
-        </div>
         ${hasBottomRow
           ? html`<div class="flex items-center justify-center gap-1.5 flex-wrap">
               ${poolPart} ${blackholePart} ${statusPart}
