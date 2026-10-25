@@ -144,7 +144,7 @@ export function profileHero(
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
       ${opts.onReset
         ? html`<button
-            class="btn btn-circle fixed top-[env(safe-area-inset-top)] mt-2 left-2 z-40 size-11 bg-error text-white border border-error shadow-md"
+            class="btn btn-circle fixed top-[env(safe-area-inset-top)] mt-6 left-6 z-40 size-11 bg-error text-white border border-error shadow-md"
             type="button"
             aria-label="Reset home layout"
             title="Reset home layout"
@@ -155,9 +155,9 @@ export function profileHero(
         : ""}
       ${opts.onEdit
         ? html`<button
-            class="btn btn-circle right-2 size-11 border shadow-md ${opts.editActive
-              ? "fixed top-[env(safe-area-inset-top)] mt-2 z-40 bg-success text-white border-success"
-              : "absolute top-2 bg-base-100/90 hover:bg-base-100 border-base-300"}"
+            class="btn btn-circle size-11 border shadow-md ${opts.editActive
+              ? "fixed top-[env(safe-area-inset-top)] mt-6 right-6 z-40 bg-success text-white border-success"
+              : "absolute top-2 right-2 bg-base-100/90 hover:bg-base-100 border-base-300"}"
             type="button"
             aria-label=${opts.editActive ? "Done editing" : "Edit home"}
             title=${opts.editActive ? "Done editing" : "Edit home"}
