@@ -14,6 +14,7 @@ import { loginUrl, getSession } from "../../api.ts";
 import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { headerBadge, pageHeader } from "../../lib/page-header.ts";
+import { navigateToSeat } from "../../shell.ts";
 import { AVATARS_ENABLED } from "../../lib/avatar.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
@@ -98,8 +99,8 @@ function renderFriendRow(
       }
     : undefined;
 
-  const accentStyle =
-    "border:3px solid color-mix(in oklab, var(--color-accent) 40%, transparent);background-color:color-mix(in oklab, var(--color-accent) 10%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;";
+  /** Same solid badge shape and colours as the students/profile cards. */
+  const badgeShape = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
 
   return html`
     <!-- Avatar -->
@@ -217,15 +218,15 @@ function renderFriendRow(
             ${[
               friend.grade
                 ? html`<span
-                    class="badge badge-md gap-1 px-2"
-                    style="${accentStyle}"
+                    class="badge badge-neutral badge-md gap-1 px-2"
+                    style="${badgeShape}"
                     >${friend.grade}</span
                   >`
                 : "",
               friend.poolLabel
                 ? html`<span
-                    class="badge badge-md gap-1 px-2"
-                    style="${accentStyle}"
+                    class="badge badge-info badge-md gap-1 px-2"
+                    style="${badgeShape}"
                     >${friend.poolLabel}</span
                   >`
                 : "",
@@ -239,12 +240,16 @@ function renderFriendRow(
         data-ft-row="stats"
       >
         ${[
-          html`<span class="badge badge-md gap-1 px-2" style="${accentStyle}"
+          html`<span
+            class="badge badge-warning badge-md gap-1 px-2"
+            style="${badgeShape}"
             >${unsafeHTML(svgIcon(EVAL_SVG))}<span class="text-sm font-semibold"
               >${friend.correctionPoints}</span
             ></span
           >`,
-          html`<span class="badge badge-md gap-1 px-2" style="${accentStyle}"
+          html`<span
+            class="badge badge-secondary badge-md gap-1 px-2"
+            style="${badgeShape}"
             >${unsafeHTML(svgIcon(WALLET_SVG))}<span
               class="text-sm font-semibold"
               >${friend.wallet}</span
@@ -252,12 +257,15 @@ function renderFriendRow(
           >`,
           friend.isOnline && friend.lastSeen
             ? html`<a
-                href="${clusterUrl(friend.lastSeen)}"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#/clusters?seat=${encodeURIComponent(friend.lastSeen)}"
                 class="badge badge-success badge-md gap-1 px-2 hover:brightness-110 transition-all cursor-pointer no-underline"
                 style="border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;"
-                data-tip="View ${friend.lastSeen} on cluster map"
+                data-tip="Show ${friend.lastSeen} on the cluster map"
+                @click=${(event: Event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  navigateToSeat(friend.lastSeen!);
+                }}
               >
                 <span class="text-sm font-semibold">${friend.lastSeen}</span>
                 <span
@@ -267,8 +275,8 @@ function renderFriendRow(
               </a>`
             : !friend.isOnline && friend.lastOnlineTimestamp
               ? html`<span
-                  class="badge badge-md gap-1 px-2 font-mono"
-                  style="${accentStyle}"
+                  class="badge badge-accent badge-md gap-1 px-2 font-mono"
+                  style="${badgeShape}"
                   >${relativeTime(friend.lastOnlineTimestamp)}</span
                 >`
               : "",
@@ -301,10 +309,6 @@ function renderFriendRow(
         </label>`
       : ""}
   `;
-}
-
-function clusterUrl(location: string): string {
-  return `https://meta.intra.42.fr/clusters?seat=${location}`;
 }
 
 function renderEmpty() {

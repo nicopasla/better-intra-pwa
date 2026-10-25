@@ -1,7 +1,7 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userProfile, type UpcomingEval, type UserProfile } from "../data.ts";
-import { navigateToUser } from "../shell.ts";
+import { navigateToSeat, navigateToUser } from "../shell.ts";
 import { dateTime, evalCountdown } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
@@ -25,9 +25,6 @@ const userBadgeStyle = (color: string) =>
   `border:3px solid color-mix(in oklab, ${color} 55%, transparent);border-radius:${RADIUS};color:${color};`;
 
 const DIALOG_ID = "ft-eval-dialog";
-
-const clusterUrl = (seat: string) =>
-  `https://meta.intra.42.fr/clusters?seat=${encodeURIComponent(seat)}`;
 
 /** Opens a small dialog with the corrected user's profile. */
 export function openEvalDialog(e: UpcomingEval, login: string): void {
@@ -145,11 +142,14 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             >
             ${u.location
               ? html`<a
-                  href="${clusterUrl(u.location)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#/clusters?seat=${encodeURIComponent(u.location)}"
                   class="badge badge-lg gap-1 px-2 text-base font-semibold no-underline"
                   style="${userBadgeStyle("var(--color-success)")}"
+                  @click=${(event: Event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    navigateToSeat(u.location!);
+                  }}
                 >
                   <span>${u.location}</span>
                   <span
