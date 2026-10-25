@@ -315,7 +315,7 @@ body {
 .cluster-map svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   transform-origin: 0 0;
   will-change: transform;
 }
@@ -401,6 +401,7 @@ body {
 /* Pixel-for-pixel the extension's ft-dialog-pulsate: a 2→3px red ring with
    two expanding glows (5/10px → 8/15px). */
 @keyframes ft-seat-focus {
+
   0%,
   100% {
     stroke-width: 2;

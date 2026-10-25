@@ -343,9 +343,13 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   const height = container.clientHeight;
   if (width <= 0 || height <= 0) return true;
 
-  const k = width / vb[2];
-  const px = (x + w / 2 - vb[0]) * k;
-  const py = (y + h / 2 - vb[1]) * k;
+  // The SVG is stretched to the container box and letterboxed by
+  // preserveAspectRatio, so map units scale by the limiting dimension.
+  const k = Math.min(width / vb[2], height / vb[3]);
+  const offsetX = (width - vb[2] * k) / 2;
+  const offsetY = (height - vb[3] * k) / 2;
+  const px = offsetX + (x + w / 2 - vb[0]) * k;
+  const py = offsetY + (y + h / 2 - vb[1]) * k;
 
   state.scale = clamp(1.6, MIN_SCALE, MAX_SCALE);
   state.x = Math.min(

@@ -1,6 +1,8 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
+import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
+import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
@@ -83,6 +85,7 @@ function switchTab(id: string): void {
   const currentMap = document.getElementById("ft-cluster-map");
   if (currentMap) resetMapZoom(currentMap);
   focusSeat = null;
+  mapExpanded = false;
   activeTab = id;
   refresh();
 }
@@ -133,6 +136,7 @@ export function clustersView(): unknown {
     const map = findClusterMap(activeTab);
     if (map) return mapView(map);
   }
+  mapExpanded = false;
   return html`
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
@@ -322,6 +326,13 @@ function connectionRow(entry: OccupancyEntry): unknown {
   `;
 }
 
+let mapExpanded = false;
+
+function toggleMapExpanded(): void {
+  mapExpanded = !mapExpanded;
+  refresh();
+}
+
 function mapView(map: ClusterMapDef): unknown {
   ensureMap(map);
   const seated = seatedEntries(map);
@@ -333,12 +344,40 @@ function mapView(map: ClusterMapDef): unknown {
     ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
     : "occupied seats";
   return html`
-    <div class="flex flex-col gap-3 mb-4">
-      <div class="rounded-xl bg-base-100 p-2 shadow-lg" data-no-swipe>
+    <div
+      class="fixed left-0 right-0 z-10 flex flex-col gap-3 px-4"
+      style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
+      data-no-swipe
+    >
+      <div
+        class="${mapExpanded
+          ? "fixed inset-0 z-[70] flex flex-col bg-base-100 p-2"
+          : "relative flex-70 min-h-0 flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
+        data-no-swipe
+      >
+        <button
+          type="button"
+          class="btn btn-circle btn-sm absolute right-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur ${mapExpanded
+            ? "bottom-[calc(env(safe-area-inset-bottom)_+_0.5rem)]"
+            : "bottom-2"}"
+          aria-label=${mapExpanded
+            ? "Exit full screen"
+            : "Open the map full screen"}
+          title=${mapExpanded ? "Exit full screen" : "Full screen"}
+          @click=${toggleMapExpanded}
+        >
+          ${mapExpanded
+            ? unsafeHTML(
+                MINIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
+              )
+            : unsafeHTML(
+                MAXIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
+              )}
+        </button>
         ${svg
           ? html`<div
               id="ft-cluster-map"
-              class="cluster-map"
+              class="cluster-map flex-1 min-h-0"
               data-no-swipe
               aria-label="${map.label} cluster map"
             >
@@ -351,26 +390,30 @@ function mapView(map: ClusterMapDef): unknown {
               : mapLoading()}
       </div>
 
-      <div class="rounded-xl bg-base-100 p-3 shadow-lg">
-        <div class="flex items-center justify-between gap-2 pb-1">
-          <h2 class="font-semibold">Connections</h2>
-          <span
-            class="badge badge-primary font-mono tabular-nums"
-            title="${deadNote}"
+      ${mapExpanded
+        ? ""
+        : html`<div
+            class="flex-30 min-h-0 flex flex-col rounded-xl bg-base-100 p-3 shadow-lg"
           >
-            ${svg ? `${taken} / ${usable}` : "…"}
-          </span>
-        </div>
-        ${connections.length
-          ? html`<div class="max-h-[22rem] overflow-y-auto">
-              <ul class="flex flex-col divide-y divide-base-300">
-                ${connections.map((entry) => connectionRow(entry))}
-              </ul>
-            </div>`
-          : html`<p class="py-3 text-center text-sm opacity-60">
-              No one is seated in this cluster right now.
-            </p>`}
-      </div>
+            <div class="flex shrink-0 items-center justify-between gap-2 pb-1">
+              <h2 class="font-semibold">Connections</h2>
+              <span
+                class="badge badge-primary font-mono tabular-nums"
+                title="${deadNote}"
+              >
+                ${svg ? `${taken} / ${usable}` : "…"}
+              </span>
+            </div>
+            ${connections.length
+              ? html`<div class="min-h-0 flex-1 overflow-y-auto">
+                  <ul class="flex flex-col divide-y divide-base-300">
+                    ${connections.map((entry) => connectionRow(entry))}
+                  </ul>
+                </div>`
+              : html`<p class="py-3 text-center text-sm opacity-60">
+                  No one is seated in this cluster right now.
+                </p>`}
+          </div>`}
     </div>
   `;
 }
