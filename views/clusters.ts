@@ -5,6 +5,7 @@ import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
+import { getBlob } from "../data.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import { customAvatarUrl, initialAvatarDataUrl } from "../lib/avatar.ts";
 import { mockMode } from "../mock.ts";
@@ -49,6 +50,8 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
  * The selected bottom tab: a cluster map id, or "active" for the online list.
  */
 let activeTab = "active";
+/** Cluster picked as default in the extension, applied on first open. */
+let initialTabResolved = false;
 /** Last seat focused from a location link; kept while the map is shown. */
 let focusSeat: string | null = null;
 
@@ -510,6 +513,7 @@ export async function loadClusters(force = false): Promise<void> {
   if (!started) {
     started = true;
     startTimers();
+    await applyDefaultCluster();
     await loadOccupancy();
     return;
   }
@@ -517,6 +521,27 @@ export async function loadClusters(force = false): Promise<void> {
     loading = entries.length === 0;
     await loadOccupancy();
   }
+}
+
+/**
+ * Opens the cluster the user picked as default in the extension (synced through
+ * the cloud settings blob). Seat deep links still win, and the choice is only
+ * applied once per session so switching tabs afterwards sticks.
+ */
+async function applyDefaultCluster(): Promise<void> {
+  if (initialTabResolved) return;
+  initialTabResolved = true;
+  if (seatFromHash() || activeTab !== "active") return;
+  let id: unknown;
+  try {
+    const blob = await getBlob();
+    id = blob.settings?.CLUSTERS_DEFAULT_ID;
+  } catch {
+    return;
+  }
+  if (typeof id !== "string" || !id || !findClusterMap(id)?.available) return;
+  activeTab = id;
+  refresh();
 }
 
 let outsideCloseAttached = false;

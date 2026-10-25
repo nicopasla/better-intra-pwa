@@ -550,6 +550,7 @@ export const mock = {
       SHOW_CUSTOM_AVATARS_IN_FRIENDS: true,
       PROFILE_USE_CUSTOM_COLOR: true,
       LOGTIME_CALENDAR_COLOR: "#00BCBA",
+      CLUSTERS_DEFAULT_ID: "fu",
     },
     revision: "mock",
   },
