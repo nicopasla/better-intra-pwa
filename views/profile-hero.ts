@@ -212,6 +212,14 @@ export function profileHero(
         ${stats.length
           ? html`<div class="hero-stats" data-badge-row="stats">${stats}</div>`
           : ""}
+        ${status.length
+          ? html`<div
+              class="flex items-center justify-center gap-1.5 flex-wrap"
+              data-badge-row="status"
+            >
+              ${status}
+            </div>`
+          : ""}
         ${groups.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
@@ -244,14 +252,6 @@ export function profileHero(
                       >${g.name}</span
                     >`;
               })}
-            </div>`
-          : ""}
-        ${status.length
-          ? html`<div
-              class="flex items-center justify-center gap-1.5 flex-wrap"
-              data-badge-row="status"
-            >
-              ${status}
             </div>`
           : ""}
       </div>
