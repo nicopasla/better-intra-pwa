@@ -19,6 +19,7 @@ import {
 import {
   CLUSTER_MAPS,
   findClusterMap,
+  findDefaultClusterMap,
   loadClusterMap,
   preloadClusterMaps,
 } from "./clusters-feature/maps.ts";
@@ -539,8 +540,10 @@ async function applyDefaultCluster(): Promise<void> {
   } catch {
     return;
   }
-  if (typeof id !== "string" || !id || !findClusterMap(id)?.available) return;
-  activeTab = id;
+  if (typeof id !== "string" || !id) return;
+  const map = await findDefaultClusterMap(id);
+  if (!map?.available) return;
+  activeTab = map.id;
   refresh();
 }
 

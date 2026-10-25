@@ -155,3 +155,68 @@ export function preloadClusterMaps(): void {
 export function findClusterMap(id: string): ClusterMapDef | undefined {
   return CLUSTER_MAPS.find((map) => map.id === id);
 }
+
+const CAMPUS_DATA_URL = "https://api.betterintra.com/gh/campuses/belgium.json";
+const CLUSTER_IDS_KEY = "ft_cluster_map_ids";
+const CLUSTER_IDS_TTL = 24 * 60 * 60 * 1000;
+
+let clusterNames: Record<string, string> | null = null;
+
+/** Campus cluster ids ("21") to names ("fu"), as used by the default setting. */
+async function clusterNamesById(): Promise<Record<string, string>> {
+  if (clusterNames) return clusterNames;
+  try {
+    const cached = JSON.parse(localStorage.getItem(CLUSTER_IDS_KEY) || "null");
+    if (
+      cached &&
+      typeof cached.at === "number" &&
+      Date.now() - cached.at < CLUSTER_IDS_TTL &&
+      cached.ids
+    ) {
+      clusterNames = cached.ids as Record<string, string>;
+      return clusterNames;
+    }
+  } catch {
+    /* ignore a broken cache */
+  }
+  try {
+    const res = await fetch(CAMPUS_DATA_URL);
+    if (!res.ok) return {};
+    const data = (await res.json()) as {
+      clusters?: { id?: unknown; name?: unknown }[];
+    };
+    const ids: Record<string, string> = {};
+    for (const cluster of data.clusters ?? []) {
+      if (cluster?.id == null || typeof cluster.name !== "string") continue;
+      ids[String(cluster.id).toLowerCase()] = cluster.name.toLowerCase();
+    }
+    clusterNames = ids;
+    try {
+      localStorage.setItem(
+        CLUSTER_IDS_KEY,
+        JSON.stringify({ at: Date.now(), ids }),
+      );
+    } catch {
+      /* quota / private mode */
+    }
+    return ids;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Resolves the cluster set as default in the extension. It stores the campus
+ * cluster id ("21"), while maps are keyed by name ("fu"); accept either.
+ */
+export async function findDefaultClusterMap(
+  value: string,
+): Promise<ClusterMapDef | undefined> {
+  const key = value.trim().toLowerCase();
+  if (!key) return undefined;
+  const direct = findClusterMap(key);
+  if (direct) return direct;
+  const names = await clusterNamesById();
+  const name = names[key];
+  return name ? findClusterMap(name) : undefined;
+}
