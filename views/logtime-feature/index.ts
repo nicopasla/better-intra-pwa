@@ -104,9 +104,12 @@ export function activeLabelBadge(
   const label = lastActiveLabel(days, settings, online, location);
   if (!label) return "";
   const seat = online ? location?.trim() : "";
+  // Same chip size as the friends' seat badge.
+  const badgeCls =
+    "badge badge-success badge-md gap-1 px-2 font-bold font-mono tracking-tight lt-active-badge";
+  const badgeShape = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
   if (!seat) {
-    return html`<span
-      class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
+    return html`<span class="${badgeCls}" style="${badgeShape}"
       >${label}</span
     >`;
   }
@@ -114,7 +117,8 @@ export function activeLabelBadge(
     ARROW_SHARE_SVG.replace("<svg", '<svg width="12" height="12"'),
   );
   return html`<a
-    class="badge badge-success gap-1 font-bold font-mono tracking-tight lt-active-badge no-underline"
+    class="${badgeCls} no-underline"
+    style="${badgeShape}"
     href="#/clusters?seat=${seat}"
     title="Show ${seat} on the cluster map"
     @click=${(event: Event) => {
