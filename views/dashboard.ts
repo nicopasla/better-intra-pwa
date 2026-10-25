@@ -345,6 +345,11 @@ function withMockData<T>(id: string, render: () => T): T {
 
 function editBlock(id: string, hidden: boolean) {
   const label = CARD_LABELS[id] ?? id;
+  const body = CARD_BUILDERS[id]();
+  // Empty cards preview themselves; every body is inert while editing so the
+  // card controls (expand, dismiss, links…) can't fire mid-layout.
+  const content =
+    body === "" ? withMockData(id, () => CARD_BUILDERS[id]()) : body;
   return html`
     <div data-card-id="${id}">
       <div
@@ -368,18 +373,12 @@ function editBlock(id: string, hidden: boolean) {
         </button>
       </div>
       <div
-        class="${hidden
-          ? "pointer-events-none select-none opacity-40 grayscale"
+        inert
+        class="pointer-events-none select-none ${hidden
+          ? "opacity-40 grayscale"
           : ""}"
       >
-        ${(() => {
-          const body = CARD_BUILDERS[id]();
-          if (body !== "") return body;
-          // Previews are inert: the fake ids must not open dialogs or get saved.
-          return html`<div class="pointer-events-none select-none">
-            ${withMockData(id, () => CARD_BUILDERS[id]())}
-          </div>`;
-        })()}
+        ${content}
       </div>
     </div>
   `;
@@ -412,7 +411,9 @@ function heroCard() {
     showShare: false,
     badges: {
       order: layout.badges.map((item) => item.id),
-      hidden: layout.badges.filter((item) => item.hidden).map((item) => item.id),
+      hidden: layout.badges
+        .filter((item) => item.hidden)
+        .map((item) => item.id),
     },
     onEdit: toggleEdit,
     editActive: editing,
