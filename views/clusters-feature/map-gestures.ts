@@ -301,7 +301,8 @@ export function highlightMapSeat(
   ring.setAttribute("class", "seat-focus");
   // Outside the seat (not straddling its border) and drawn in the seat's own
   // coordinate space, so rotated/inclined seats get a matching outline.
-  const pad = Math.max(4, Math.min(w, h) * 0.16);
+  // Hug the picture border (the pulse + glow sit on the image edge).
+  const pad = Math.min(1.5, Math.max(0.5, Math.min(w, h) * 0.03));
   ring.setAttribute("x", String(x - pad));
   ring.setAttribute("y", String(y - pad));
   ring.setAttribute("width", String(w + pad * 2));
