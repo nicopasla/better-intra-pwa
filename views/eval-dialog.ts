@@ -14,15 +14,11 @@ import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
 
-const RADIUS = "0.75rem";
+/** Solid badge shape, identical to the cards and the profile. */
+const BADGE_SHAPE = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
 
-const TIME_STYLE = `border:3px solid color-mix(in oklab, var(--color-info) 55%, transparent);background-color:color-mix(in oklab, var(--color-info) 12%, transparent);border-radius:${RADIUS};height:auto;padding-block:0.5rem;`;
-
-const PROJECT_STYLE = `border:3px solid color-mix(in oklab, var(--color-accent) 55%, transparent);background-color:color-mix(in oklab, var(--color-accent) 12%, transparent);border-radius:${RADIUS};height:auto;padding-block:0.5rem;`;
-
-/** Shared style for the user-card badges; only the colour differs. */
-const userBadgeStyle = (color: string) =>
-  `border:3px solid color-mix(in oklab, ${color} 55%, transparent);border-radius:${RADIUS};color:${color};`;
+const badgeCls = (tone: string) =>
+  `badge ${tone} badge-lg gap-1 px-2 text-base font-semibold`;
 
 const DIALOG_ID = "ft-eval-dialog";
 
@@ -131,10 +127,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           </div>
 
           <div class="flex items-center gap-1 flex-wrap min-w-0">
-            <span
-              class="badge badge-lg gap-1 px-2 text-base font-semibold"
-              style="${userBadgeStyle("var(--color-primary)")}"
-            >
+            <span class="${badgeCls("badge-primary")}" style="${BADGE_SHAPE}">
               <span
                 class="size-[1em] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                 >${unsafeHTML(STAR_SVG)}</span
@@ -143,8 +136,8 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             ${u.location
               ? html`<a
                   href="#/clusters?seat=${encodeURIComponent(u.location)}"
-                  class="badge badge-lg gap-1 px-2 text-base font-semibold no-underline"
-                  style="${userBadgeStyle("var(--color-success)")}"
+                  class="${badgeCls("badge-success")} no-underline"
+                  style="${BADGE_SHAPE}"
                   @click=${(event: Event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -158,8 +151,8 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
                   >
                 </a>`
               : html`<span
-                  class="badge badge-lg gap-1 px-2 text-base font-semibold"
-                  style="${userBadgeStyle("var(--color-base-content)")}"
+                  class="${badgeCls("badge-ghost")}"
+                  style="${BADGE_SHAPE}"
                   >unavailable</span
                 >`}
           </div>
@@ -171,8 +164,10 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
             href="https://projects.intra.42.fr/projects/${e.slug}"
             target="_blank"
             rel="noopener noreferrer"
-            class="badge badge-lg w-full justify-center gap-1 mt-3 text-base font-semibold no-underline"
-            style="${PROJECT_STYLE}"
+            class="${badgeCls(
+              "badge-accent",
+            )} w-full justify-center mt-3 no-underline"
+            style="${BADGE_SHAPE}"
           >
             ${e.project ?? "Project"}
             <span
@@ -185,14 +180,14 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
       <div class="flex gap-2 mt-3">
         ${countdown
           ? html`<span
-              class="badge badge-lg flex-[0.8] justify-center text-base font-semibold"
-              style="${TIME_STYLE}"
+              class="${badgeCls("badge-error")} flex-[0.8] justify-center"
+              style="${BADGE_SHAPE}"
               >${countdown}</span
             >`
           : ""}
         <span
-          class="badge badge-lg flex-1 justify-center text-base font-semibold"
-          style="${TIME_STYLE}"
+          class="${badgeCls("badge-info")} flex-1 justify-center"
+          style="${BADGE_SHAPE}"
           >${dateTime(e.beginAt)}</span
         >
       </div>
