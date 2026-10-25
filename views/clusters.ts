@@ -10,6 +10,7 @@ import { fetchOccupancy } from "./clusters-feature/data.ts";
 import {
   attachMapGestures,
   focusMapSeat,
+  highlightMapSeat,
   resetMapZoom,
 } from "./clusters-feature/map-gestures.ts";
 import {
@@ -47,6 +48,8 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
  * The selected bottom tab: a cluster map id, or "active" for the online list.
  */
 let activeTab = "active";
+/** Last seat focused from a location link; kept while the map is shown. */
+let focusSeat: string | null = null;
 
 const sortState = loadActiveSort();
 
@@ -80,6 +83,7 @@ function switchTab(id: string): void {
   // Switching rooms drops any seat focus and returns the map to the fit view.
   const currentMap = document.getElementById("ft-cluster-map");
   if (currentMap) resetMapZoom(currentMap);
+  focusSeat = null;
   activeTab = id;
   refresh();
 }
@@ -556,9 +560,16 @@ export function clustersAttachObservers(): void {
   refreshLabel();
   applyMapOccupancy();
   const seat = seatFromHash();
-  if (!seat) return;
   const mapEl = document.getElementById("ft-cluster-map");
-  if (activeTab !== "active" && mapEl) focusMapSeat(mapEl, seat);
+  if (seat) {
+    // The map SVG is rebuilt on every render, so draw the ring again and keep
+    // it highlighted until the room changes.
+    focusSeat = seat;
+    if (activeTab !== "active" && mapEl) focusMapSeat(mapEl, seat);
+  } else if (focusSeat && activeTab !== "active" && mapEl) {
+    highlightMapSeat(mapEl, focusSeat);
+  }
+  if (!seat) return;
   // Consume the route once handled, so switching tabs afterwards doesn't snap
   // back to the seat's map on every render.
   const clean = location.hash.replace(/\?.*$/, "");

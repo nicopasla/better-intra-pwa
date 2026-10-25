@@ -257,25 +257,44 @@ export function attachMapGestures(container: HTMLElement): void {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/**
- * Zooms to a seat and keeps a pulsing ring around it (like the extension's
- * cluster dialog). The ring stays until another seat is focused or the map is
- * left; the animation is pure CSS.
- */
-export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
-  const svg = container.querySelector<SVGSVGElement>("svg");
-  if (!svg) return false;
+interface SeatRect {
+  image: SVGImageElement;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
+function findSeat(container: HTMLElement, seatId: string): SeatRect | null {
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!svg) return null;
   const target = seatId.trim().toLowerCase();
   const image = [...svg.querySelectorAll<SVGImageElement>("image[id]")].find(
     (el) => (el.id || "").trim().toLowerCase() === target,
   );
-  if (!image) return false;
+  if (!image) return null;
+  return {
+    image,
+    x: Number(image.getAttribute("x")) || 0,
+    y: Number(image.getAttribute("y")) || 0,
+    w: Number(image.getAttribute("width")) || 0,
+    h: Number(image.getAttribute("height")) || 0,
+  };
+}
 
-  const x = Number(image.getAttribute("x")) || 0;
-  const y = Number(image.getAttribute("y")) || 0;
-  const w = Number(image.getAttribute("width")) || 0;
-  const h = Number(image.getAttribute("height")) || 0;
+/**
+ * Draws the pulsing red ring around a seat (no zoom). Called on every render
+ * while a seat stays focused, because the map SVG is rebuilt each time.
+ */
+export function highlightMapSeat(
+  container: HTMLElement,
+  seatId: string,
+): boolean {
+  const seat = findSeat(container, seatId);
+  if (!seat) return false;
+  const { image, x, y, w, h } = seat;
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!svg) return false;
 
   svg.querySelectorAll(".seat-focus").forEach((el) => el.remove());
   const ring = document.createElementNS(SVG_NS, "rect");
@@ -300,6 +319,17 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   } else {
     parent.insertBefore(ring, image.nextSibling);
   }
+
+  return true;
+}
+
+/** Highlights a seat and zooms the map onto it. */
+export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
+  if (!highlightMapSeat(container, seatId)) return false;
+  const seat = findSeat(container, seatId);
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!seat || !svg) return true;
+  const { x, y, w, h } = seat;
 
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
   if (vb.length < 4 || !vb[2] || !vb[3]) return true;
