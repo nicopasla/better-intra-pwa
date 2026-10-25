@@ -291,6 +291,7 @@ body {
   --window-stroke: #5aa1c8;
   --pillar-fill: #7a8794;
   --exit-fill: #2e9e5b;
+  --seat-dead: #d9453f;
   background: #f7f8fa;
   border-radius: var(--radius-box, 0.75rem);
   overflow: hidden;
@@ -316,6 +317,7 @@ body {
   --window-stroke: #4b87ab;
   --pillar-fill: #6f7f8d;
   --exit-fill: #3cb371;
+  --seat-dead: #ff7a72;
   background: #10161c;
 }
 
@@ -370,6 +372,14 @@ body {
   fill: var(--chair-fill, #cfd8e0);
   stroke: var(--seat-stroke, #7b8896);
   stroke-width: 1;
+}
+
+/* Crossed seats: no computer there, or the computer is out of order. */
+.cluster-map .cross {
+  fill: none;
+  stroke: var(--seat-dead, #d9453f);
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
 .cluster-map .zone-text {

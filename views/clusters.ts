@@ -11,7 +11,12 @@ import {
   attachMapGestures,
   focusMapSeat,
 } from "./clusters-feature/map-gestures.ts";
-import { CLUSTER_MAPS, findClusterMap } from "./clusters-feature/maps.ts";
+import {
+  CLUSTER_MAPS,
+  findClusterMap,
+  loadClusterMap,
+  preloadClusterMaps,
+} from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
   activeSortControl,
@@ -39,7 +44,6 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * The selected bottom tab: a cluster map id, or "active" for the online list.
- * Cluster maps other than FU are disabled for now.
  */
 let activeTab = "active";
 /** Seat route (`#/clusters?seat=…`), applied once per change. */
@@ -319,10 +323,15 @@ function latestRow(entry: OccupancyEntry): unknown {
 }
 
 function mapView(map: ClusterMapDef): unknown {
+  ensureMap(map);
   const seated = seatedEntries(map);
   const latest = latestConnections(seated);
   const taken = seated.length;
   const svg = map.svg;
+  const usable = Math.max(0, map.seatIds.size - map.crossed);
+  const deadNote = map.crossed
+    ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
+    : "occupied seats";
   return html`
     <div class="flex flex-col gap-3 mb-4">
       <div class="rounded-xl bg-base-100 p-2 shadow-lg" data-no-swipe>
@@ -333,9 +342,9 @@ function mapView(map: ClusterMapDef): unknown {
             <span
               class="badge badge-outline font-mono tabular-nums"
               style="height:2.5rem;min-width:2.5rem;justify-content:center"
-              title="occupied seats"
+              title="${deadNote}"
             >
-              ${taken} / ${map.seatIds.size}
+              ${svg ? `${taken} / ${usable}` : "…"}
             </span>
           </div>
           <span
@@ -354,7 +363,16 @@ function mapView(map: ClusterMapDef): unknown {
             >
               ${unsafeHTML(svg)}
             </div>`
-          : mapComingSoon(map.label)}
+          : !map.available
+            ? mapComingSoon(map.label)
+            : map.failed
+              ? mapFailed(map)
+              : mapLoading()}
+        ${map.crossed
+          ? html`<p class="px-1 pt-1 text-xs opacity-60">
+              ✕ seat without a working computer
+            </p>`
+          : ""}
       </div>
 
       <div class="rounded-xl bg-base-100 p-3 shadow-lg">
@@ -376,6 +394,35 @@ function mapView(map: ClusterMapDef): unknown {
       </div>
     </div>
   `;
+}
+
+/** Fetches the map when its tab is shown (or finishes a preload already running). */
+function ensureMap(map: ClusterMapDef): void {
+  if (!map.available || !map.url || map.svg || map.failed) return;
+  void loadClusterMap(map).then(() => refresh());
+}
+
+function mapLoading(): unknown {
+  return html`<div class="flex items-center justify-center py-16">
+    <span class="loading loading-spinner loading-lg"></span>
+  </div>`;
+}
+
+function mapFailed(map: ClusterMapDef): unknown {
+  return html`<div
+    class="flex flex-col items-center justify-center gap-2 py-16 text-center"
+  >
+    <p class="text-sm opacity-60">Could not load the ${map.label} map.</p>
+    <button
+      class="btn btn-sm"
+      @click=${() => {
+        map.failed = false;
+        void loadClusterMap(map).then(() => refresh());
+      }}
+    >
+      Retry
+    </button>
+  </div>`;
 }
 
 function mapComingSoon(label = "Map"): unknown {
@@ -439,6 +486,7 @@ export function clustersBottomBar(): unknown {
 }
 
 export async function loadClusters(force = false): Promise<void> {
+  preloadClusterMaps();
   if (!started) {
     started = true;
     startTimers();
