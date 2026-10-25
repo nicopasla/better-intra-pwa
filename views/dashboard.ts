@@ -241,7 +241,8 @@ export function dashboardAttachObservers(): void {
   if (container) {
     cardSortable = createSortable(container, {
       draggable: "[data-card-id]",
-      handle: ".ft-card-handle",
+      // The whole card drags; the inert body lets touches fall through and
+      // only the small buttons are excluded.
       filter: ".btn",
       delay: 180,
       delayOnTouchOnly: true,
