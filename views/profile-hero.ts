@@ -19,6 +19,7 @@ import { badgeUrlFor } from "../lib/campus-badges.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import PENCIL_SVG from "../assets/pencil.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
+import RELOAD_SVG from "../assets/reload.svg?raw";
 
 const DEFAULT_ACCENT = "#00BABC";
 
@@ -143,20 +144,20 @@ export function profileHero(
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
       ${opts.onReset
         ? html`<button
-            class="btn btn-sm absolute top-2 left-2 bg-base-100/90 hover:bg-base-100 border-none shadow-md text-error"
+            class="btn btn-circle absolute top-2 left-2 size-11 bg-base-100/90 hover:bg-base-100 border border-error text-error shadow-md"
             type="button"
             aria-label="Reset home layout"
             title="Reset home layout"
             @click=${opts.onReset}
           >
-            Reset
+            ${svg18(RELOAD_SVG)}
           </button>`
         : ""}
       ${opts.onEdit
         ? html`<button
-            class="btn btn-circle absolute top-2 right-2 size-11 bg-base-100/90 hover:bg-base-100 border-none shadow-md ${opts.editActive
-              ? "text-success"
-              : ""}"
+            class="btn btn-circle absolute top-2 right-2 size-11 bg-base-100/90 hover:bg-base-100 border shadow-md ${opts.editActive
+              ? "border-success text-success"
+              : "border-base-300"}"
             type="button"
             aria-label=${opts.editActive ? "Done editing" : "Edit home"}
             title=${opts.editActive ? "Done editing" : "Edit home"}
