@@ -243,6 +243,8 @@ export function dashboardAttachObservers(): void {
       draggable: "[data-card-id]",
       handle: ".ft-card-handle",
       filter: ".btn",
+      delay: 180,
+      delayOnTouchOnly: true,
       onReorder: (from, to) => {
         const layout = getHomeLayout();
         const known = layout.cards.filter((item) => CARD_BUILDERS[item.id]);
