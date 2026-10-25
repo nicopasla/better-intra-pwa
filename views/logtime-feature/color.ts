@@ -42,7 +42,7 @@ export function perceptualLuminance(color: string): number {
 }
 
 export function contrastText(color: string): "#000000" | "#ffffff" {
-  return perceptualLuminance(color) >= 128 ? "#000000" : "#ffffff";
+  return perceptualLuminance(color) >= 180 ? "#000000" : "#ffffff";
 }
 
 export function mixToward(
