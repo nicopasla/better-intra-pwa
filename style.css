@@ -153,8 +153,7 @@ body {
 .date-badge,
 .level-badge,
 .eval-badge,
-.wallet-badge,
-.location-badge {
+.wallet-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -197,19 +196,6 @@ body {
   background: var(--color-warning);
 }
 
-.location-badge {
-  color: var(--color-success-content);
-  background: var(--color-success);
-}
-
-/* Offline / editor placeholder: present but greyed out. */
-.location-badge.offline {
-  color: var(--color-base-content);
-  background: var(--color-base-200);
-  opacity: 0.75;
-  font-weight: 500;
-}
-
 .pool-badge svg,
 .date-badge svg,
 .level-badge svg,
@@ -221,17 +207,11 @@ body {
   flex-shrink: 0;
 }
 
-.level-badge svg,
-.location-badge svg {
+.level-badge svg {
   fill: none;
   stroke: currentColor;
   width: 0.75rem;
   height: 0.75rem;
-}
-
-.location-badge svg {
-  width: 0.875rem;
-  height: 0.875rem;
 }
 
 /* In the profile hero, every badge matches the level / wallet / eval row. */
@@ -239,8 +219,7 @@ body {
 .profile-hero .level-badge,
 .profile-hero .eval-badge,
 .profile-hero .wallet-badge,
-.profile-hero .location-badge,
-.profile-hero .blackhole-badge,
+.profile-hero .profile-hero .blackhole-badge,
 .profile-hero .freeze-badge,
 .profile-hero .alumni-badge {
   height: 2.25rem;
@@ -253,8 +232,7 @@ body {
 .profile-hero .level-badge svg,
 .profile-hero .eval-badge svg,
 .profile-hero .wallet-badge svg,
-.profile-hero .location-badge svg,
-.profile-hero .blackhole-badge svg,
+.profile-hero .profile-hero .blackhole-badge svg,
 .profile-hero .freeze-badge svg,
 .profile-hero .alumni-badge svg {
   width: 1rem;

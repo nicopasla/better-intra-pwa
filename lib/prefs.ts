@@ -14,8 +14,7 @@ export type HomeBadgeId =
   | "pool"
   | "blackhole"
   | "frozen"
-  | "alumni"
-  | "location";
+  | "alumni";
 
 export interface HomeLayoutItem {
   id: string;
@@ -45,17 +44,16 @@ export const HOME_BADGES: HomeBadgeId[] = [
   "blackhole",
   "frozen",
   "alumni",
-  "location",
 ];
 
 /** The hero has two badge rows; ordering happens inside each one. */
 export const BADGE_ROWS: Record<string, string[]> = {
   stats: ["level", "wallet", "eval"],
-  status: ["pool", "blackhole", "frozen", "alumni", "location"],
+  status: ["pool", "blackhole", "frozen", "alumni"],
 };
 
 /** Badges kept out of the home hero until the user turns them on. */
-const HIDDEN_BY_DEFAULT = new Set<string>(["pool", "blackhole", "location"]);
+const HIDDEN_BY_DEFAULT = new Set<string>(["pool", "blackhole"]);
 
 const defaults = (ids: readonly string[]): HomeLayoutItem[] =>
   ids.map((id) => ({ id, hidden: HIDDEN_BY_DEFAULT.has(id) }));

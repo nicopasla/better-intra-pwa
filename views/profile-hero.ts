@@ -11,8 +11,6 @@ import {
   frozenBadge,
   isFrozen,
   levelBadge,
-  locationBadge,
-  locationBadgePlaceholder,
   poolBadge,
   walletBadge,
 } from "./user-badges.ts";
@@ -103,10 +101,7 @@ export function profileHero(
     alumni: "alumni",
   };
   const badge = (id: string, node: TemplateResult | "") => {
-    let content = node;
-    // The home editor still shows the location toggle when you're offline.
-    if (content === "" && badgeToggle && id === "location")
-      content = locationBadgePlaceholder();
+    const content = node;
     if (content === "") return "";
     if (!badgeToggle) return content;
     const off = hidden.has(id);
@@ -136,15 +131,8 @@ export function profileHero(
     blackhole: blackholeBadge(p.blackholedAt),
     frozen: isFrozen(p) ? frozenBadge() : "",
     alumni: p.alumni ? alumniBadge(p.alumnizedAt) : "",
-    location: locationBadge(p.location),
   };
-  const status = orderedIds([
-    "pool",
-    "blackhole",
-    "frozen",
-    "alumni",
-    "location",
-  ])
+  const status = orderedIds(["pool", "blackhole", "frozen", "alumni"])
     .filter((id) => badgeToggle || !hidden.has(id))
     .map((id) => badge(id, statusParts[id]))
     .filter((part) => part !== "");

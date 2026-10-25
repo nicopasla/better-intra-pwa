@@ -7,7 +7,6 @@ import WALLET_SVG from "../assets/wallet.svg?raw";
 import SKULL_SVG from "../assets/skull.svg?raw";
 import FREEZE_SVG from "../assets/freeze.svg?raw";
 import GRADUATION_CAP_SVG from "../assets/graduation-cap.svg?raw";
-import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import { formatShortDate } from "./students-utils.ts";
 
 const icon = (raw: string, size = 14) =>
@@ -96,21 +95,3 @@ export function statusBadges(profile: {
     : ""}`;
 }
 
-export function locationBadge(seat: string | null): TemplateResult | "" {
-  if (!seat) return "";
-  return html`<a
-    class="location-badge"
-    href="${clusterUrl(seat)}"
-    target="_blank"
-    rel="noopener noreferrer"
-    title="View ${seat} on the cluster map"
-    >${icon(MAP_PIN_SVG)}${seat}</a
-  >`;
-}
-
-/** Greyed placeholder for the home editor, so the badge can be toggled offline. */
-export function locationBadgePlaceholder(): TemplateResult {
-  return html`<span class="location-badge offline" title="Not connected"
-    >${icon(MAP_PIN_SVG)}Location</span
-  >`;
-}
