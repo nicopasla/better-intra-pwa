@@ -390,25 +390,25 @@ body {
 
 .cluster-map .seat-focus {
   fill: none;
-  stroke: var(--color-error, #ef4444);
-  stroke-width: 3;
+  stroke: #ff0055;
+  stroke-width: 2;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
-  animation: ft-seat-focus 1.4s ease-in-out infinite;
+  animation: ft-seat-focus 1.6s ease-in-out infinite;
 }
 
-/* Pumping outline: thickens and fades outwards around the seat. */
+/* Pixel-for-pixel the extension's ft-dialog-pulsate: a 2→3px red ring with
+   two expanding glows (5/10px → 8/15px). */
 @keyframes ft-seat-focus {
-
   0%,
   100% {
-    stroke-width: 3;
-    opacity: 1;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 5px #ff0055) drop-shadow(0 0 10px #ff0055);
   }
 
   50% {
-    stroke-width: 7;
-    opacity: 0.45;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 8px #ff0055) drop-shadow(0 0 15px #ff0055);
   }
 }
 

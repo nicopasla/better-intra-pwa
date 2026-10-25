@@ -1,3 +1,5 @@
+import { mockMode } from "../../mock.ts";
+
 /** Shared cluster maps, served from the repo through the worker. */
 const MAP_BASE = "https://api.betterintra.com/gh/campuses/maps/belgium";
 
@@ -78,11 +80,47 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
   },
 ];
 
+/** Self-contained map for `?mock`: mock occupancy hosts must exist offline. */
+function mockMapSvg(cluster: string): string {
+  const hosts =
+    cluster === "fu"
+      ? [
+          "fu-r1-p1",
+          "fu-r1-p2",
+          "fu-r2-p3",
+          "fu-r5-p5",
+          "fu-r10-p1",
+          "fu-c1-p1",
+          "fu-c2-p2",
+          "fu-c3-p1",
+          "fu-c4-p1",
+        ]
+      : ["r1-p1", "r1-p2", "r1-p3", "r2-p1", "r2-p2", "r2-p3"].map(
+          (seat) => `${cluster}-${seat}`,
+        );
+  const cells = hosts
+    .map((id, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const x = 40 + col * 70;
+      const y = 40 + row * 70;
+      return `<g class="posts"><rect id="${id}" x="${x}" y="${y}" width="56" height="56" rx="4"/><image id="${id}" x="${x}" y="${y}" width="56" height="56"/></g>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect class="zone" x="20" y="20" width="260" height="360" rx="8"/>${cells}</svg>`;
+}
+
 const loads = new Map<string, Promise<void>>();
 
 /** Fetches a map once and keeps it in memory (the worker caches it for an hour). */
 export function loadClusterMap(map: ClusterMapDef): Promise<void> {
   if (map.svg || !map.url) return Promise.resolve();
+  if (mockMode) {
+    map.svg = mockMapSvg(map.id);
+    map.seatIds = seatIdsFromSvg(map.svg);
+    map.crossed = 0;
+    return Promise.resolve();
+  }
   const running = loads.get(map.id);
   if (running) return running;
 

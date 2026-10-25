@@ -60,9 +60,9 @@ function mockProfile(login: string): UserProfile {
     grade: hash % 3 === 0 ? "Cadet" : "Member",
     location:
       l === "amelie" || l === "bdurand"
-        ? "c3r1p2"
+        ? "fu-c1-p1"
         : hash % 2 === 0
-          ? "shi-r12-p2"
+          ? "fu-r2-p3"
           : null,
     campusId: 12,
     campusName: "Belgium",
@@ -191,7 +191,7 @@ export const mock = {
     correctionPoints: 42,
     level: 8.47,
     grade: "Cadet",
-    location: "shi-r12-p2",
+    location: "fu-r2-p3",
     campusId: 12,
     campusName: "Belgium",
     poolMonth: "february",
@@ -446,9 +446,9 @@ export const mock = {
       grade: "Cadet",
       location:
         l === "amelie" || l === "bdurand"
-          ? "c3r1p2"
+          ? "fu-c1-p1"
           : hash % 2 === 0
-            ? "shi-r12-p2"
+            ? "fu-r2-p3"
             : null,
     };
   },
@@ -468,7 +468,7 @@ export const mock = {
       level: 14.32,
       grade: "Member at 42cursus",
       isOnline: true,
-      lastSeen: "c3r1p2",
+      lastSeen: "fu-c1-p1",
       poolLabel: "06/2001",
       wallet: 2100,
       correctionPoints: 12,
@@ -486,7 +486,7 @@ export const mock = {
       level: 7.9,
       grade: "Learner",
       isOnline: true,
-      lastSeen: "c4r2p1",
+      lastSeen: "fu-c2-p2",
       poolLabel: null,
       wallet: 842,
       correctionPoints: 3,
@@ -540,7 +540,7 @@ export const mock = {
       level: 5.67,
       grade: "Member",
       isOnline: true,
-      lastSeen: "c1r4p3",
+      lastSeen: "fu-c3-p1",
       poolLabel: "06/2001",
       wallet: 5,
       correctionPoints: 1,
@@ -648,7 +648,7 @@ export const mock = {
         login,
         displayName: login.charAt(0).toUpperCase() + login.slice(1),
         avatar: `https://cataas.com/cat?width=200&height=200&r=${id * 100 + i}`,
-        location: (id + i) % 3 !== 0 ? "c1r2p1" : null,
+        location: (id + i) % 3 !== 0 ? "fu-r1-p2" : null,
       };
     });
   },
