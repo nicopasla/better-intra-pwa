@@ -203,6 +203,14 @@ body {
   background: var(--color-success);
 }
 
+/* Offline / editor placeholder: present but greyed out. */
+.location-badge.offline {
+  color: var(--color-base-content);
+  background: var(--color-base-200);
+  opacity: 0.75;
+  font-weight: 500;
+}
+
 .pool-badge svg,
 .date-badge svg,
 .level-badge svg,
@@ -451,4 +459,68 @@ body {
 
 .cluster-map.is-panning image[data-login] {
   cursor: grabbing;
+}
+
+/* Home edit mode: drag handles and the lifted card. */
+.ft-card-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+/* Home edit mode: tappable hero badges. */
+.ft-badge-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-field);
+}
+
+.ft-badge-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The stats row stretches its items, so keep that inside the wrapper. */
+.hero-stats>.ft-badge-toggle {
+  flex: 1 1 0;
+  padding: 0;
+  gap: 0;
+}
+
+.hero-stats>.ft-badge-toggle>* {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* Edit mode: the reorder gesture must never trigger pull-to-refresh. */
+html.ft-editing,
+html.ft-editing body {
+  overscroll-behavior-y: none;
+}
+
+/* SortableJS (same look as the extension's settings lists). */
+.ft-sortable-ghost {
+  opacity: 0.35;
+  border-style: dashed !important;
+}
+
+.ft-sortable-chosen,
+.ft-sortable-drag {
+  cursor: grabbing;
+}
+
+.ft-sortable-fallback {
+  opacity: 1 !important;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.45) !important;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  cursor: grabbing;
+  pointer-events: none;
 }

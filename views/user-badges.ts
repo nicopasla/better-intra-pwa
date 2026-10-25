@@ -71,6 +71,16 @@ export function alumniBadge(iso: string | null): TemplateResult {
   >`;
 }
 
+/** Frozen: inactive with a blackhole date still in the future. */
+export function isFrozen(profile: {
+  active: boolean;
+  blackholedAt: string | null;
+}): boolean {
+  if (profile.active || !profile.blackholedAt) return false;
+  const at = new Date(profile.blackholedAt).getTime();
+  return Number.isFinite(at) && at >= Date.now();
+}
+
 /** Frozen / alumni, matching the Students list rules. */
 export function statusBadges(profile: {
   active: boolean;
@@ -78,11 +88,7 @@ export function statusBadges(profile: {
   blackholedAt: string | null;
   alumnizedAt: string | null;
 }): TemplateResult | "" {
-  const blackholedAt = profile.blackholedAt
-    ? new Date(profile.blackholedAt).getTime()
-    : null;
-  const frozen =
-    !profile.active && blackholedAt !== null && blackholedAt >= Date.now();
+  const frozen = isFrozen(profile);
 
   if (!frozen && !profile.alumni) return "";
   return html`${frozen ? frozenBadge() : ""}${profile.alumni
@@ -99,5 +105,12 @@ export function locationBadge(seat: string | null): TemplateResult | "" {
     rel="noopener noreferrer"
     title="View ${seat} on the cluster map"
     >${icon(MAP_PIN_SVG)}${seat}</a
+  >`;
+}
+
+/** Greyed placeholder for the home editor, so the badge can be toggled offline. */
+export function locationBadgePlaceholder(): TemplateResult {
+  return html`<span class="location-badge offline" title="Not connected"
+    >${icon(MAP_PIN_SVG)}Location</span
   >`;
 }

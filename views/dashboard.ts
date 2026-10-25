@@ -33,7 +33,16 @@ import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
-import { hideHomeBlackhole } from "../lib/prefs.ts";
+import {
+  BADGE_ROWS,
+  getHomeLayout,
+  resetHomeLayout,
+  setHomeLayout,
+} from "../lib/prefs.ts";
+import type { HomeLayoutItem } from "../lib/prefs.ts";
+import { setPullRefreshEnabled } from "../pull-refresh.ts";
+import { createSortable, moveItem } from "../lib/sortable.ts";
+import type Sortable from "sortablejs";
 import { profileHero } from "./profile-hero.ts";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
@@ -41,6 +50,25 @@ import CHECK_SVG from "../assets/check.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
 import INFO_SVG from "../assets/info.svg?raw";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
+import GRIP_SVG from "../assets/grip.svg?raw";
+import EYE_SVG from "../assets/eye.svg?raw";
+import EYE_SLASH_SVG from "../assets/eye-slash.svg?raw";
+
+const CARD_LABELS: Record<string, string> = {
+  logtime: "Logtime",
+  upcoming: "Upcoming evals",
+  live: "Live events",
+  projects: "Projects",
+  events: "Events",
+};
+
+const CARD_BUILDERS: Record<string, () => unknown> = {
+  logtime: logtimeCard,
+  upcoming: upcomingCard,
+  live: liveEventsCard,
+  projects: projectsCard,
+  events: eventsCard,
+};
 
 let meData: Me | null = null;
 let upcoming: UpcomingResponse = { items: [], tracked: false };
@@ -104,9 +132,181 @@ export function dashboardView(): unknown {
       </div>
     `;
   }
+  const layout = getHomeLayout();
   return html`
-    ${stale ? staleBanner() : ""} ${heroCard()} ${logtimeCard()}
-    ${upcomingCard()} ${liveEventsCard()} ${projectsCard()} ${eventsCard()}
+    ${stale ? staleBanner() : ""} ${heroCard()}
+    <div id="ft-home-cards">
+      ${layout.cards
+        .filter((item) => Boolean(CARD_BUILDERS[item.id]))
+        .filter((item) => editing || !item.hidden)
+        .map((item) =>
+          editing
+            ? editBlock(item.id, item.hidden)
+            : html`<div data-card-id="${item.id}">
+                ${CARD_BUILDERS[item.id]()}
+              </div>`,
+        )}
+    </div>
+  `;
+}
+
+let editing = false;
+
+function toggleEdit(): void {
+  setEditing(!editing);
+}
+
+/**
+ * While editing, swiping down at the top of the page must reorder cards, not
+ * reload the app: block the browser's pull-to-refresh gesture.
+ */
+let editingGuard = false;
+let touchStartY = 0;
+
+const rememberTouch = (e: TouchEvent) => {
+  touchStartY = e.touches[0]?.clientY ?? 0;
+};
+
+const blockPullToRefresh = (e: TouchEvent) => {
+  if (e.touches.length !== 1) return;
+  const top = (document.scrollingElement?.scrollTop ?? window.scrollY) <= 0;
+  if (top && e.touches[0].clientY > touchStartY) e.preventDefault();
+};
+
+function setEditing(on: boolean): void {
+  editing = on;
+  setPullRefreshEnabled(!on);
+  document.documentElement.classList.toggle("ft-editing", on);
+  if (on && !editingGuard) {
+    editingGuard = true;
+    document.addEventListener("touchstart", rememberTouch, { passive: true });
+    document.addEventListener("touchmove", blockPullToRefresh, {
+      passive: false,
+    });
+  } else if (!on && editingGuard) {
+    editingGuard = false;
+    document.removeEventListener("touchstart", rememberTouch);
+    document.removeEventListener("touchmove", blockPullToRefresh);
+  }
+  refresh();
+}
+
+function toggleCard(id: string): void {
+  const layout = getHomeLayout();
+  const item = layout.cards.find((card) => card.id === id);
+  if (!item) return;
+  item.hidden = !item.hidden;
+  setHomeLayout(layout);
+  refresh();
+}
+
+function toggleBadge(id: string): void {
+  const layout = getHomeLayout();
+  const item = layout.badges.find((badge) => badge.id === id);
+  if (!item) return;
+  item.hidden = !item.hidden;
+  setHomeLayout(layout);
+  refresh();
+}
+
+let cardSortable: Sortable | null = null;
+let badgeSortables: Sortable[] = [];
+
+/** Saves a row's new order back into the shared badge list. */
+function reorderBadgeRow(group: string[], rowIds: string[]): void {
+  const layout = getHomeLayout();
+  const items = layout.badges.filter((item) => group.includes(item.id));
+  const ordered = [
+    ...rowIds
+      .map((id) => items.find((item) => item.id === id))
+      .filter((item): item is HomeLayoutItem => Boolean(item)),
+    ...items.filter((item) => !rowIds.includes(item.id)),
+  ];
+  let next = 0;
+  layout.badges = layout.badges.map((item) =>
+    group.includes(item.id) ? ordered[next++] : item,
+  );
+  setHomeLayout(layout);
+}
+
+/** Wires the edit-mode drag & drop after every dashboard render. */
+export function dashboardAttachObservers(): void {
+  cardSortable?.destroy();
+  cardSortable = null;
+  for (const instance of badgeSortables) instance.destroy();
+  badgeSortables = [];
+  if (!editing) return;
+
+  const container = document.getElementById("ft-home-cards");
+  if (container) {
+    cardSortable = createSortable(container, {
+      draggable: "[data-card-id]",
+      handle: ".ft-card-handle",
+      filter: ".btn",
+      onReorder: (from, to) => {
+        const layout = getHomeLayout();
+        const known = layout.cards.filter((item) => CARD_BUILDERS[item.id]);
+        const rest = layout.cards.filter((item) => !CARD_BUILDERS[item.id]);
+        layout.cards = [...moveItem(known, from, to), ...rest];
+        setHomeLayout(layout);
+      },
+    });
+  }
+
+  // Hero badges: each row drags within itself. A delay keeps a tap a tap.
+  for (const row of document.querySelectorAll<HTMLElement>(
+    "[data-badge-row]",
+  )) {
+    const group = BADGE_ROWS[row.dataset.badgeRow ?? ""];
+    if (!group) continue;
+    badgeSortables.push(
+      createSortable(row, {
+        draggable: "[data-badge-id]",
+        delay: 220,
+        delayOnTouchOnly: true,
+        onReorder: () => {
+          const ids = [
+            ...row.querySelectorAll<HTMLElement>("[data-badge-id]"),
+          ].map((el) => el.dataset.badgeId ?? "");
+          reorderBadgeRow(group, ids);
+        },
+      }),
+    );
+  }
+}
+
+function editBlock(id: string, hidden: boolean) {
+  const label = CARD_LABELS[id] ?? id;
+  return html`
+    <div data-card-id="${id}">
+      <div
+        class="ft-card-handle mb-1 flex items-center gap-2 px-1"
+        data-no-swipe
+      >
+        <span class="inline-flex opacity-50">${svg18(GRIP_SVG)}</span>
+        <span
+          class="flex-1 text-xs font-semibold uppercase tracking-wide ${hidden
+            ? "opacity-30 line-through"
+            : "opacity-60"}"
+          >${label}</span
+        >
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs ${hidden ? "text-success" : "text-error"}"
+          aria-label="${hidden ? "Show" : "Hide"} ${label}"
+          @click=${() => toggleCard(id)}
+        >
+          ${svg18(hidden ? EYE_SVG : EYE_SLASH_SVG)}
+        </button>
+      </div>
+      <div
+        class="${hidden
+          ? "pointer-events-none select-none opacity-40 grayscale"
+          : ""}"
+      >
+        ${CARD_BUILDERS[id]()}
+      </div>
+    </div>
   `;
 }
 
@@ -132,10 +332,22 @@ function card(content: unknown, title?: string) {
 
 function heroCard() {
   if (!myProfile) return heroSkeleton();
+  const layout = getHomeLayout();
   return profileHero(myProfile, {
     showShare: false,
-    showPool: false,
-    showBlackhole: !hideHomeBlackhole(),
+    badges: {
+      order: layout.badges.map((item) => item.id),
+      hidden: layout.badges.filter((item) => item.hidden).map((item) => item.id),
+    },
+    onEdit: toggleEdit,
+    editActive: editing,
+    onReset: editing
+      ? () => {
+          resetHomeLayout();
+          refresh();
+        }
+      : undefined,
+    onBadgeToggle: editing ? toggleBadge : undefined,
     showOriginalAvatar,
     avatarFailed,
     onToggleAvatar: () => {

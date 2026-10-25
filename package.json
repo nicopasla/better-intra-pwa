@@ -1,7 +1,7 @@
 {
   "name": "better-intra-pwa",
   "private": true,
-  "version": "0.38.2",
+  "version": "0.39.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "generate-random-username": "^2.2.0",
-    "lit-html": "^3.3.3"
+    "lit-html": "^3.3.3",
+    "sortablejs": "^1.15.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/sortablejs": "^1.15.9",
     "daisyui": "^5.7.50",
     "typescript": "^7.0.2",
     "vite": "^8.3.0"

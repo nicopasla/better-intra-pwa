@@ -19,6 +19,7 @@ import {
 } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
 import {
+  dashboardAttachObservers,
   dashboardView,
   hydrateDashboardCache,
   loadDashboard,
@@ -377,6 +378,7 @@ function renderBody(): void {
       break;
   }
   renderShell(tab, body, bottomBar);
+  if (tab === "dashboard") dashboardAttachObservers();
   if (tab === "profile") profileAttachObservers();
   if (campusAllowed) {
     if (tab === "students") studentsAttachObservers();

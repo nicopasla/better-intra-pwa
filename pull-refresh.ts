@@ -14,6 +14,17 @@ let pulling = false;
 let reloading = false;
 let blocked = false;
 let indicatorEl: HTMLDivElement | null = null;
+/** The home editor turns this off while cards are being rearranged. */
+let enabled = true;
+
+export function setPullRefreshEnabled(on: boolean): void {
+  enabled = on;
+  if (!on) {
+    pulling = false;
+    render(0, false, false);
+    settle(0);
+  }
+}
 
 /** Touches starting on an inner scroll area should scroll it, not pull-refresh. */
 function isScrollArea(target: EventTarget | null): boolean {
@@ -132,7 +143,7 @@ export function initPullRefresh(): void {
       startY = t.clientY;
       lastDy = 0;
       pulling = false;
-      blocked = isScrollArea(e.target);
+      blocked = !enabled || isScrollArea(e.target);
     },
     { passive: true },
   );
@@ -140,7 +151,7 @@ export function initPullRefresh(): void {
   document.addEventListener(
     "touchmove",
     (e: TouchEvent) => {
-      if (reloading || blocked) return;
+      if (!enabled || reloading || blocked) return;
       const t = e.touches[0];
       const dy = t.clientY - startY;
       const dx = t.clientX - startX;
