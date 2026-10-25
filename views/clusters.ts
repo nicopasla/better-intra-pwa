@@ -333,11 +333,8 @@ function mapView(map: ClusterMapDef): unknown {
     ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
     : "occupied seats";
   return html`
-    <div class="flex flex-col gap-3 mb-4" data-no-swipe>
-      <div
-        class="rounded-xl bg-base-100 p-2 shadow-lg sticky top-0 z-10"
-        data-no-swipe
-      >
+    <div class="flex flex-col gap-3 mb-4">
+      <div class="rounded-xl bg-base-100 p-2 shadow-lg" data-no-swipe>
         ${svg
           ? html`<div
               id="ft-cluster-map"
