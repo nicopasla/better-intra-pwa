@@ -84,7 +84,8 @@ export function profileHero(
   /** Saved order first, then any id it doesn't mention. */
   const orderedIds = (all: string[]): string[] => {
     const out: string[] = [];
-    for (const id of order) if (all.includes(id) && !out.includes(id)) out.push(id);
+    for (const id of order)
+      if (all.includes(id) && !out.includes(id)) out.push(id);
     for (const id of all) if (!out.includes(id)) out.push(id);
     return out;
   };
@@ -158,21 +159,22 @@ export function profileHero(
             aria-label="Reset home layout"
             title="Reset home layout"
             @click=${opts.onReset}
-            >Reset</button
-          >`
+          >
+            Reset
+          </button>`
         : ""}
       ${opts.onEdit
         ? html`<button
-            class="btn btn-circle absolute top-2 right-2 size-11 bg-base-100/90 hover:bg-base-100 border-none shadow-md ${opts
-              .editActive
+            class="btn btn-circle absolute top-2 right-2 size-11 bg-base-100/90 hover:bg-base-100 border-none shadow-md ${opts.editActive
               ? "text-success"
               : ""}"
             type="button"
             aria-label=${opts.editActive ? "Done editing" : "Edit home"}
             title=${opts.editActive ? "Done editing" : "Edit home"}
             @click=${opts.onEdit}
-            >${svg18(opts.editActive ? CHECK_SVG : PENCIL_SVG)}</button
-          >`
+          >
+            ${svg18(opts.editActive ? CHECK_SVG : PENCIL_SVG)}
+          </button>`
         : ""}
       ${opts.showShare === false
         ? ""
@@ -190,7 +192,9 @@ export function profileHero(
           ${avatarBlock(p, opts)}
           <div class="min-w-0 pb-1 flex-1">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="font-bold text-lg truncate">${p.displayName}</span>
+              <span class="font-bold text-2xl leading-tight truncate"
+                >${p.displayName}</span
+              >
               <span
                 class="status ${p.location
                   ? "status-success"
@@ -198,14 +202,13 @@ export function profileHero(
                 title="${p.location ? `Online · ${p.location}` : "Offline"}"
               ></span>
             </div>
-            <div class="text-sm opacity-60 truncate">${p.login}</div>
+            <div class="text-lg opacity-60 truncate">${p.login}</div>
           </div>
         </div>
 
         ${stats.length
           ? html`<div class="hero-stats" data-badge-row="stats">${stats}</div>`
           : ""}
-
         ${groups.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
@@ -227,7 +230,6 @@ export function profileHero(
               )}
             </div>`
           : ""}
-
         ${status.length
           ? html`<div
               class="flex items-center justify-center gap-1.5 flex-wrap"
