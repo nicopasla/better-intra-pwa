@@ -275,50 +275,71 @@ export function dashboardAttachObservers(): void {
   }
 }
 
-/** Sample content the home editor shows for cards that have no data yet. */
-function mockCard(id: string): unknown {
-  const row = (title: string, meta: string) => html`
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-sm font-semibold truncate">${title}</span>
-      <span class="badge badge-outline badge-sm shrink-0">${meta}</span>
-    </div>`;
+/**
+ * Real cards with sample data: the home editor renders them through the same
+ * builders when the account has nothing to show, so the styles match exactly.
+ */
+const mockIso = (minutes: number) =>
+  new Date(Date.now() + minutes * 60_000).toISOString();
 
-  switch (id) {
-    case "upcoming":
-      return card(
-        html`<div class="flex flex-col gap-2">
-          ${row("libft", "in 2h")} ${row("born2beroot", "tomorrow")}
-        </div>`,
-        "Upcoming",
-      );
-    case "live":
-      return html`<div class="card bg-base-100 shadow-xl mb-4">
-        <div class="card-body p-4 gap-2">
-          <span class="badge badge-success badge-sm font-semibold"
-            >Happening now</span
-          >
-          ${row("Piscine kick-off", "9:00 – 18:00")}
-        </div>
-      </div>`;
-    case "projects":
-      return html`<div class="card bg-base-100 shadow-xl mb-4">
-        <div class="card-body">
-          <h2 class="card-title text-base">Projects</h2>
-          <div class="flex gap-2">
-            ${projectStat("Validated", 12)} ${projectStat("In progress", 2)}
-            ${projectStat("Total", 20)}
-          </div>
-        </div>
-      </div>`;
-    case "events":
-      return card(
-        html`<div class="flex flex-col gap-2">
-          ${row("Weekly stand-up", "Mon 10:00")}
-        </div>`,
-        "Events",
-      );
-    default:
-      return "";
+const MOCK_EVALS: UpcomingEval[] = [
+  {
+    id: -1001,
+    beginAt: mockIso(60 * 24 * 365 * 50),
+    state: "booked",
+    project: "libft",
+    slug: "libft",
+    role: "evaluator",
+    correcteds: ["jdoe"],
+  },
+  {
+    id: -1002,
+    beginAt: mockIso(60 * 24 * 365 * 50 + 60 * 24),
+    state: "booked",
+    project: "born2beroot",
+    slug: "born2beroot",
+    role: "corrected",
+    corrector: "mlane",
+  },
+];
+
+const MOCK_EVENT: CalendarEvent = {
+  id: -2001,
+  name: "Piscine kick-off",
+  beginAt: mockIso(-30),
+  endAt: mockIso(120),
+  location: "Cluster 1",
+  url: null,
+};
+
+function withMockData<T>(id: string, render: () => T): T {
+  const savedMe = meData;
+  const savedUpcoming = upcoming;
+  const savedEvents = allEvents;
+  try {
+    if (id === "projects" && !meData) {
+      meData = {
+        projects: {
+          total: 15,
+          validated: 12,
+          failed: 1,
+          inProgress: 2,
+          active: [],
+          recent: [],
+        },
+      } as unknown as Me;
+    }
+    if (id === "upcoming" && upcoming.items.length === 0) {
+      upcoming = { items: MOCK_EVALS, tracked: true };
+    }
+    if ((id === "live" || id === "events") && allEvents.length === 0) {
+      allEvents = [MOCK_EVENT];
+    }
+    return render();
+  } finally {
+    meData = savedMe;
+    upcoming = savedUpcoming;
+    allEvents = savedEvents;
   }
 }
 
@@ -353,7 +374,11 @@ function editBlock(id: string, hidden: boolean) {
       >
         ${(() => {
           const body = CARD_BUILDERS[id]();
-          return body === "" ? mockCard(id) : body;
+          if (body !== "") return body;
+          // Previews are inert: the fake ids must not open dialogs or get saved.
+          return html`<div class="pointer-events-none select-none">
+            ${withMockData(id, () => CARD_BUILDERS[id]())}
+          </div>`;
         })()}
       </div>
     </div>
