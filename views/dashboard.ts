@@ -617,17 +617,17 @@ function upcomingCard() {
   const needsPush = pushSupported() && pushSubscribed !== true;
 
   if (items.length === 0) {
-    return card(
-      html`<div class="flex flex-col items-start gap-2 w-full">
-        <p class="text-sm opacity-60">
-          ${needsPush
-            ? "Enable notifications to start tracking evaluations."
-            : "Nothing upcoming."}
-        </p>
-        ${needsPush ? enablePushBlock() : ""}
-      </div>`,
-      "Upcoming",
-    );
+    return needsPush
+      ? card(
+          html`<div class="flex flex-col items-start gap-2 w-full">
+            <p class="text-sm opacity-60">
+              Enable notifications to start tracking evaluations.
+            </p>
+            ${enablePushBlock()}
+          </div>`,
+          "Upcoming",
+        )
+      : "";
   }
 
   const evaluating = items.filter((e) => e.role !== "corrected");
