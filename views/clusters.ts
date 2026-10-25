@@ -368,11 +368,6 @@ function mapView(map: ClusterMapDef): unknown {
             : map.failed
               ? mapFailed(map)
               : mapLoading()}
-        ${map.crossed
-          ? html`<p class="px-1 pt-1 text-xs opacity-60">
-              ✕ seat without a working computer
-            </p>`
-          : ""}
       </div>
 
       <div class="rounded-xl bg-base-100 p-3 shadow-lg">
