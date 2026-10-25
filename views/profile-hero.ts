@@ -188,9 +188,9 @@ export function profileHero(
             >${svg18(ARROW_SHARE_SVG)}</a
           >`}
       <div class="card-body pt-0 gap-3">
-        <div class="flex items-end gap-3 -mt-12">
+        <div class="flex items-end gap-3 -mt-8">
           ${avatarBlock(p, opts)}
-          <div class="min-w-0 pb-1 flex-1">
+          <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 min-w-0">
               <span class="font-bold text-2xl leading-tight truncate"
                 >${p.displayName}</span
@@ -202,7 +202,9 @@ export function profileHero(
                 title="${p.location ? `Online · ${p.location}` : "Offline"}"
               ></span>
             </div>
-            <div class="text-lg opacity-60 truncate">${p.login}</div>
+            <div class="text-lg leading-tight opacity-60 truncate">
+              ${p.login}
+            </div>
           </div>
         </div>
 
