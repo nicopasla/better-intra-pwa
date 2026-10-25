@@ -351,15 +351,13 @@ function mapView(map: ClusterMapDef): unknown {
     >
       <div
         class="${mapExpanded
-          ? "fixed inset-0 z-[70] flex flex-col bg-base-100 p-2"
+          ? "absolute inset-0 flex flex-col bg-base-100 p-2"
           : "relative flex-70 min-h-0 flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
         data-no-swipe
       >
         <button
           type="button"
-          class="btn btn-circle btn-sm absolute right-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur ${mapExpanded
-            ? "bottom-[calc(env(safe-area-inset-bottom)_+_0.5rem)]"
-            : "bottom-2"}"
+          class="btn btn-circle btn-sm absolute bottom-2 left-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur"
           aria-label=${mapExpanded
             ? "Exit full screen"
             : "Open the map full screen"}
