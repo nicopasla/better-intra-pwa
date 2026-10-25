@@ -136,11 +136,7 @@ export function openEventDialog(e: CalendarEvent): void {
               : ""}
           </div>
           ${e.description
-            ? html`<p
-                class="text-sm whitespace-pre-wrap wrap-break-word opacity-90"
-              >
-                ${e.description.trim()}
-              </p>`
+            ? html`<p class="text-sm whitespace-pre-wrap wrap-break-word opacity-90">${e.description.trim()}</p>`
             : html`<p class="text-sm opacity-60">No description.</p>`}
           ${href
             ? html`<a
