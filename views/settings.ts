@@ -319,7 +319,12 @@ function accountSection(login: string) {
   const groups = groupSessions(sessions);
   return html`
     <p class="text-sm">Signed in as <span class="font-bold">${login}</span></p>
-    <div class="flex flex-col gap-1">
+    <details class="collapse collapse-arrow rounded-box bg-base-200/60">
+      <summary class="collapse-title text-sm font-medium">
+        Devices (${groups.length})
+      </summary>
+      <div class="collapse-content">
+        <div class="flex flex-col gap-2 pt-1">
       ${groups.map((g) => {
         const others = g.sessions.filter((s) => !s.current);
         const lastUsed = sessionRecency(g.primary);
@@ -357,7 +362,9 @@ function accountSection(login: string) {
               </button>`}
         </div>`;
       })}
-    </div>
+        </div>
+      </div>
+    </details>
     <button
       class="btn btn-sm btn-error self-start"
       ?disabled=${busy}
