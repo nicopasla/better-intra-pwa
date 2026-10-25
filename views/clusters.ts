@@ -10,6 +10,7 @@ import { fetchOccupancy } from "./clusters-feature/data.ts";
 import {
   attachMapGestures,
   focusMapSeat,
+  resetMapZoom,
 } from "./clusters-feature/map-gestures.ts";
 import {
   CLUSTER_MAPS,
@@ -557,8 +558,15 @@ export function clustersAttachObservers(): void {
   refreshLabel();
   applyMapOccupancy();
   const seat = seatFromHash();
-  if (!seat) return;
   const mapEl = document.getElementById("ft-cluster-map");
+  if (!seat) {
+    // Leaving the seat route (or coming back to the tab) resets the zoom.
+    if (focusedSeat) {
+      focusedSeat = null;
+      if (mapEl) resetMapZoom(mapEl);
+    }
+    return;
+  }
   if (activeTab !== "active" && mapEl && focusedSeat !== seat) {
     if (focusMapSeat(mapEl, seat)) focusedSeat = seat;
   }

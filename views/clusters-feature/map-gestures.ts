@@ -78,6 +78,17 @@ function zoomAt(
 }
 
 /** Wires drag, pinch and wheel zoom on a map container. Safe to call repeatedly. */
+/** Back to the fitted view, dropping any seat focus ring. */
+export function resetMapZoom(container: HTMLElement): void {
+  container.querySelectorAll(".seat-focus").forEach((el) => el.remove());
+  const state = states.get(container);
+  if (!state) return;
+  state.scale = MIN_SCALE;
+  state.x = 0;
+  state.y = 0;
+  apply(container, state);
+}
+
 export function attachMapGestures(container: HTMLElement): void {  const existing = states.get(container);
   if (existing) {
     // The inline SVG can be swapped by a re-render; re-apply the transform.

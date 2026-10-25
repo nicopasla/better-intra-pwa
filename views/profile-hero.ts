@@ -168,7 +168,7 @@ export function profileHero(
       ${opts.showShare === false
         ? ""
         : html`<a
-            class="btn btn-sm btn-circle absolute top-2 right-2 bg-base-100/90 hover:bg-base-100 border-none shadow-md"
+            class="btn btn-circle absolute top-2 right-2 size-11 bg-base-100/90 hover:bg-base-100 border-none shadow-md"
             href="https://profile-v3.intra.42.fr/users/${p.login}"
             target="_blank"
             rel="noopener noreferrer"

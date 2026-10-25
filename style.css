@@ -219,7 +219,7 @@ body {
 .profile-hero .level-badge,
 .profile-hero .eval-badge,
 .profile-hero .wallet-badge,
-.profile-hero .profile-hero .blackhole-badge,
+.profile-hero .blackhole-badge,
 .profile-hero .freeze-badge,
 .profile-hero .alumni-badge {
   height: 2.25rem;
@@ -232,7 +232,7 @@ body {
 .profile-hero .level-badge svg,
 .profile-hero .eval-badge svg,
 .profile-hero .wallet-badge svg,
-.profile-hero .profile-hero .blackhole-badge svg,
+.profile-hero .blackhole-badge svg,
 .profile-hero .freeze-badge svg,
 .profile-hero .alumni-badge svg {
   width: 1rem;
