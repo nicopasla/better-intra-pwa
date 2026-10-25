@@ -275,6 +275,53 @@ export function dashboardAttachObservers(): void {
   }
 }
 
+/** Sample content the home editor shows for cards that have no data yet. */
+function mockCard(id: string): unknown {
+  const row = (title: string, meta: string) => html`
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-sm font-semibold truncate">${title}</span>
+      <span class="badge badge-outline badge-sm shrink-0">${meta}</span>
+    </div>`;
+
+  switch (id) {
+    case "upcoming":
+      return card(
+        html`<div class="flex flex-col gap-2">
+          ${row("libft", "in 2h")} ${row("born2beroot", "tomorrow")}
+        </div>`,
+        "Upcoming",
+      );
+    case "live":
+      return html`<div class="card bg-base-100 shadow-xl mb-4">
+        <div class="card-body p-4 gap-2">
+          <span class="badge badge-success badge-sm font-semibold"
+            >Happening now</span
+          >
+          ${row("Piscine kick-off", "9:00 – 18:00")}
+        </div>
+      </div>`;
+    case "projects":
+      return html`<div class="card bg-base-100 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title text-base">Projects</h2>
+          <div class="flex gap-2">
+            ${projectStat("Validated", 12)} ${projectStat("In progress", 2)}
+            ${projectStat("Total", 20)}
+          </div>
+        </div>
+      </div>`;
+    case "events":
+      return card(
+        html`<div class="flex flex-col gap-2">
+          ${row("Weekly stand-up", "Mon 10:00")}
+        </div>`,
+        "Events",
+      );
+    default:
+      return "";
+  }
+}
+
 function editBlock(id: string, hidden: boolean) {
   const label = CARD_LABELS[id] ?? id;
   return html`
@@ -304,7 +351,10 @@ function editBlock(id: string, hidden: boolean) {
           ? "pointer-events-none select-none opacity-40 grayscale"
           : ""}"
       >
-        ${CARD_BUILDERS[id]()}
+        ${(() => {
+          const body = CARD_BUILDERS[id]();
+          return body === "" ? mockCard(id) : body;
+        })()}
       </div>
     </div>
   `;
