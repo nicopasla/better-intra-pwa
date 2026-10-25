@@ -80,7 +80,7 @@ function switchTab(id: string): void {
   if (id === activeTab) return;
   if (id !== "active" && !findClusterMap(id)?.available) return;
   activeTab = id;
-  focusedSeat = null;
+  // focusedSeat is cleared by clustersAttachObservers, which also resets zoom.
   refresh();
 }
 
@@ -125,8 +125,6 @@ export function clustersView(): unknown {
   if (seat) {
     const mapId = mapIdForSeat(seat);
     activeTab = mapId ?? "active";
-  } else {
-    focusedSeat = null;
   }
   if (activeTab !== "active") {
     const map = findClusterMap(activeTab);
@@ -567,7 +565,8 @@ export function clustersAttachObservers(): void {
     }
     return;
   }
-  if (activeTab !== "active" && mapEl && focusedSeat !== seat) {
+  if (activeTab !== "active" && mapEl) {
+    // Always re-focus: tapping the same location again resets any manual pan.
     if (focusMapSeat(mapEl, seat)) focusedSeat = seat;
   }
   // Consume the route once handled, so switching tabs afterwards doesn't snap

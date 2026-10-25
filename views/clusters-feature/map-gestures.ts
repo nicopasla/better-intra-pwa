@@ -89,7 +89,8 @@ export function resetMapZoom(container: HTMLElement): void {
   apply(container, state);
 }
 
-export function attachMapGestures(container: HTMLElement): void {  const existing = states.get(container);
+export function attachMapGestures(container: HTMLElement): void {
+  const existing = states.get(container);
   if (existing) {
     // The inline SVG can be swapped by a re-render; re-apply the transform.
     apply(container, existing);
@@ -221,7 +222,9 @@ export function attachMapGestures(container: HTMLElement): void {  const existin
 
     // A tap, not a drag: open the profile of the avatar under the finger.
     const direct = drag.target?.closest?.("image[data-login]");
-    const el = direct ? null : document.elementFromPoint(ev.clientX, ev.clientY);
+    const el = direct
+      ? null
+      : document.elementFromPoint(ev.clientX, ev.clientY);
     const img = direct ?? el?.closest?.("image[data-login]");
     const login = img?.getAttribute("data-login");
     if (login) location.hash = `#/u/${login}`;
@@ -277,12 +280,17 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   svg.querySelectorAll(".seat-focus").forEach((el) => el.remove());
   const ring = document.createElementNS(SVG_NS, "rect");
   ring.setAttribute("class", "seat-focus");
-  ring.setAttribute("x", String(x));
-  ring.setAttribute("y", String(y));
-  ring.setAttribute("width", String(w));
-  ring.setAttribute("height", String(h));
-  ring.setAttribute("rx", "3");
-  svg.appendChild(ring);
+  // Outside the seat (not straddling its border) and drawn in the seat's own
+  // coordinate space, so rotated/inclined seats get a matching outline.
+  const pad = Math.max(2, Math.min(w, h) * 0.08);
+  ring.setAttribute("x", String(x - pad));
+  ring.setAttribute("y", String(y - pad));
+  ring.setAttribute("width", String(w + pad * 2));
+  ring.setAttribute("height", String(h + pad * 2));
+  ring.setAttribute("rx", "4");
+  const transform = image.getAttribute("transform");
+  if (transform) ring.setAttribute("transform", transform);
+  image.parentNode?.insertBefore(ring, image.nextSibling);
 
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
   if (vb.length < 4 || !vb[2] || !vb[3]) return true;
@@ -302,17 +310,11 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   state.scale = clamp(1.6, MIN_SCALE, MAX_SCALE);
   state.x = Math.min(
     0,
-    Math.max(
-      width - width * state.scale,
-      width / 2 - px * state.scale,
-    ),
+    Math.max(width - width * state.scale, width / 2 - px * state.scale),
   );
   state.y = Math.min(
     0,
-    Math.max(
-      height - height * state.scale,
-      height / 2 - py * state.scale,
-    ),
+    Math.max(height - height * state.scale, height / 2 - py * state.scale),
   );
   apply(container, state);
   return true;
