@@ -163,12 +163,13 @@ const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
 export function settingsView(): TemplateResult {
   const session = getSession();
   return html`
+    ${section("About", aboutSection())}
     ${section("Notifications", notificationsSection())}
     ${isStandalone() ? "" : section("Install", installSection())}
     ${section("Theme", themeSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("Community", communitySection())}
-    ${section("About & Debug", aboutSection())}
+    ${debugSection()}
     ${logmeError
       ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
       : ""}
@@ -318,7 +319,19 @@ function notificationsSection() {
 function accountSection(login: string) {
   const groups = groupSessions(sessions);
   return html`
-    <p class="text-sm">Signed in as <span class="font-bold">${login}</span></p>
+    <div class="flex items-center justify-between gap-2">
+      <span class="badge badge-lg badge-primary font-mono font-semibold"
+        >${login}</span
+      >
+      <button
+        type="button"
+        class="badge badge-lg badge-error cursor-pointer"
+        ?disabled=${busy}
+        @click=${onLogout}
+      >
+        Logout
+      </button>
+    </div>
     <details class="collapse collapse-arrow rounded-box bg-base-200/60">
       <summary class="collapse-title text-sm font-medium">
         Devices (${groups.length})
@@ -365,13 +378,6 @@ function accountSection(login: string) {
         </div>
       </div>
     </details>
-    <button
-      class="btn btn-sm btn-error self-start"
-      ?disabled=${busy}
-      @click=${onLogout}
-    >
-      Sign out
-    </button>
   `;
 }
 
@@ -463,7 +469,6 @@ function evalTrackingBadge(): TemplateResult {
 }
 
 function aboutSection(): TemplateResult {
-  const session = getSession();
   const version =
     typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   return html`
@@ -527,55 +532,6 @@ function aboutSection(): TemplateResult {
       </a>
     </div>
 
-    ${diagGroup(
-      "Connection",
-      html`
-        ${diagRow("Worker", workerBadge())}
-        ${diagRow("Endpoint", endpointHost())}
-        ${diagRow("Push permission", pushPermission())}
-      `,
-    )}
-    ${diagGroup(
-      "Evaluations",
-      html`
-        ${diagRow("Eval tracking", evalTrackingBadge())}
-        ${diagRow(
-          "Push tested",
-          evalTestedAt == null ? "never" : relativeTime(evalTestedAt),
-        )}
-        ${diagRow("Subscriptions", evalSubscriptions ?? "—")}
-      `,
-    )}
-    ${diagGroup(
-      "App",
-      html`
-        ${diagRow(
-          "Standalone",
-          (navigator as { standalone?: boolean }).standalone ? "yes" : "no",
-        )}
-        ${diagRow(
-          "Service worker",
-          navigator.serviceWorker?.controller ? "controlling" : "idle",
-        )}
-        ${diagRow(
-          "Storage",
-          persistentStorage === null
-            ? "—"
-            : persistentStorage
-              ? "persistent"
-              : "best-effort",
-        )}
-        ${diagRow("Storage used", storageLabel())}
-      `,
-    )}
-    ${diagGroup(
-      "Device",
-      html`
-        ${diagRow("This device", getDeviceName() || "—")}
-        ${diagRow("Login", session?.login ?? "—")}
-      `,
-    )}
-
     <div class="divider my-0 opacity-20"></div>
 
     <div class="join w-full">
@@ -603,28 +559,92 @@ function aboutSection(): TemplateResult {
         >MIT License</a
       >
     </p>
+  `;
+}
 
-    <div class="divider my-0 opacity-20"></div>
+/** Technical diagnostics, collapsed at the very bottom of the settings page. */
+function debugSection(): TemplateResult {
+  const session = getSession();
+  return html`
+    <details
+      class="collapse collapse-arrow bg-base-100 border border-base-300 shadow-xl mb-4"
+    >
+      <summary class="collapse-title text-base font-semibold">Debug</summary>
+      <div class="collapse-content flex flex-col gap-3">
+        ${diagGroup(
+          "Connection",
+          html`
+            ${diagRow("Worker", workerBadge())}
+            ${diagRow("Endpoint", endpointHost())}
+            ${diagRow("Push permission", pushPermission())}
+          `,
+        )}
+        ${diagGroup(
+          "Evaluations",
+          html`
+            ${diagRow("Eval tracking", evalTrackingBadge())}
+            ${diagRow(
+              "Push tested",
+              evalTestedAt == null ? "never" : relativeTime(evalTestedAt),
+            )}
+            ${diagRow("Subscriptions", evalSubscriptions ?? "—")}
+          `,
+        )}
+        ${diagGroup(
+          "App",
+          html`
+            ${diagRow(
+              "Standalone",
+              (navigator as { standalone?: boolean }).standalone ? "yes" : "no",
+            )}
+            ${diagRow(
+              "Service worker",
+              navigator.serviceWorker?.controller ? "controlling" : "idle",
+            )}
+            ${diagRow(
+              "Storage",
+              persistentStorage === null
+                ? "—"
+                : persistentStorage
+                  ? "persistent"
+                  : "best-effort",
+            )}
+            ${diagRow("Storage used", storageLabel())}
+          `,
+        )}
+        ${diagGroup(
+          "Device",
+          html`
+            ${diagRow("This device", getDeviceName() || "—")}
+            ${diagRow("Login", session?.login ?? "—")}
+          `,
+        )}
 
-    <details class="collapse collapse-arrow bg-base-100 border border-base-300">
-      <summary class="collapse-title text-sm font-semibold">
-        Maintenance
-      </summary>
-      <div class="collapse-content flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="btn btn-sm btn-outline flex-1"
-          @click=${onClearCache}
+        <div class="divider my-0 opacity-20"></div>
+
+        <details
+          class="collapse collapse-arrow bg-base-100 border border-base-300"
         >
-          Clear cache
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm btn-error flex-1"
-          @click=${onResetData}
-        >
-          Reset data
-        </button>
+          <summary class="collapse-title text-sm font-semibold">
+            Maintenance
+          </summary>
+          <div class="collapse-content flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline flex-1"
+              @click=${onClearCache}
+            >
+              Clear cache
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-error flex-1"
+              @click=${onResetData}
+            >
+              Reset data
+            </button>
+          </div>
+        </details>
       </div>
     </details>
   `;
