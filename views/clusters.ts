@@ -360,7 +360,7 @@ function mapView(map: ClusterMapDef): unknown {
       >
         <button
           type="button"
-          class="btn btn-circle btn-sm absolute bottom-2 left-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur"
+          class="btn btn-square btn-sm absolute bottom-2 left-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur"
           aria-label=${mapExpanded
             ? "Exit full screen"
             : "Open the map full screen"}
