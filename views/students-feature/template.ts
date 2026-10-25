@@ -172,7 +172,7 @@ function renderFilterMenu(
 
   return html`
     <div
-      class="dropdown-content students-filter-menu z-50 flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-box bg-base-100 p-2 shadow-2xl"
+      class="dropdown-content students-filter-menu z-40 flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-box bg-base-100 p-2 shadow-2xl"
     >
       <span class="students-filter-menu__label">Piscine</span>
       <select

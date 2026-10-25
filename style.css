@@ -55,7 +55,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: env(safe-area-inset-top);
 }
 
 /* The shell renders the dock (and any sub-tab bar) inside a single
@@ -523,17 +522,4 @@ html.ft-editing body {
   outline-offset: 2px;
   cursor: grabbing;
   pointer-events: none;
-}
-/* iOS standalone: the status bar is translucent and blurs whatever scrolls
-   behind it. Cover the safe area with an opaque strip so nothing shows. */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-top, 0px);
-  background: var(--color-base-200);
-  pointer-events: none;
-  z-index: 60;
 }

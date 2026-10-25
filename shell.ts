@@ -113,6 +113,10 @@ export function renderShell(
   render(
     html`
       <div class="flex flex-1 flex-col">
+        <header
+          class="sticky top-0 z-[60] bg-base-100"
+          style="padding-top: env(safe-area-inset-top);"
+        ></header>
         <main class="flex-1 px-4 pt-4" style="padding-bottom:${padBottom}">
           ${body}
         </main>

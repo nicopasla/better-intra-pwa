@@ -52,7 +52,7 @@ export function segmentedTabs<T extends string>(
                 </span>
               </summary>
               <ul
-                class="menu menu-sm dropdown-content z-50 mt-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
+                class="menu menu-sm dropdown-content z-40 mt-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
                 style="width:max-content;min-width:12rem;"
               >
                 ${tabs.map(
