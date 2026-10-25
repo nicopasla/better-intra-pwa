@@ -282,15 +282,24 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   ring.setAttribute("class", "seat-focus");
   // Outside the seat (not straddling its border) and drawn in the seat's own
   // coordinate space, so rotated/inclined seats get a matching outline.
-  const pad = Math.max(2, Math.min(w, h) * 0.08);
+  const pad = Math.max(4, Math.min(w, h) * 0.16);
   ring.setAttribute("x", String(x - pad));
   ring.setAttribute("y", String(y - pad));
   ring.setAttribute("width", String(w + pad * 2));
   ring.setAttribute("height", String(h + pad * 2));
   ring.setAttribute("rx", "4");
   const transform = image.getAttribute("transform");
-  if (transform) ring.setAttribute("transform", transform);
-  image.parentNode?.insertBefore(ring, image.nextSibling);
+  const parent = image.parentNode;
+  if (!parent) return false;
+  if (transform) {
+    // Keep the rotation on a wrapper so the CSS pulse can scale freely.
+    const group = document.createElementNS(SVG_NS, "g");
+    group.setAttribute("transform", transform);
+    group.appendChild(ring);
+    parent.insertBefore(group, image.nextSibling);
+  } else {
+    parent.insertBefore(ring, image.nextSibling);
+  }
 
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
   if (vb.length < 4 || !vb[2] || !vb[3]) return true;

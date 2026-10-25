@@ -394,18 +394,21 @@ body {
   stroke-width: 3;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
-  animation: ft-seat-focus 1.2s ease-in-out infinite;
+  animation: ft-seat-focus 1.4s ease-in-out infinite;
 }
 
+/* Pumping outline: thickens and fades outwards around the seat. */
 @keyframes ft-seat-focus {
 
   0%,
   100% {
+    stroke-width: 3;
     opacity: 1;
   }
 
   50% {
-    opacity: 0.3;
+    stroke-width: 7;
+    opacity: 0.45;
   }
 }
 
@@ -501,6 +504,7 @@ html.ft-editing body {
   cursor: grabbing;
   pointer-events: none;
 }
+
 /* Work around iOS standalone's scroll-edge blur with a fixed colour surface.
    Kept outside #app so cold starts and route changes don't remove it.
    The surface must exceed WebKit's 10px thin-border threshold; clipping the
