@@ -388,9 +388,10 @@ body {
   pointer-events: none;
 }
 
-.cluster-map .seat-focus {
-  fill: none;
-  stroke: #ff0055;
+/* Wins over `.cluster-map .posts rect`, which fills every post rect. */
+.cluster-map rect.seat-focus {
+  fill: none !important;
+  stroke: #ff0055 !important;
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
