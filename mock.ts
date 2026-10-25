@@ -1,4 +1,5 @@
 import type { StudentEntry, UserProfile } from "./data.ts";
+import { catImage } from "./lib/cat-images.ts";
 
 export const mockMode =
   typeof window !== "undefined" &&
@@ -39,14 +40,12 @@ function mockProfile(login: string): UserProfile {
   const isSelf = l === "mock.user";
   const name = MOCK_NAMES[l] ?? l.charAt(0).toUpperCase() + l.slice(1);
   const customAvatar =
-    isSelf || l === "bdurand"
-      ? `https://cataas.com/cat?width=400&height=400&r=${isSelf ? 11 : 4}`
-      : null;
+    isSelf || l === "bdurand" ? catImage(isSelf ? 36 : 37) : null;
   return {
     login: l,
     displayName: name,
     usualFullName: name,
-    avatar: `https://cataas.com/cat?width=200&height=200&r=${hash % 100000}`,
+    avatar: catImage(hash % 100000),
     kind: "student",
     staff: false,
     alumni: l === "dleroy",
@@ -129,9 +128,7 @@ function mockProfile(login: string): UserProfile {
       banner: null,
       bannerMode: "fill",
       bannerColor: null,
-      background: isSelf
-        ? "https://cataas.com/cat?width=800&height=400&r=12"
-        : null,
+      background: isSelf ? catImage(35) : null,
       backgroundMode: "fill",
       backgroundColor: null,
     },
@@ -181,7 +178,7 @@ export const mock = {
     login: "jsmith",
     displayName: "Jane Smith",
     usualFullName: "Jane Smith",
-    image: "https://cataas.com/cat?width=200&height=200&r=1",
+    image: catImage(1),
     kind: "student",
     staff: false,
     alumni: false,
@@ -441,7 +438,7 @@ export const mock = {
     return {
       login: l,
       displayName: fullNames[l] ?? l.charAt(0).toUpperCase() + l.slice(1),
-      avatar: `https://cataas.com/cat?width=200&height=200&r=${hash % 100000}`,
+      avatar: catImage(hash % 100000),
       level: Number(((hash % 1800) / 100).toFixed(2)),
       grade: "Cadet",
       location:
@@ -459,7 +456,7 @@ export const mock = {
     {
       login: "amelie",
       displayName: "Amélie Martin",
-      avatar: "https://cataas.com/cat?width=200&height=200&r=2",
+      avatar: catImage(2),
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -477,8 +474,8 @@ export const mock = {
     {
       login: "bdurand",
       displayName: "Bob Durand",
-      avatar: "https://cataas.com/cat?width=200&height=200&r=3",
-      customAvatar: "https://cataas.com/cat?width=200&height=200&r=4",
+      avatar: catImage(3),
+      customAvatar: catImage(4),
       avatarBg: "#5b21b6",
       avatarPosX: 60,
       avatarPosY: 40,
@@ -495,7 +492,7 @@ export const mock = {
     {
       login: "cpetit",
       displayName: "Charlie Petit",
-      avatar: "https://cataas.com/cat?width=200&height=200&r=5",
+      avatar: catImage(5),
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -513,7 +510,7 @@ export const mock = {
     {
       login: "dleroy",
       displayName: "Diana Leroy",
-      avatar: "https://cataas.com/cat?width=200&height=200&r=6",
+      avatar: catImage(6),
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -531,7 +528,7 @@ export const mock = {
     {
       login: "vmoreau",
       displayName: "Victor Moreau",
-      avatar: "https://cataas.com/cat?width=200&height=200&r=7",
+      avatar: catImage(7),
       customAvatar: null,
       avatarBg: "transparent",
       avatarPosX: 50,
@@ -647,7 +644,7 @@ export const mock = {
       return {
         login,
         displayName: login.charAt(0).toUpperCase() + login.slice(1),
-        avatar: `https://cataas.com/cat?width=200&height=200&r=${id * 100 + i}`,
+        avatar: catImage(id * 100 + i),
         location: (id + i) % 3 !== 0 ? "fu-r1-p2" : null,
       };
     });
@@ -657,7 +654,7 @@ export const mock = {
       {
         login: "aberger",
         displayname: "Anna Berger",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=11",
+        image_url: catImage(11),
         begin_at: mins(-20 * 24 * 60),
         blackholed_at: mins(90 * 24 * 60),
         active: true,
@@ -671,7 +668,7 @@ export const mock = {
       {
         login: "bdewit",
         displayname: "Brent de Wit",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=12",
+        image_url: catImage(12),
         begin_at: mins(-30 * 24 * 60),
         blackholed_at: mins(200 * 24 * 60),
         active: true,
@@ -685,7 +682,7 @@ export const mock = {
       {
         login: "cdupont",
         displayname: "Camille Dupont",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=13",
+        image_url: catImage(13),
         begin_at: mins(-500 * 24 * 60),
         blackholed_at: mins(-400 * 24 * 60),
         active: false,
@@ -699,7 +696,7 @@ export const mock = {
       {
         login: "dlaurens",
         displayname: "Denis Laurens",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=14",
+        image_url: catImage(14),
         begin_at: mins(-25 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -713,7 +710,7 @@ export const mock = {
       {
         login: "emartel",
         displayname: "Elisa Martel",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=15",
+        image_url: catImage(15),
         begin_at: mins(-15 * 24 * 60),
         blackholed_at: mins(30 * 24 * 60),
         active: true,
@@ -727,7 +724,7 @@ export const mock = {
       {
         login: "fvanden",
         displayname: "Félix Vandenbroeck",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=16",
+        image_url: catImage(16),
         begin_at: mins(-45 * 24 * 60),
         blackholed_at: mins(60 * 24 * 60),
         active: true,
@@ -741,7 +738,7 @@ export const mock = {
       {
         login: "gpeeters",
         displayname: "Gaël Peeters",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=17",
+        image_url: catImage(17),
         begin_at: mins(-10 * 24 * 60),
         blackholed_at: mins(15 * 24 * 60),
         active: true,
@@ -755,7 +752,7 @@ export const mock = {
       {
         login: "hclaeys",
         displayname: "Hugo Claeys",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=18",
+        image_url: catImage(18),
         begin_at: mins(-60 * 24 * 60),
         blackholed_at: mins(5 * 24 * 60),
         active: true,
@@ -769,7 +766,7 @@ export const mock = {
       {
         login: "ijeunhomme",
         displayname: "Iris Jeunhomme",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=19",
+        image_url: catImage(19),
         begin_at: mins(-400 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -783,7 +780,7 @@ export const mock = {
       {
         login: "jvdberg",
         displayname: "Joren van den Berg",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=20",
+        image_url: catImage(20),
         begin_at: mins(-5 * 24 * 60),
         blackholed_at: mins(400 * 24 * 60),
         active: true,
@@ -797,7 +794,7 @@ export const mock = {
       {
         login: "kvermeulen",
         displayname: "Kim Vermeulen",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=21",
+        image_url: catImage(21),
         begin_at: mins(-70 * 24 * 60),
         blackholed_at: mins(120 * 24 * 60),
         active: true,
@@ -811,7 +808,7 @@ export const mock = {
       {
         login: "lgeertsen",
         displayname: "Lena Geertsen",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=22",
+        image_url: catImage(22),
         begin_at: mins(-12 * 24 * 60),
         blackholed_at: mins(2 * 24 * 60),
         active: true,
@@ -825,7 +822,7 @@ export const mock = {
       {
         login: "mvanhoof",
         displayname: "Max Vanhoof",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=23",
+        image_url: catImage(23),
         begin_at: mins(-800 * 24 * 60),
         blackholed_at: mins(-500 * 24 * 60),
         active: false,
@@ -839,7 +836,7 @@ export const mock = {
       {
         login: "ndeclercq",
         displayname: "Noor De Clercq",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=24",
+        image_url: catImage(24),
         begin_at: mins(-35 * 24 * 60),
         blackholed_at: mins(75 * 24 * 60),
         active: true,
@@ -853,7 +850,7 @@ export const mock = {
       {
         login: "otheys",
         displayname: "Olivier Theys",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=25",
+        image_url: catImage(25),
         begin_at: mins(-8 * 24 * 60),
         blackholed_at: mins(20 * 24 * 60),
         active: true,
@@ -867,7 +864,7 @@ export const mock = {
       {
         login: "pstoffel",
         displayname: "Paul Stoffel",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=26",
+        image_url: catImage(26),
         begin_at: mins(-500 * 24 * 60),
         blackholed_at: null,
         active: false,
@@ -881,7 +878,7 @@ export const mock = {
       {
         login: "qjacobs",
         displayname: "Quinn Jacobs",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=27",
+        image_url: catImage(27),
         begin_at: mins(-20 * 24 * 60),
         blackholed_at: mins(150 * 24 * 60),
         active: true,
@@ -895,7 +892,7 @@ export const mock = {
       {
         login: "rsegers",
         displayname: "Robin Segers",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=28",
+        image_url: catImage(28),
         begin_at: mins(-55 * 24 * 60),
         blackholed_at: mins(10 * 24 * 60),
         active: true,
@@ -909,7 +906,7 @@ export const mock = {
       {
         login: "slefevre",
         displayname: "Sara Lefèvre",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=29",
+        image_url: catImage(29),
         begin_at: mins(-30 * 24 * 60),
         blackholed_at: mins(90 * 24 * 60),
         active: true,
@@ -923,7 +920,7 @@ export const mock = {
       {
         login: "tclaen",
         displayname: "Tessa Claen",
-        image_url: "https://cataas.com/cat?width=200&height=200&r=30",
+        image_url: catImage(30),
         begin_at: mins(-3 * 24 * 60),
         blackholed_at: mins(500 * 24 * 60),
         active: true,
@@ -962,7 +959,7 @@ export const mock = {
     {
       login: "znew",
       displayname: "Zoë New",
-      image_url: "https://cataas.com/cat?width=200&height=200&r=31",
+      image_url: catImage(31),
       begin_at: mins(45 * 24 * 60),
       active: true,
       pool_month: "october",
@@ -971,7 +968,7 @@ export const mock = {
     {
       login: "yfresh",
       displayname: "Yann Fresh",
-      image_url: "https://cataas.com/cat?width=200&height=200&r=32",
+      image_url: catImage(32),
       begin_at: mins(80 * 24 * 60),
       active: true,
       pool_month: "january",
@@ -982,7 +979,7 @@ export const mock = {
     {
       login: "pprep",
       displayname: "Piscine Prep",
-      image_url: "https://cataas.com/cat?width=200&height=200&r=33",
+      image_url: catImage(33),
       begin_at: mins(-2 * 24 * 60),
       active: true,
       pool_month: "july",
@@ -991,7 +988,7 @@ export const mock = {
     {
       login: "qquiz",
       displayname: "Quinn Quiz",
-      image_url: "https://cataas.com/cat?width=200&height=200&r=34",
+      image_url: catImage(34),
       begin_at: mins(-3 * 24 * 60),
       active: true,
       pool_month: "july",

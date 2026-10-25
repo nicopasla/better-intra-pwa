@@ -32,7 +32,6 @@ import type {
 } from "./clusters-feature/types.ts";
 
 const POLL_INTERVAL = 60_000;
-const LATEST_LIMIT = 5;
 
 const SEP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
 
@@ -266,18 +265,16 @@ function seatedEntries(map: ClusterMapDef): OccupancyEntry[] {
   );
 }
 
-function latestConnections(seated: OccupancyEntry[]): OccupancyEntry[] {
-  return seated
-    .slice()
-    .sort((a, b) => {
-      const at = Date.parse(a.begin_at || "") || 0;
-      const bt = Date.parse(b.begin_at || "") || 0;
-      return bt - at || a.login.localeCompare(b.login);
-    })
-    .slice(0, LATEST_LIMIT);
+/** Everyone seated in the cluster, newest connection first. */
+function connectionList(seated: OccupancyEntry[]): OccupancyEntry[] {
+  return seated.slice().sort((a, b) => {
+    const at = Date.parse(a.begin_at || "") || 0;
+    const bt = Date.parse(b.begin_at || "") || 0;
+    return bt - at || a.login.localeCompare(b.login);
+  });
 }
 
-function latestRow(entry: OccupancyEntry): unknown {
+function connectionRow(entry: OccupancyEntry): unknown {
   const since = new Date(entry.begin_at);
   const valid = Boolean(entry.begin_at) && !Number.isNaN(since.getTime());
   const time = valid
@@ -328,7 +325,7 @@ function latestRow(entry: OccupancyEntry): unknown {
 function mapView(map: ClusterMapDef): unknown {
   ensureMap(map);
   const seated = seatedEntries(map);
-  const latest = latestConnections(seated);
+  const connections = connectionList(seated);
   const taken = seated.length;
   const svg = map.svg;
   const usable = Math.max(0, map.seatIds.size - map.crossed);
@@ -336,27 +333,11 @@ function mapView(map: ClusterMapDef): unknown {
     ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
     : "occupied seats";
   return html`
-    <div class="flex flex-col gap-3 mb-4">
-      <div class="rounded-xl bg-base-100 p-2 shadow-lg" data-no-swipe>
-        <div
-          class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2"
-        >
-          <div class="flex items-center gap-2 min-w-0">
-            <span
-              class="badge badge-outline font-mono tabular-nums"
-              style="height:2.5rem;min-width:2.5rem;justify-content:center"
-              title="${deadNote}"
-            >
-              ${svg ? `${taken} / ${usable}` : "…"}
-            </span>
-          </div>
-          <span
-            id="ft-clusters-countdown"
-            class="badge badge-outline tabular-nums opacity-70"
-            style="height:2.5rem;min-width:2.5rem;justify-content:center"
-            title="Auto-refreshes every minute"
-          ></span>
-        </div>
+    <div class="flex flex-col gap-3 mb-4" data-no-swipe>
+      <div
+        class="rounded-xl bg-base-100 p-2 shadow-lg sticky top-0 z-10"
+        data-no-swipe
+      >
         ${svg
           ? html`<div
               id="ft-cluster-map"
@@ -375,17 +356,20 @@ function mapView(map: ClusterMapDef): unknown {
 
       <div class="rounded-xl bg-base-100 p-3 shadow-lg">
         <div class="flex items-center justify-between gap-2 pb-1">
-          <h2 class="font-semibold">Latest connections</h2>
-          ${seated.length > latest.length
-            ? html`<span class="text-xs opacity-60 tabular-nums"
-                >latest ${latest.length} of ${seated.length}</span
-              >`
-            : ""}
+          <h2 class="font-semibold">Connections</h2>
+          <span
+            class="badge badge-primary font-mono tabular-nums"
+            title="${deadNote}"
+          >
+            ${svg ? `${taken} / ${usable}` : "…"}
+          </span>
         </div>
-        ${latest.length
-          ? html`<ul class="flex flex-col divide-y divide-base-300">
-              ${latest.map((entry) => latestRow(entry))}
-            </ul>`
+        ${connections.length
+          ? html`<div class="max-h-[22rem] overflow-y-auto">
+              <ul class="flex flex-col divide-y divide-base-300">
+                ${connections.map((entry) => connectionRow(entry))}
+              </ul>
+            </div>`
           : html`<p class="py-3 text-center text-sm opacity-60">
               No one is seated in this cluster right now.
             </p>`}

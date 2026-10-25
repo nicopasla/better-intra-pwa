@@ -1,4 +1,5 @@
 import { workerFetch } from "../../api.ts";
+import { catImage } from "../../lib/cat-images.ts";
 import { mockMode } from "../../mock.ts";
 import type { OccupancyEntry, OccupancyResponse } from "./types";
 
@@ -36,7 +37,7 @@ const MOCK_OCCUPANCY: OccupancyEntry[] = MOCK_PEOPLE.map((p, i) => ({
   host: i % 4 === 3 ? `wifi-${i + 1}` : MOCK_HOSTS[i % MOCK_HOSTS.length],
   login: p.login,
   name: p.name,
-  cdn_uri: `https://cataas.com/cat?width=80&height=80&r=${i}`,
+  cdn_uri: catImage(i),
   begin_at: new Date(Date.now() - (i * 17 + 4) * 60_000).toISOString(),
   end_at: null,
 }));
