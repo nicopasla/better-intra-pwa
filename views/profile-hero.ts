@@ -208,9 +208,6 @@ export function profileHero(
               ${status}
             </div>`
           : ""}
-        ${status.length && groups.length
-          ? html`<div class="divider my-0 opacity-30"></div>`
-          : ""}
         ${groups.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
