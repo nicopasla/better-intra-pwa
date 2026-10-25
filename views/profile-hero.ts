@@ -17,6 +17,7 @@ import {
   walletBadge,
 } from "./user-badges.ts";
 import { contrastText } from "./logtime-feature/color.ts";
+import { badgeUrlFor } from "../lib/campus-badges.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import PENCIL_SVG from "../assets/pencil.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
@@ -74,7 +75,7 @@ export function profileHero(
     const name = typeof g === "string" ? g : g.name;
     const color =
       (typeof g === "string" ? null : g.color) ?? v.groupColors?.[name] ?? null;
-    return { name, color };
+    return { name, color, url: opts.editActive ? null : badgeUrlFor(name) };
   });
 
   const hidden = new Set(opts.badges?.hidden ?? []);
@@ -216,20 +217,33 @@ export function profileHero(
               class="flex flex-wrap justify-center gap-2 pb-1"
               data-no-swipe
             >
-              ${groups.map((g) =>
-                g.color
-                  ? html`<span
-                      class="badge badge-lg font-semibold flex-none whitespace-nowrap"
-                      style="background-color:${g.color};border-color:${g.color};color:${contrastText(
-                        g.color,
-                      )};"
-                      >${g.name}</span
+              ${groups.map((g) => {
+                const style = g.color
+                  ? `background-color:${g.color};border-color:${g.color};color:${contrastText(
+                      g.color,
+                    )};`
+                  : "";
+                const cls = `badge badge-lg${
+                  g.color ? "" : " badge-primary"
+                } font-semibold flex-none whitespace-nowrap${
+                  g.url
+                    ? " no-underline cursor-pointer hover:brightness-110"
+                    : ""
+                }`;
+                return g.url
+                  ? html`<a
+                      class="${cls}"
+                      style="${style}"
+                      href="${g.url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open ${g.url}"
+                      >${g.name}</a
                     >`
-                  : html`<span
-                      class="badge badge-lg badge-primary font-semibold flex-none whitespace-nowrap"
+                  : html`<span class="${cls}" style="${style}"
                       >${g.name}</span
-                    >`,
-              )}
+                    >`;
+              })}
             </div>`
           : ""}
         ${status.length

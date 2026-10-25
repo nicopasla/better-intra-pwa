@@ -9,6 +9,7 @@ import {
   setSessionExpiredHandler,
 } from "./api.ts";
 import { initTheme } from "./theme.ts";
+import { initCampusBadges } from "./lib/campus-badges.ts";
 import {
   currentTab,
   renderScreen,
@@ -413,6 +414,7 @@ async function boot(): Promise<void> {
   render(loadingScreen(), app());
   void registerServiceWorker();
   initTheme();
+  initCampusBadges();
   initConnectivityIndicator();
   initInstall();
   onInstallAvailability(refreshPreApp);
