@@ -617,17 +617,17 @@ function upcomingCard() {
   const needsPush = pushSupported() && pushSubscribed !== true;
 
   if (items.length === 0) {
-    return needsPush
-      ? card(
-          html`<div class="flex flex-col items-start gap-2 w-full">
-            <p class="text-sm opacity-60">
-              Enable notifications to start tracking evaluations.
-            </p>
-            ${enablePushBlock()}
-          </div>`,
-          "Upcoming",
-        )
-      : "";
+    return card(
+      html`<div class="flex flex-col items-start gap-2 w-full">
+        <p class="text-sm opacity-60">
+          ${needsPush
+            ? "Enable notifications to start tracking evaluations."
+            : "Nothing upcoming."}
+        </p>
+        ${needsPush ? enablePushBlock() : ""}
+      </div>`,
+      "Upcoming",
+    );
   }
 
   const evaluating = items.filter((e) => e.role !== "corrected");
@@ -800,18 +800,7 @@ async function refreshPushState(): Promise<void> {
 }
 
 function eventsCard() {
-  if (allEvents.length === 0) {
-    return card(
-      html`<div class="flex flex-col items-center text-center gap-2 py-2">
-        <p class="font-bold text-lg" style="color:${TEAL};">Calendar</p>
-        <p class="text-sm opacity-70">
-          No upcoming events. Events you subscribe to on the intra will appear
-          here automatically.
-        </p>
-      </div>`,
-      "Events",
-    );
-  }
+  if (allEvents.length === 0) return "";
   return card(
     html`<ul class="list">
       ${allEvents.map(eventRow)}
@@ -820,7 +809,6 @@ function eventsCard() {
   );
 }
 
-const TEAL = "rgb(0,186,188)";
 const svg16 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
 
