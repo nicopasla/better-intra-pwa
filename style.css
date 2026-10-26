@@ -451,6 +451,30 @@ body {
   -webkit-user-select: none;
 }
 
+/* Full-bleed section inside a .card-body: spans the card edges, while its
+   title and rows stay aligned with the card body text. */
+.ft-card-bleed {
+  width: calc(100% + var(--card-p, 1.5rem) + var(--card-p, 1.5rem));
+  max-width: none;
+  margin-inline: calc(var(--card-p, 1.5rem) * -1);
+  /* Sit flush at the end of the card, like a footer. */
+  margin-block-end: calc(var(--card-p, 1.5rem) * -1);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.ft-card-bleed .collapse-title {
+  padding-inline-start: var(--card-p, 1.5rem);
+}
+
+.ft-card-bleed .collapse-content {
+  padding-inline: 0;
+}
+
+.ft-row-inset {
+  padding-inline: var(--card-p, 1.5rem);
+}
+
 
 /* Home edit mode: tappable hero badges. */
 .ft-badge-toggle {

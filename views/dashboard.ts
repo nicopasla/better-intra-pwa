@@ -695,13 +695,17 @@ function upcomingCard() {
 
   const pastPart =
     pastItems.length > 0
-      ? html`<details class="collapse collapse-arrow bg-base-200/60 mt-3">
+      ? html`<details
+          class="collapse collapse-arrow ft-card-bleed bg-base-200/60 mt-3 border-t border-base-300"
+          data-no-swipe
+        >
           <summary class="collapse-title text-sm font-medium">
             Past (${pastItems.length})
           </summary>
           <div class="collapse-content">
             <ul
-              class="flex max-h-64 flex-col divide-y divide-base-300 overflow-y-auto overscroll-contain pr-1"
+              class="flex max-h-96 flex-col divide-y divide-base-300 overflow-y-auto overscroll-contain"
+              style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
             >
               ${pastItems.map((e) => evalRow(e, true))}
             </ul>
@@ -731,8 +735,12 @@ function evalRow(e: UpcomingEval, past = false) {
       ? `${label} · ${dateTimeShort(e.beginAt)}`
       : label;
   return html`<li
-    class="flex items-center justify-between gap-3 py-2 ${person
-      ? "cursor-pointer -mx-2 px-2 rounded-lg hover:bg-base-200 transition-colors"
+    class="flex items-center justify-between gap-3 py-2 ${past
+      ? "ft-row-inset"
+      : person
+        ? "-mx-2 px-2 rounded-lg"
+        : ""} ${person
+      ? "cursor-pointer hover:bg-base-200 transition-colors"
       : ""}"
     @click=${person ? () => openEvalDialog(e, person) : undefined}
   >
