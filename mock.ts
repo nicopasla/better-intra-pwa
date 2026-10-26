@@ -342,6 +342,25 @@ export const mock = {
         role: "corrected" as const,
         corrector: null,
       },
+      {
+        // Already over: it stays in the collapsed "Past" section.
+        id: 7,
+        beginAt: mins(-3 * 60),
+        state: "revealed" as const,
+        project: "so_long",
+        slug: "so_long",
+        role: "evaluator" as const,
+        correcteds: ["nbarreto"],
+      },
+      {
+        id: 8,
+        beginAt: mins(-26 * 60),
+        state: "revealed" as const,
+        project: "ft_printf",
+        slug: "ft_printf",
+        role: "corrected" as const,
+        corrector: "jdoe",
+      },
     ],
   },
   profileStats: {

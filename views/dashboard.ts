@@ -56,7 +56,7 @@ import EYE_SLASH_SVG from "../assets/eye-slash.svg?raw";
 
 const CARD_LABELS: Record<string, string> = {
   logtime: "Logtime",
-  upcoming: "Upcoming evals",
+  upcoming: "Evaluations",
   live: "Live events",
   projects: "Projects",
   events: "Events",
@@ -613,10 +613,21 @@ let upcomingTab: "evaluator" | "corrected" | null = null;
 
 function upcomingCard() {
   const done = new Set(getDoneEvals());
-  const items = upcoming.items.filter((e) => !done.has(e.id));
+  const now = Date.now();
+  const isPast = (e: UpcomingEval) => new Date(e.beginAt).getTime() <= now;
+  // Dismissed evals leave the active list, but never the history: they move to
+  // the collapsed "Past" section instead of disappearing.
+  const activeItems = upcoming.items.filter(
+    (e) => !done.has(e.id) && !isPast(e),
+  );
+  const pastItems = upcoming.items
+    .filter((e) => done.has(e.id) || isPast(e))
+    .sort(
+      (a, b) => new Date(b.beginAt).getTime() - new Date(a.beginAt).getTime(),
+    );
   const needsPush = pushSupported() && pushSubscribed !== true;
 
-  if (items.length === 0) {
+  if (activeItems.length === 0 && pastItems.length === 0) {
     return needsPush
       ? card(
           html`<div class="flex flex-col items-start gap-2 w-full">
@@ -625,13 +636,13 @@ function upcomingCard() {
             </p>
             ${enablePushBlock()}
           </div>`,
-          "Upcoming",
+          "Evaluations",
         )
       : "";
   }
 
-  const evaluating = items.filter((e) => e.role !== "corrected");
-  const corrected = items.filter((e) => e.role === "corrected");
+  const evaluating = activeItems.filter((e) => e.role !== "corrected");
+  const corrected = activeItems.filter((e) => e.role === "corrected");
   const showTabs = evaluating.length > 0 && corrected.length > 0;
   let active: "evaluator" | "corrected" =
     upcomingTab ?? (evaluating.length > 0 ? "evaluator" : "corrected");
@@ -660,22 +671,46 @@ function upcomingCard() {
       >
     </button>`;
 
-  const evalPart = html`
-    ${showTabs
-      ? html`<div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
-          ${tab("evaluator", "Evaluating", evaluating.length)}
-          ${tab("corrected", "Being evaluated", corrected.length)}
-        </div>`
-      : ""}
-    <ul class="flex flex-col divide-y divide-base-300">
-      ${list.map(evalRow)}
-    </ul>
-  `;
-  return card(evalPart, "Upcoming");
+  const activePart =
+    activeItems.length === 0
+      ? html`<p class="text-sm opacity-60">
+            ${needsPush
+              ? pastItems.length > 0
+                ? "Enable notifications to get evaluation reminders."
+                : "Enable notifications to start tracking evaluations."
+              : "Nothing scheduled."}
+          </p>
+          ${needsPush ? enablePushBlock() : ""}`
+      : html`
+          ${showTabs
+            ? html`<div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
+                ${tab("evaluator", "Evaluating", evaluating.length)}
+                ${tab("corrected", "Being evaluated", corrected.length)}
+              </div>`
+            : ""}
+          <ul class="flex flex-col divide-y divide-base-300">
+            ${list.map((e) => evalRow(e))}
+          </ul>
+        `;
+
+  const pastPart =
+    pastItems.length > 0
+      ? html`<details class="collapse collapse-arrow bg-base-200/60 mt-3">
+          <summary class="collapse-title text-sm font-medium">
+            Past (${pastItems.length})
+          </summary>
+          <div class="collapse-content">
+            <ul class="flex flex-col divide-y divide-base-300">
+              ${pastItems.map((e) => evalRow(e, true))}
+            </ul>
+          </div>
+        </details>`
+      : "";
+
+  return card(html`${activePart}${pastPart}`, "Evaluations");
 }
 
-function evalRow(e: UpcomingEval) {
-  const started = new Date(e.beginAt).getTime() <= Date.now();
+function evalRow(e: UpcomingEval, past = false) {
   const isCorrected = e.role === "corrected";
   const person =
     e.state === "revealed"
@@ -685,6 +720,14 @@ function evalRow(e: UpcomingEval) {
       : undefined;
   const label = person ?? (e.state === "revealed" ? "Revealed" : "Booked");
   const countdown = evalCountdown(e.beginAt);
+  // History reads as a sentence; the active list keeps the time inline.
+  const sub = past
+    ? isCorrected
+      ? `${person ?? "Someone"} evaluated you`
+      : `you evaluated ${person ?? "someone"}`
+    : countdown
+      ? `${label} · ${dateTimeShort(e.beginAt)}`
+      : label;
   return html`<li
     class="flex items-center justify-between gap-3 py-2 ${person
       ? "cursor-pointer -mx-2 px-2 rounded-lg hover:bg-base-200 transition-colors"
@@ -693,9 +736,7 @@ function evalRow(e: UpcomingEval) {
   >
     <div class="min-w-0">
       <div class="font-medium truncate">${e.project ?? "Evaluation"}</div>
-      <div class="text-xs opacity-60">
-        ${countdown ? `${label} · ${dateTimeShort(e.beginAt)}` : label}
-      </div>
+      <div class="text-xs opacity-60">${sub}</div>
     </div>
     <div class="flex items-center gap-1 flex-none">
       ${person
@@ -715,12 +756,15 @@ function evalRow(e: UpcomingEval) {
         class="badge badge-lg whitespace-nowrap ${e.state === "revealed"
           ? "badge-success"
           : "badge-warning"}"
-        >${countdown || dateTimeShort(e.beginAt)}</span
+        >${past
+          ? dateTimeShort(e.beginAt)
+          : countdown || dateTimeShort(e.beginAt)}</span
       >
-      ${started
-        ? html`<button
+      ${past
+        ? ""
+        : html`<button
             class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
-            title="Mark as done"
+            title="Mark as done (moves to the past list)"
             @click=${(ev: Event) => {
               ev.stopPropagation();
               markEvalDone(e.id);
@@ -728,8 +772,7 @@ function evalRow(e: UpcomingEval) {
             }}
           >
             ${svg18(CHECK_SVG)}
-          </button>`
-        : ""}
+          </button>`}
     </div>
   </li>`;
 }
@@ -1058,8 +1101,12 @@ export function loadDashboard(silent = false): void {
     if (u.status === "fulfilled") {
       upcoming = { ...u.value, items: mergeEvals(u.value.items) };
       const now = Date.now();
+      const done = new Set(getDoneEvals());
       const booked = upcoming.items.filter(
-        (i) => i.state === "booked" && new Date(i.beginAt).getTime() > now,
+        (i) =>
+          i.state === "booked" &&
+          new Date(i.beginAt).getTime() > now &&
+          !done.has(i.id),
       ).length;
       if (booked > 0) setAppBadge(booked);
       else clearAppBadge();

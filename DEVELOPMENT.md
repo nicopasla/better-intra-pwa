@@ -82,7 +82,7 @@ lib/                 shared utilities
   connectivity.ts    fixed offline indicator dot
   crypto.ts          hashLogin(), SHA-256 of the lowercase login
   cursus.ts          cursus label formatting
-  evals.ts           persisted upcoming-eval cache + "done" tracking
+  evals.ts           persisted eval cache (upcoming + 30-day history) and dismissals
   format.ts          Intl-based date/time/relative formatting
   install.ts         PWA install prompt, isIOS/isAndroid/isMobileOS/isStandalone
   network.ts         navigator.connection helpers (save-data)
@@ -186,7 +186,7 @@ The service worker (`public/sw.js`):
 | `ft_theme`                          | theme preference (`system`/`dark`/`light`)                       |
 | `PROFILE_SUB_TAB`                   | last selected profile sub-tab                                    |
 | `ft_pwa_cache_*`                    | versioned, login-scoped response caches (`dashboard`, `profile`) |
-| `ft_pwa_evals`, `ft_pwa_evals_done` | upcoming-eval cache and the set of dismissed evals               |
+| `ft_pwa_evals`, `ft_pwa_evals_done` | evaluation cache (last 30 days, upcoming + past) and the set of dismissed evals |
 | `ft_dismissed_events`               | dismissed 42 events                                              |
 
 `sessionStorage`: `ft_pwa_expired` (shown once on the sign-in screen after a 401).
