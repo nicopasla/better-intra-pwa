@@ -700,7 +700,9 @@ function upcomingCard() {
             Past (${pastItems.length})
           </summary>
           <div class="collapse-content">
-            <ul class="flex flex-col divide-y divide-base-300">
+            <ul
+              class="flex max-h-64 flex-col divide-y divide-base-300 overflow-y-auto overscroll-contain pr-1"
+            >
               ${pastItems.map((e) => evalRow(e, true))}
             </ul>
           </div>

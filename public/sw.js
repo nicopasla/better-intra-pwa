@@ -1,7 +1,7 @@
 /* Better Intra PWA service worker — Web Push + offline app shell. */
 
-const SW_VERSION = "sw-5";
-const SHELL_CACHE = "bi-shell-v5";
+const SW_VERSION = "sw-6";
+const SHELL_CACHE = "bi-shell-v6";
 const SHELL = [
   "/",
   "/index.html",
@@ -15,6 +15,7 @@ const SHELL = [
   "/icons/icon-512.png",
   "/icons/icon-192-maskable.png",
   "/icons/icon-512-maskable.png",
+  "/icons/notification-badge.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -99,7 +100,10 @@ async function handlePush(event) {
     tag: data.tag,
     renotify: Boolean(data.tag),
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    // Android masks the badge by its alpha channel: it must be monochrome on a
+    // transparent background, not the full-colour app icon (which became a
+    // white square in the status bar).
+    badge: "/icons/notification-badge.png",
     data: { url: data.url || "/" },
   };
 

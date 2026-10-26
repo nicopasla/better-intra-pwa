@@ -169,7 +169,7 @@ Dashboard and profile payloads are cached in `localStorage` under a versioned, l
 
 The service worker (`public/sw.js`):
 
-- **Offline shell**: installs a precache list into `bi-shell-v5`, network-first for GETs, caches successful same-origin responses, and falls back to the cached `index.html` for navigations. The cache name and `SW_VERSION` are bumped together with the `SHELL` list when the precache changes; `activate` deletes every other cache.
+- **Offline shell**: installs a precache list into `bi-shell-v6`, network-first for GETs, caches successful same-origin responses, and falls back to the cached `index.html` for navigations. The cache name and `SW_VERSION` are bumped together with the `SHELL` list when the precache changes; `activate` deletes every other cache.
 - **Push rendering**: shows `data.title` / `data.body` verbatim. Eval times are formatted by the worker, which stores each device's IANA timezone on its push subscription (`timeZone` on `PushSubscription`) — service workers report UTC on Android, so formatting there is unreliable.
 - **Subscription self-heal**: `pushsubscriptionchange` re-subscribes, stores the new subscription in IndexedDB (`bi-store` → `kv` → `pendingPushSubscription`), and posts `push-subscription-changed` to clients. The page picks it up with `syncPushSubscription()` and re-registers it against the worker, since the SW has no access to the session token in `localStorage`.
 - **Updates**: the worker is registered with `updateViaCache: "none"` (Android WebAPKs otherwise keep serving a stale `sw.js`), and a newly installed worker is sent `SKIP_WAITING` when there's an active controller.
@@ -193,7 +193,7 @@ The service worker (`public/sw.js`):
 
 IndexedDB `bi-store` → `kv`: `pendingPushSubscription` (SW to page hand-off).
 
-Cache Storage: `bi-shell-v5`.
+Cache Storage: `bi-shell-v6`.
 
 The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`) and the friends keys (`FRIENDS_LIST`, `SHOW_CUSTOM_AVATARS_IN_FRIENDS`, `ft_pwa_friends_custom`), refreshing the active tab, or reloading when the session disappears.
 
