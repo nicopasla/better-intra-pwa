@@ -317,7 +317,6 @@ body {
   width: 100%;
   height: 100%;
   transform-origin: 0 0;
-  will-change: transform;
 }
 
 .cluster-map .posts rect {
@@ -398,19 +397,20 @@ body {
   animation: ft-seat-focus 1.6s ease-in-out infinite;
 }
 
-/* Pixel-for-pixel the extension's ft-dialog-pulsate: a 2→3px red ring with
-   two expanding glows (5/10px → 8/15px). */
+/* Pixel-for-pixel the extension's ft-dialog-pulsate: a 2→3px red ring whose
+   glow fades in and out. Stroke opacity is cheap; the old drop-shadow filters
+   forced a full re-render of the map on every frame. */
 @keyframes ft-seat-focus {
 
   0%,
   100% {
     stroke-width: 2;
-    filter: drop-shadow(0 0 5px #ff0055) drop-shadow(0 0 10px #ff0055);
+    stroke-opacity: 1;
   }
 
   50% {
     stroke-width: 3;
-    filter: drop-shadow(0 0 8px #ff0055) drop-shadow(0 0 15px #ff0055);
+    stroke-opacity: 0.5;
   }
 }
 

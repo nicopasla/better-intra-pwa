@@ -14,6 +14,7 @@ import {
   attachMapGestures,
   focusMapSeat,
   highlightMapSeat,
+  mapSeatIndex,
   resetMapZoom,
 } from "./clusters-feature/map-gestures.ts";
 import {
@@ -566,11 +567,17 @@ function ensureOutsideClose(): void {
 
 const XLINK_NS = "http://www.w3.org/1999/xlink";
 
+/**
+ * What is painted in each seat image, per SVG. Re-renders are frequent (poll,
+ * tab switch), so unchanged seats are never touched again.
+ */
+const paintedSeats = new WeakMap<SVGSVGElement, Map<string, string>>();
+
 /** Fills each seat's empty <image> with the avatar of whoever is sitting there. */
 function applyMapOccupancy(): void {
   const mapEl = document.getElementById("ft-cluster-map");
   if (!mapEl) return;
-  const svg = mapEl.querySelector("svg");
+  const svg = mapEl.querySelector<SVGSVGElement>("svg");
   if (!svg) return;
 
   const byHost = new Map<string, OccupancyEntry>();
@@ -579,28 +586,39 @@ function applyMapOccupancy(): void {
     if (host) byHost.set(host, entry);
   }
 
-  svg.querySelectorAll<SVGImageElement>("image[id]").forEach((img) => {
-    const entry = byHost.get(img.id.toLowerCase());
-    if (entry) {
-      const fallback = initialAvatarDataUrl(entry.login);
-      const src =
-        customAvatarUrl(entry.custom_avatar) ??
-        (mockMode ? entry.cdn_uri : fallback);
-      img.setAttribute("href", src);
-      img.setAttributeNS(XLINK_NS, "xlink:href", src);
-      img.setAttribute("data-login", entry.login);
-      img.onerror = () => {
-        img.onerror = null;
-        img.setAttribute("href", fallback);
-        img.setAttributeNS(XLINK_NS, "xlink:href", fallback);
-      };
-    } else {
+  let painted = paintedSeats.get(svg);
+  if (!painted) {
+    painted = new Map();
+    paintedSeats.set(svg, painted);
+  }
+
+  for (const [id, img] of mapSeatIndex(svg)) {
+    const entry = byHost.get(id);
+    if (!entry) {
+      if (!painted.has(id)) continue;
       img.removeAttribute("href");
       img.removeAttributeNS(XLINK_NS, "href");
       img.removeAttribute("data-login");
       img.onerror = null;
+      painted.delete(id);
+      continue;
     }
-  });
+    const fallback = initialAvatarDataUrl(entry.login);
+    const src =
+      customAvatarUrl(entry.custom_avatar) ??
+      (mockMode ? entry.cdn_uri : fallback);
+    const signature = `${entry.login}\n${src}\n${fallback}`;
+    if (painted.get(id) === signature) continue;
+    img.setAttribute("href", src);
+    img.setAttributeNS(XLINK_NS, "xlink:href", src);
+    img.setAttribute("data-login", entry.login);
+    img.onerror = () => {
+      img.onerror = null;
+      img.setAttribute("href", fallback);
+      img.setAttributeNS(XLINK_NS, "xlink:href", fallback);
+    };
+    painted.set(id, signature);
+  }
 
   attachMapGestures(mapEl);
 }

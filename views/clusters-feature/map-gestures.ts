@@ -36,14 +36,47 @@ const TAP_SLOP = 6;
 const TAP_TIME = 500;
 
 const states = new WeakMap<HTMLElement, MapState>();
+/** Container size, kept fresh by the ResizeObserver (avoids layout reads). */
+const sizes = new WeakMap<HTMLElement, { w: number; h: number }>();
+/** `image[id]` lookup per SVG, so seat taps and highlights don't rescan. */
+const seatIndexes = new WeakMap<SVGSVGElement, Map<string, SVGImageElement>>();
+
+/** Normalised seat id → avatar `<image>`, built once per SVG. */
+export function mapSeatIndex(svg: SVGSVGElement): Map<string, SVGImageElement> {
+  let index = seatIndexes.get(svg);
+  if (!index) {
+    index = new Map();
+    for (const img of svg.querySelectorAll<SVGImageElement>("image[id]")) {
+      const id = (img.id || "").trim().toLowerCase();
+      if (id && !index.has(id)) index.set(id, img);
+    }
+    seatIndexes.set(svg, index);
+  }
+  return index;
+}
+
+function containerSize(container: HTMLElement): { w: number; h: number } {
+  const known = sizes.get(container);
+  if (known && known.w > 0 && known.h > 0) return known;
+  const measured = { w: container.clientWidth, h: container.clientHeight };
+  sizes.set(container, measured);
+  return measured;
+}
+
+/** GPU promotion is only worth it during a gesture; it costs memory otherwise. */
+function setPromoted(container: HTMLElement, on: boolean): void {
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!svg) return;
+  svg.style.willChange = on ? "transform" : "auto";
+  if (on) svg.style.transformOrigin = "0 0";
+}
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
 function apply(container: HTMLElement, state: MapState): void {
   const svg = container.querySelector<SVGSVGElement>("svg");
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const { w: width, h: height } = containerSize(container);
   if (!svg || width <= 0 || height <= 0) return;
 
   state.scale = clamp(state.scale, MIN_SCALE, MAX_SCALE);
@@ -52,7 +85,6 @@ function apply(container: HTMLElement, state: MapState): void {
 
   svg.style.transformOrigin = "0 0";
   svg.style.transform = `translate3d(${state.x}px, ${state.y}px, 0) scale(${state.scale})`;
-  svg.style.willChange = "transform";
 }
 
 function zoomAt(
@@ -110,6 +142,7 @@ export function attachMapGestures(container: HTMLElement): void {
   const onDown = (ev: PointerEvent) => {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
     ev.preventDefault();
+    setPromoted(container, true);
     try {
       container.setPointerCapture(ev.pointerId);
     } catch {
@@ -216,6 +249,7 @@ export function attachMapGestures(container: HTMLElement): void {
     state.pinch = null;
     state.pointers.clear();
     container.classList.remove("is-panning");
+    setPromoted(container, false);
 
     if (cancelled || !tracked || !drag || drag.moved || drag.pinch) return;
     if (performance.now() - drag.at > TAP_TIME) return;
@@ -232,10 +266,17 @@ export function attachMapGestures(container: HTMLElement): void {
 
   const onUp = (ev: PointerEvent) => finish(ev, false);
   const onCancel = (ev: PointerEvent) => finish(ev, true);
+  let wheelTimer: ReturnType<typeof setTimeout> | null = null;
   const onWheel = (ev: WheelEvent) => {
     // Trackpad pinch and Ctrl/Cmd+wheel zoom; plain scroll still scrolls the page.
     if (!(ev.ctrlKey || ev.metaKey)) return;
     ev.preventDefault();
+    setPromoted(container, true);
+    if (wheelTimer) clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => {
+      wheelTimer = null;
+      setPromoted(container, false);
+    }, 250);
     zoomAt(
       container,
       state,
@@ -251,7 +292,14 @@ export function attachMapGestures(container: HTMLElement): void {
   container.addEventListener("pointercancel", onCancel);
   container.addEventListener("wheel", onWheel, { passive: false });
 
-  new ResizeObserver(() => apply(container, state)).observe(container);
+  new ResizeObserver(() => {
+    sizes.set(container, {
+      w: container.clientWidth,
+      h: container.clientHeight,
+    });
+    apply(container, state);
+  }).observe(container);
+  containerSize(container);
   apply(container, state);
 }
 
@@ -268,10 +316,7 @@ interface SeatRect {
 function findSeat(container: HTMLElement, seatId: string): SeatRect | null {
   const svg = container.querySelector<SVGSVGElement>("svg");
   if (!svg) return null;
-  const target = seatId.trim().toLowerCase();
-  const image = [...svg.querySelectorAll<SVGImageElement>("image[id]")].find(
-    (el) => (el.id || "").trim().toLowerCase() === target,
-  );
+  const image = mapSeatIndex(svg).get(seatId.trim().toLowerCase());
   if (!image) return null;
   return {
     image,
@@ -282,23 +327,19 @@ function findSeat(container: HTMLElement, seatId: string): SeatRect | null {
   };
 }
 
-/**
- * Draws the pulsing red ring around a seat (no zoom). Called on every render
- * while a seat stays focused, because the map SVG is rebuilt each time.
- */
-export function highlightMapSeat(
-  container: HTMLElement,
+const seatRingSelector = (seatId: string) =>
+  `.seat-focus[data-seat="${seatId.trim().toLowerCase()}"]`;
+
+/** Draws the pulsing ring around a seat, once (re-renders keep the same SVG). */
+function drawSeatRing(
+  svg: SVGSVGElement,
+  seat: SeatRect,
   seatId: string,
 ): boolean {
-  const seat = findSeat(container, seatId);
-  if (!seat) return false;
   const { image, x, y, w, h } = seat;
-  const svg = container.querySelector<SVGSVGElement>("svg");
-  if (!svg) return false;
-
-  svg.querySelectorAll(".seat-focus").forEach((el) => el.remove());
   const ring = document.createElementNS(SVG_NS, "rect");
   ring.setAttribute("class", "seat-focus");
+  ring.setAttribute("data-seat", seatId.trim().toLowerCase());
   // Outside the seat (not straddling its border) and drawn in the seat's own
   // coordinate space, so rotated/inclined seats get a matching outline.
   // Hug the picture border (the pulse + glow sit on the image edge).
@@ -320,16 +361,34 @@ export function highlightMapSeat(
   } else {
     parent.insertBefore(ring, image.nextSibling);
   }
-
   return true;
+}
+
+/**
+ * Draws the pulsing red ring around a seat (no zoom). Called on every render
+ * while a seat stays focused, so it no-ops when the ring is already there.
+ */
+export function highlightMapSeat(
+  container: HTMLElement,
+  seatId: string,
+): boolean {
+  const svg = container.querySelector<SVGSVGElement>("svg");
+  if (!svg) return false;
+  if (svg.querySelector(seatRingSelector(seatId))) return true;
+  const seat = findSeat(container, seatId);
+  if (!seat) return false;
+  return drawSeatRing(svg, seat, seatId);
 }
 
 /** Highlights a seat and zooms the map onto it. */
 export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
-  if (!highlightMapSeat(container, seatId)) return false;
-  const seat = findSeat(container, seatId);
   const svg = container.querySelector<SVGSVGElement>("svg");
-  if (!seat || !svg) return true;
+  if (!svg) return false;
+  const seat = findSeat(container, seatId);
+  if (!seat) return false;
+  if (!svg.querySelector(seatRingSelector(seatId))) {
+    drawSeatRing(svg, seat, seatId);
+  }
   const { x, y, w, h } = seat;
 
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
@@ -339,8 +398,7 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   const state = states.get(container);
   if (!state) return true;
 
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const { w: width, h: height } = containerSize(container);
   if (width <= 0 || height <= 0) return true;
 
   // The SVG is stretched to the container box and letterboxed by
