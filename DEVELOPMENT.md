@@ -64,7 +64,7 @@ views/               one module per tab
   students.ts        Students tab (delegates to students-feature/)
   students-feature/  controller.ts, data.ts, template.ts
   clusters.ts        Clusters tab (delegates to clusters-feature/)
-  clusters-feature/  data.ts, render.ts, sort.ts, types.ts
+  clusters-feature/  data.ts, maps.ts (cluster SVGs), render.ts, sort.ts, types.ts
   settings.ts        Settings tab
   eval-dialog.ts     evaluation detail dialog
   event-dialog.ts    42 event detail dialog
@@ -194,6 +194,12 @@ The service worker (`public/sw.js`):
 IndexedDB `bi-store` → `kv`: `pendingPushSubscription` (SW to page hand-off).
 
 Cache Storage: `bi-shell-v6`.
+
+Cluster map SVGs (`campuses/maps/**` via the worker's `/gh/` proxy) live in the
+browser HTTP cache only, not in `bi-shell-v6`: they're fetched with
+`cache: "no-cache"` and kept in memory for 10 minutes (`maps.ts` `MAP_TTL_MS`),
+then revalidated with the worker's `ETag` (a 304 when unchanged). Pull-to-refresh
+forces a check, and a failed refresh keeps the last map with a 1-minute backoff.
 
 The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`) and the friends keys (`FRIENDS_LIST`, `SHOW_CUSTOM_AVATARS_IN_FRIENDS`, `ft_pwa_friends_custom`), refreshing the active tab, or reloading when the session disappears.
 

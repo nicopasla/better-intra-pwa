@@ -20,6 +20,7 @@ import {
   CLUSTER_MAPS,
   findClusterMap,
   findDefaultClusterMap,
+  isMapStale,
   loadClusterMap,
   preloadClusterMaps,
 } from "./clusters-feature/maps.ts";
@@ -422,7 +423,7 @@ function mapView(map: ClusterMapDef): unknown {
 
 /** Fetches the map when its tab is shown (or finishes a preload already running). */
 function ensureMap(map: ClusterMapDef): void {
-  if (!map.available || !map.url || map.svg || map.failed) return;
+  if (!map.available || !map.url || map.failed || !isMapStale(map)) return;
   void loadClusterMap(map).then(() => refresh());
 }
 
@@ -441,7 +442,7 @@ function mapFailed(map: ClusterMapDef): unknown {
       class="btn btn-sm"
       @click=${() => {
         map.failed = false;
-        void loadClusterMap(map).then(() => refresh());
+        void loadClusterMap(map, true).then(() => refresh());
       }}
     >
       Retry
@@ -510,7 +511,7 @@ export function clustersBottomBar(): unknown {
 }
 
 export async function loadClusters(force = false): Promise<void> {
-  preloadClusterMaps();
+  preloadClusterMaps(force && !document.hidden);
   if (!started) {
     started = true;
     startTimers();

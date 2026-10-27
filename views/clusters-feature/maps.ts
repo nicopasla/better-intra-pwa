@@ -15,8 +15,24 @@ export interface ClusterMapDef {
   seatIds: Set<string>;
   /** Seats crossed out on the map: no computer, or it is out of order. */
   crossed: number;
+  /** When the current `svg` was fetched (0 = never). */
+  loadedAt: number;
+  /** Backoff after a failed refresh: no retry before this timestamp. */
+  retryAt?: number;
   loading?: boolean;
   failed?: boolean;
+}
+
+/** Revalidate maps at most this often; the worker serves them with max-age=3600. */
+const MAP_TTL_MS = 10 * 60_000;
+/** After a failed refresh, keep the last map and retry at most once a minute. */
+const MAP_RETRY_MS = 60_000;
+
+/** True when the map should be (re)fetched: missing, expired, or past backoff. */
+export function isMapStale(map: ClusterMapDef): boolean {
+  if (map.retryAt && Date.now() < map.retryAt) return false;
+  if (!map.svg) return true;
+  return Date.now() - map.loadedAt >= MAP_TTL_MS;
 }
 
 /** The maps carry their own <style>; the app scopes those rules in style.css. */
@@ -47,6 +63,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     url: `${MAP_BASE}/shi.svg`,
     seatIds: new Set(),
     crossed: 0,
+    loadedAt: 0,
   },
   {
     id: "fu",
@@ -55,6 +72,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     url: `${MAP_BASE}/fu.svg`,
     seatIds: new Set(),
     crossed: 0,
+    loadedAt: 0,
   },
   {
     id: "mi",
@@ -63,6 +81,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     url: `${MAP_BASE}/mi.svg`,
     seatIds: new Set(),
     crossed: 0,
+    loadedAt: 0,
   },
   {
     id: "a2",
@@ -70,6 +89,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     available: false,
     seatIds: new Set(),
     crossed: 0,
+    loadedAt: 0,
   },
   {
     id: "a3",
@@ -77,6 +97,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     available: false,
     seatIds: new Set(),
     crossed: 0,
+    loadedAt: 0,
   },
 ];
 
@@ -112,30 +133,56 @@ function mockMapSvg(cluster: string): string {
 
 const loads = new Map<string, Promise<void>>();
 
-/** Fetches a map once and keeps it in memory (the worker caches it for an hour). */
-export function loadClusterMap(map: ClusterMapDef): Promise<void> {
-  if (map.svg || !map.url) return Promise.resolve();
+/**
+ * Revalidates against the network, falling back to the HTTP cache when offline
+ * (or when the network fails) so the last known map still renders.
+ */
+async function fetchMapSvg(url: string): Promise<Response> {
+  try {
+    return await fetch(url, { cache: "no-cache" });
+  } catch {
+    return fetch(url, { cache: "force-cache" });
+  }
+}
+
+/**
+ * Fetches a map, or revalidates it once its copy is older than `MAP_TTL_MS`
+ * (pass `force` to refresh regardless, e.g. on pull-to-refresh).
+ */
+export function loadClusterMap(
+  map: ClusterMapDef,
+  force = false,
+): Promise<void> {
+  if (!map.url) return Promise.resolve();
+  if (!force && !isMapStale(map)) return Promise.resolve();
   if (mockMode) {
     map.svg = mockMapSvg(map.id);
     map.seatIds = seatIdsFromSvg(map.svg);
     map.crossed = 0;
+    map.loadedAt = Date.now();
+    map.retryAt = 0;
     return Promise.resolve();
   }
   const running = loads.get(map.id);
   if (running) return running;
 
   map.loading = true;
-  map.failed = false;
   const load = (async () => {
     try {
-      const res = await fetch(map.url!, { cache: "force-cache" });
+      const res = await fetchMapSvg(map.url!);
       if (!res.ok) throw new Error(String(res.status));
       const raw = await res.text();
       map.svg = stripStyle(raw);
       map.seatIds = seatIdsFromSvg(raw);
       map.crossed = crossedFromSvg(raw);
+      map.loadedAt = Date.now();
+      map.retryAt = 0;
+      map.failed = false;
     } catch {
-      map.failed = true;
+      // Keep serving the last map (if any) and retry later, so a flaky network
+      // never blanks the map or triggers a request storm.
+      map.retryAt = Date.now() + MAP_RETRY_MS;
+      if (!map.svg) map.failed = true;
     } finally {
       map.loading = false;
       loads.delete(map.id);
@@ -145,10 +192,12 @@ export function loadClusterMap(map: ClusterMapDef): Promise<void> {
   return load;
 }
 
-/** Warms every available map when the clusters tab opens. */
-export function preloadClusterMaps(): void {
+/** Warms every available map when the clusters tab opens (refreshing stale ones). */
+export function preloadClusterMaps(force = false): void {
   for (const map of CLUSTER_MAPS) {
-    if (map.available && !map.svg && !map.loading) void loadClusterMap(map);
+    if (!map.available || map.loading) continue;
+    if (!force && !isMapStale(map)) continue;
+    void loadClusterMap(map, force);
   }
 }
 
