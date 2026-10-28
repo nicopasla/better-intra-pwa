@@ -192,6 +192,8 @@ The service worker (`public/sw.js`):
 | `ft_theme`                          | theme mode (`system`/`light`/`dark`/`extension`)                 |
 | `ft_theme_resolved`                 | last resolved `{ preset, mode }`, read by the pre-paint script   |
 | `ft_pwa_calendar_token`             | calendar subscription token created by the app                   |
+| `ft_push_subscribed`                | last known push subscription state (first-paint toggle state)    |
+| `ft_notify_types`                   | cached notification preference buttons                           |
 | `PROFILE_SUB_TAB`                   | last selected profile sub-tab                                    |
 | `ft_pwa_cache_*`                    | versioned, login-scoped response caches (`dashboard`, `profile`) |
 | `ft_pwa_evals`, `ft_pwa_evals_done` | evaluation cache (last 30 days, upcoming + past) and the set of dismissed evals |

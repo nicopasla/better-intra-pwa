@@ -42,6 +42,7 @@ import {
 import type { HomeLayoutItem } from "../lib/prefs.ts";
 import { setPullRefreshEnabled } from "../pull-refresh.ts";
 import { createSortable, moveItem } from "../lib/sortable.ts";
+import { readPushState, writePushState } from "../lib/push-state.ts";
 import type Sortable from "sortablejs";
 import { profileHero } from "./profile-hero.ts";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
@@ -78,7 +79,7 @@ let error = "";
 let stale = false;
 let pushBusy = false;
 let pushError = "";
-let pushSubscribed: boolean | null = null;
+let pushSubscribed: boolean | null = readPushState();
 /** User's profile color (synced custom color), used for the project stats. */
 let profileColor = "#00BABC";
 /** Full profile payload: the home header reuses the profile page's hero. */
@@ -798,16 +799,25 @@ function enablePushBlock() {
         type="checkbox"
         class="toggle toggle-primary"
         .checked=${pushSubscribed === true}
-        ?disabled=${pushBusy}
+        ?disabled=${pushBusy || pushSubscribed === null}
         @change=${onTogglePush}
       />
     </label>
+    ${pushSubscribed === null
+      ? html`<p class="text-xs opacity-60">Checking this device…</p>`
+      : ""}
     ${pushError ? html`<p class="text-xs text-warning">${pushError}</p>` : ""}
   `;
 }
 
 async function onTogglePush(e: Event) {
-  const on = (e.target as HTMLInputElement).checked;
+  const input = e.target as HTMLInputElement;
+  // Unknown state: keep the switch where it was instead of acting blindly.
+  if (pushSubscribed === null) {
+    input.checked = false;
+    return;
+  }
+  const on = input.checked;
   pushBusy = true;
   pushError = "";
   refresh();
@@ -831,6 +841,7 @@ async function onTogglePush(e: Event) {
       await disablePush();
       pushSubscribed = false;
     }
+    writePushState(pushSubscribed);
   } catch (err) {
     pushError =
       err instanceof Error && err.message === "permission_denied"
@@ -838,6 +849,8 @@ async function onTogglePush(e: Event) {
         : "Could not update notifications.";
   } finally {
     pushBusy = false;
+    // Never leave the switch showing a rejected update.
+    input.checked = pushSubscribed === true;
     refresh();
   }
 }
@@ -845,10 +858,17 @@ async function onTogglePush(e: Event) {
 async function refreshPushState(): Promise<void> {
   if (!pushSupported()) {
     pushSubscribed = false;
+    writePushState(false);
+    refresh();
     return;
   }
-  const sub = await getExistingSubscription();
-  pushSubscribed = Boolean(sub);
+  try {
+    const sub = await getExistingSubscription();
+    pushSubscribed = Boolean(sub);
+    writePushState(pushSubscribed);
+  } catch {
+    /* keep the cached value */
+  }
   refresh();
 }
 

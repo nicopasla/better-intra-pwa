@@ -40,6 +40,12 @@ import {
 } from "../lib/community.ts";
 import { clearCache, resetData } from "../lib/app-data.ts";
 import {
+  readNotifyTypes,
+  readPushState,
+  writeNotifyTypes,
+  writePushState,
+} from "../lib/push-state.ts";
+import {
   applyThemeSettings,
   currentResolvedTheme,
   currentThemeLabel,
@@ -112,7 +118,8 @@ let loaded = false;
 let busy = false;
 let testing = false;
 let logmeError = "";
-let pushEnabled = false;
+/** Cached so the switch paints in its real position before the async check. */
+let pushEnabled: boolean | null = readPushState();
 let pushMessage = "";
 const NOTIFY_GROUPS: {
   title: string;
@@ -138,11 +145,15 @@ const NOTIFY_GROUPS: {
     types: [{ key: "EVENT_NOTIFY_SOON", label: "Starting in 15 min" }],
   },
 ];
-let notifyTypes: Record<string, boolean> = {
+const DEFAULT_NOTIFY_TYPES: Record<string, boolean> = {
   EVAL_NOTIFY_EVALUATOR_BOOKED: true,
   EVAL_NOTIFY_EVALUATOR_REVEALED: true,
   EVAL_NOTIFY_CORRECTED_REVEALED: true,
   EVENT_NOTIFY_SOON: true,
+};
+let notifyTypes: Record<string, boolean> = {
+  ...DEFAULT_NOTIFY_TYPES,
+  ...readNotifyTypes(),
 };
 let themeMode: ThemeMode = getThemePreference();
 let storageUsed: number | null = null;
@@ -353,15 +364,18 @@ function notificationsSection() {
       <input
         type="checkbox"
         class="toggle toggle-primary"
-        .checked=${pushEnabled}
-        ?disabled=${busy}
+        .checked=${pushEnabled === true}
+        ?disabled=${busy || pushEnabled === null}
         @change=${onTogglePush}
       />
     </label>
+    ${pushEnabled === null
+      ? html`<p class="text-xs opacity-60">Checking this device…</p>`
+      : ""}
     <div class="flex flex-wrap gap-2 self-start">
       <button
         class="btn btn-sm btn-outline ${testing ? "loading" : ""}"
-        ?disabled=${!pushEnabled || testing}
+        ?disabled=${pushEnabled !== true || testing}
         @click=${() => onTest()}
       >
         Send test
@@ -773,11 +787,17 @@ function endpointHost(): string {
 }
 
 async function onTogglePush(e: Event) {
+  const input = e.target as HTMLInputElement;
+  // The real state is still unknown; keep the switch where it was.
+  if (pushEnabled === null) {
+    input.checked = false;
+    return;
+  }
   busy = true;
   pushMessage = "";
   refresh();
   try {
-    const on = (e.target as HTMLInputElement).checked;
+    const on = input.checked;
     if (on) {
       const res = await enablePushWithTest();
       pushEnabled = res.subscribed;
@@ -796,6 +816,7 @@ async function onTogglePush(e: Event) {
       await disablePush();
       pushEnabled = false;
     }
+    writePushState(pushEnabled);
   } catch (err) {
     pushMessage =
       err instanceof Error && err.message === "permission_denied"
@@ -803,6 +824,8 @@ async function onTogglePush(e: Event) {
         : "Could not update notifications.";
   } finally {
     busy = false;
+    // A rejected update must not leave the switch showing the tapped value.
+    input.checked = pushEnabled === true;
     refresh();
   }
 }
@@ -826,6 +849,7 @@ async function onTest() {
 
 async function toggleNotifyType(key: string) {
   notifyTypes = { ...notifyTypes, [key]: !notifyTypes[key] };
+  writeNotifyTypes(notifyTypes);
   refresh();
   try {
     await updateBlob({ [key]: notifyTypes[key] });
@@ -884,6 +908,7 @@ export async function loadSettings(force = false): Promise<void> {
         bs.EVAL_NOTIFY_CORRECTED_REVEALED !== false,
       EVENT_NOTIFY_SOON: bs.EVENT_NOTIFY_SOON !== false,
     };
+    writeNotifyTypes(notifyTypes);
     themeMode = getThemePreference();
     applyThemeSettings(bs);
     calendarToken = getCalendarToken();
@@ -905,8 +930,18 @@ export async function loadSettings(force = false): Promise<void> {
         }
       }
     }
+    writePushState(pushEnabled);
   } catch {
-    /* ignore */
+    // Couldn't read the subscription: keep the cached value, and only settle on
+    // "off" when the browser can't deliver notifications at all.
+    if (
+      pushEnabled === null &&
+      typeof Notification !== "undefined" &&
+      Notification.permission !== "granted"
+    ) {
+      pushEnabled = false;
+      writePushState(false);
+    }
   }
   if (!mockMode) {
     try {
