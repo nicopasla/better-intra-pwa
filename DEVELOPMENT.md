@@ -247,6 +247,7 @@ The extension's version is separate; don't bump it for PWA changes. Don't bump t
 ## Conventions
 
 - **Never use `innerHTML`.** Use `render(unsafeHTML(...))` from `lit-html` (with `lit-html/directives/unsafe-html.js`).
+- **Commit messages**: Conventional Commits, single subject line (`type(scope): subject`) — see the root `AGENTS.md` for types and scopes.
 - A new tab needs to be added to `TABS` in `shell.ts`, to the `Tab` union, to the hash check in `currentTab()`, and to `triggerLoad`/`refreshActiveTab`/`renderBody` in `main.ts`. If it lazy-loads sub-features, mirror the `views/*.ts` to `views/*-feature/` split so observers can be re-attached after a re-render.
 - Styling is Tailwind utilities plus the daisyUI components listed in `style.css`. Respect safe-area insets (`env(safe-area-inset-*)`) for anything fixed to the bottom or top.
 - Content that scrolls horizontally should carry `data-no-swipe` so pull-to-refresh doesn't hijack the gesture.
