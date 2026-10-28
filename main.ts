@@ -41,6 +41,7 @@ import {
 } from "./views/students.ts";
 import {
   clustersView,
+  clusterMapVisible,
   loadClusters,
   clustersAttachObservers,
   clustersBottomBar,
@@ -341,9 +342,16 @@ function healPush(): void {
   void syncEvalTrackingIfEnabled();
 }
 
+/** The cluster map is a fixed viewport, so the page must not scroll behind it
+ *  (iOS otherwise moves the document scrollbar while nothing moves). */
+function setViewportLock(locked: boolean): void {
+  document.documentElement.classList.toggle("ft-fixed-view", locked);
+}
+
 function renderBody(): void {
   const profileLogin = userLoginFromHash();
   if (profileLogin) {
+    setViewportLock(false);
     renderShell(null, userProfileView(profileLogin));
     return;
   }
@@ -382,6 +390,7 @@ function renderBody(): void {
       break;
   }
   renderShell(tab, body, bottomBar);
+  setViewportLock(tab === "clusters" && campusAllowed && clusterMapVisible());
   if (tab === "dashboard") dashboardAttachObservers();
   if (tab === "profile") profileAttachObservers();
   if (campusAllowed) {

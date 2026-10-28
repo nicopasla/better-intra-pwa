@@ -132,6 +132,11 @@ function startTimers(): void {
   }, 1000);
 }
 
+/** True when the fixed cluster-map view (not the Active list) is on screen. */
+export function clusterMapVisible(): boolean {
+  return activeTab !== "active";
+}
+
 export function clustersView(): unknown {
   const seat = seatFromHash();
   if (seat) {

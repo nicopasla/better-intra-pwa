@@ -275,6 +275,16 @@ body {
   color: var(--color-primary-content);
 }
 
+/* The cluster map view is laid out as a fixed viewport (map + connections fit
+   the screen). Lock the document while it is mounted so iOS doesn't move the
+   page scrollbar behind a view that can't scroll. Toggled by renderBody() in
+   main.ts. */
+html.ft-fixed-view,
+html.ft-fixed-view body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* Six short tabs (SHI, FU, MI, A2, A3, Active) in the clusters dock bar. */
 .clusters-tabs .tab-btn {
   font-size: 0.68rem;
