@@ -151,6 +151,18 @@ function mockProfile(login: string): UserProfile {
       fontScale: 100,
       disableAnimations: false,
     },
+    customBadges:
+      isSelf || l === "bdurand"
+        ? [
+            {
+              id: "mock-badge",
+              label: "Mock badge",
+              color: "#8b5cf6",
+              icon: "✨",
+              tooltip: "Fixture badge, not a real grant",
+            },
+          ]
+        : [],
   };
 }
 

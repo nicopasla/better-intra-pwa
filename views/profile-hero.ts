@@ -7,6 +7,7 @@ import { saveData } from "../lib/network.ts";
 import {
   alumniBadge,
   blackholeBadge,
+  customBadgeChip,
   evalBadge,
   frozenBadge,
   isFrozen,
@@ -76,6 +77,8 @@ export function profileHero(
       (typeof g === "string" ? null : g.color) ?? v.groupColors?.[name] ?? null;
     return { name, color, url: opts.editActive ? null : badgeUrlFor(name) };
   });
+  /** Admin-granted badges from D1, rendered with the role badges. */
+  const customBadges = (p.customBadges ?? []).filter((b) => b.label.trim());
 
   const hidden = new Set(opts.badges?.hidden ?? []);
   if (opts.showPool === false) hidden.add("pool");
@@ -209,7 +212,7 @@ export function profileHero(
               ${status}
             </div>`
           : ""}
-        ${groups.length
+        ${groups.length || customBadges.length
           ? html`<div
               class="flex flex-wrap justify-center gap-2 pb-1"
               data-no-swipe
@@ -241,6 +244,7 @@ export function profileHero(
                       >${g.name}</span
                     >`;
               })}
+              ${customBadges.map((badge) => customBadgeChip(badge))}
             </div>`
           : ""}
       </div>

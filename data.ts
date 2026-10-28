@@ -51,6 +51,15 @@ export interface UserGroup {
   color: string | null;
 }
 
+/** Admin-granted badge from D1 (`custom_badges`), shown next to role badges. */
+export interface CustomBadge {
+  id: string;
+  label: string;
+  color: string | null;
+  icon: string | null;
+  tooltip: string | null;
+}
+
 export interface Me {
   login: string;
   displayName: string;
@@ -287,6 +296,7 @@ export interface UserProfile {
   projects: UserProjects;
   visuals: UserVisuals;
   logtime: LogtimeSettings;
+  customBadges?: CustomBadge[];
 }
 
 export const userProfile = (login: string) =>

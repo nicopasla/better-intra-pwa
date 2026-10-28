@@ -8,6 +8,8 @@ import SKULL_SVG from "../assets/skull.svg?raw";
 import FREEZE_SVG from "../assets/freeze.svg?raw";
 import GRADUATION_CAP_SVG from "../assets/graduation-cap.svg?raw";
 import { formatShortDate } from "./students-utils.ts";
+import { perceptualLuminance } from "./logtime-feature/color.ts";
+import type { CustomBadge } from "../data.ts";
 
 const icon = (raw: string, size = 14) =>
   unsafeHTML(raw.replace("<svg", `<svg width="${size}" height="${size}"`));
@@ -93,5 +95,44 @@ export function statusBadges(profile: {
   return html`${frozen ? frozenBadge() : ""}${profile.alumni
     ? alumniBadge(profile.alumnizedAt)
     : ""}`;
+}
+
+/** Admin-granted badge (D1 `custom_badges`), styled like the 42 role badges. */
+export function customBadgeChip(badge: CustomBadge): TemplateResult | "" {
+  const label = badge.label.trim();
+  if (!label) return "";
+
+  const color = normalizeHex(badge.color);
+  const style = color
+    ? `background-color:${color};border-color:${color};color:${badgeText(color)};`
+    : "";
+  const cls = `badge badge-lg${
+    color ? "" : " badge-primary"
+  } font-semibold flex-none whitespace-nowrap gap-1`;
+  const content = html`${badge.icon
+    ? html`<span aria-hidden="true">${badge.icon}</span>`
+    : ""}${label}`;
+
+  return html`<span
+    class="${cls}"
+    style="${style}"
+    title="${badge.tooltip ?? label}"
+    data-custom-badge="${badge.id}"
+    >${content}</span
+  >`;
+}
+
+/** 3-digit hex → 6 digits; anything unusable (or with alpha) → null. */
+function normalizeHex(value: string | null): string | null {
+  const raw = (value ?? "").trim();
+  const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(raw);
+  if (short)
+    return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+  return /^#[0-9a-f]{6}$/i.test(raw) ? raw : null;
+}
+
+/** Black on light badges, white on dark ones (same rule as the extension). */
+function badgeText(color: string): "#000000" | "#ffffff" {
+  return perceptualLuminance(color) >= 128 ? "#000000" : "#ffffff";
 }
 
