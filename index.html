@@ -26,6 +26,29 @@
     <!-- iOS standalone: see .pwa-status-bar-surface in style.css. -->
     <div class="pwa-status-bar-surface" aria-hidden="true"></div>
     <div id="app"></div>
+    <!-- Applies the last resolved theme before first paint (theme.ts keeps it
+         up to date). Without this the app flashes the default light/dark theme. -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("ft_theme") || "system";
+          var look = null;
+          var raw = localStorage.getItem("ft_theme_resolved");
+          if (raw) look = JSON.parse(raw);
+          if (!look || !look.preset || !look.mode) look = null;
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (pref === "dark" || pref === "light") {
+            look = { preset: pref, mode: pref };
+          } else if (pref !== "extension" || !look) {
+            look = { preset: dark ? "dark" : "light", mode: dark ? "dark" : "light" };
+          }
+          document.documentElement.dataset.theme = look.preset;
+          document.documentElement.dataset.mode = look.mode;
+        } catch (e) {
+          /* first visit, storage disabled, or corrupt cache */
+        }
+      })();
+    </script>
     <script type="module" src="/main.ts"></script>
   </body>
 </html>

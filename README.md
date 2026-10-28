@@ -46,7 +46,11 @@ On your phone the site only works once it's installed. If you open it in a brows
 
 **🏫 Clusters** 🇧🇪: see which seats are taken right now, and who's sitting in them. Updates by itself every minute.
 
-**🔔 Notifications**: get a push notification when you're booked to evaluate someone, 15 minutes before it starts, and when someone is assigned to evaluate you. Turn any of them off individually. There's a **Send test** button so you can check it works.
+**🔔 Notifications**: get a push notification when you're booked to evaluate someone, 15 minutes before it starts, when someone is assigned to evaluate you, and 15 minutes before a 42 event you're subscribed to. Turn any of them off individually. There's a **Send test** button so you can check it works.
+
+**📅 Calendar**: add your 42 events to your phone's calendar with one tap. The events are kept up to date by the Better Intra extension.
+
+**🎨 Your theme**: follow your phone, pick light or dark, or mirror the theme you picked in the extension.
 
 **🌗 Light & dark**: follows your phone's setting automatically, or pick one yourself.
 

@@ -1,13 +1,16 @@
 import { html, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { until } from "lit-html/directives/until.js";
-import { clearSession, getDeviceName, getSession } from "../api.ts";
+import { clearSession, getDeviceName, getSession, WORKER_URL } from "../api.ts";
 import {
   SessionItem,
+  createCalendarToken,
   getBlob,
+  getCalendarToken,
   logout,
   revokeSession,
   sessionsList,
+  setCalendarToken,
   updateBlob,
 } from "../data.ts";
 import {
@@ -37,12 +40,18 @@ import {
 } from "../lib/community.ts";
 import { clearCache, resetData } from "../lib/app-data.ts";
 import {
+  applyThemeSettings,
+  currentResolvedTheme,
+  currentThemeLabel,
+  extensionUsesCustomTheme,
   getThemePreference,
   setThemePreference,
-  ThemePreference,
+  ThemeMode,
 } from "../theme.ts";
+import { presetLabel } from "../lib/theme-presets.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
 import BELL_SLASH_SVG from "../assets/bell-slash.svg?raw";
+import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
 import PR_SVG from "../assets/pr.svg?raw";
@@ -124,13 +133,19 @@ const NOTIFY_GROUPS: {
     hint: "When someone is assigned to evaluate you.",
     types: [{ key: "EVAL_NOTIFY_CORRECTED_REVEALED", label: "Your evaluator" }],
   },
+  {
+    title: "Events",
+    hint: "15 minutes before a 42 event you're subscribed to.",
+    types: [{ key: "EVENT_NOTIFY_SOON", label: "Starting in 15 min" }],
+  },
 ];
 let notifyTypes: Record<string, boolean> = {
   EVAL_NOTIFY_EVALUATOR_BOOKED: true,
   EVAL_NOTIFY_EVALUATOR_REVEALED: true,
   EVAL_NOTIFY_CORRECTED_REVEALED: true,
+  EVENT_NOTIFY_SOON: true,
 };
-let themeMode: ThemePreference = getThemePreference();
+let themeMode: ThemeMode = getThemePreference();
 let storageUsed: number | null = null;
 let storageQuota: number | null = null;
 
@@ -154,10 +169,11 @@ function storageLabel(): string {
     : formatBytes(storageUsed);
 }
 
-const THEME_OPTIONS: { id: ThemePreference; label: string }[] = [
+const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
   { id: "system", label: "System" },
-  { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+  { id: "extension", label: "Extension" },
 ];
 
 export function settingsView(): TemplateResult {
@@ -167,6 +183,7 @@ export function settingsView(): TemplateResult {
     ${section("Notifications", notificationsSection())}
     ${isStandalone() ? "" : section("Install", installSection())}
     ${section("Theme", themeSection())}
+    ${section("Calendar", calendarSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("Community", communitySection())}
     ${debugSection()}
@@ -212,15 +229,14 @@ function section(title: string, content: unknown) {
 }
 
 function themeSection() {
+  const resolved = currentResolvedTheme();
   return html`
-    <div class="join">
+    <div class="grid grid-cols-2 gap-2">
       ${THEME_OPTIONS.map(
         (o) =>
           html`<button
             type="button"
-            class="btn btn-sm join-item ${themeMode === o.id
-              ? "btn-primary"
-              : ""}"
+            class="btn btn-sm ${themeMode === o.id ? "btn-primary" : "btn-outline"}"
             @click="${() => {
               themeMode = o.id;
               setThemePreference(o.id);
@@ -231,7 +247,86 @@ function themeSection() {
           </button>`,
       )}
     </div>
+    ${themeMode === "extension"
+      ? html`<p class="text-xs opacity-60">
+          Following your extension: ${presetLabel(resolved.preset)} ·
+          ${resolved.mode}.
+          ${extensionUsesCustomTheme()
+            ? " Custom extension themes aren't supported on mobile yet, so dark/light is shown instead."
+            : ""}
+          Change it in the extension on your computer.
+        </p>`
+      : ""}
   `;
+}
+
+const calendarWebcalUrl = (token: string) =>
+  `webcal://${WORKER_URL.replace(/^https?:\/\//, "")}/calendar/${token}.ics`;
+
+function calendarSection() {
+  if (calendarToken) {
+    return html`
+      <p class="text-sm opacity-70">
+        Your 42 events on your phone's calendar. The Better Intra extension
+        keeps the events up to date.
+      </p>
+      <a
+        class="btn btn-primary btn-sm self-start gap-1.5"
+        href=${calendarWebcalUrl(calendarToken)}
+      >
+        <span class="size-4 flex items-center justify-center fill-current">
+          ${svgIcon(CALENDAR_PLUS_SVG)}
+        </span>
+        Add to phone calendar
+      </a>
+    `;
+  }
+
+  return html`
+    <p class="text-sm opacity-70">
+      Your 42 events on your phone's calendar. The Better Intra extension
+      keeps the events up to date.
+    </p>
+    <button
+      type="button"
+      class="btn btn-primary btn-sm self-start gap-1.5 ${calendarBusy
+        ? "loading"
+        : ""}"
+      ?disabled=${calendarBusy}
+      @click=${() => void onAddToCalendar()}
+    >
+      <span class="size-4 flex items-center justify-center fill-current">
+        ${svgIcon(CALENDAR_PLUS_SVG)}
+      </span>
+      Add to phone calendar
+    </button>
+    ${calendarMessage
+      ? html`<p class="text-xs text-warning">${calendarMessage}</p>`
+      : ""}
+  `;
+}
+
+let calendarToken: string | null = getCalendarToken();
+let calendarBusy = false;
+let calendarMessage = "";
+
+/** Creates the subscription token, then hands straight off to the calendar app. */
+async function onAddToCalendar() {
+  calendarBusy = true;
+  calendarMessage = "";
+  refresh();
+  try {
+    const token = crypto.randomUUID();
+    await createCalendarToken(token);
+    setCalendarToken(token);
+    calendarToken = token;
+    window.location.href = calendarWebcalUrl(token);
+  } catch {
+    calendarMessage = "Couldn't create the calendar link. Try again.";
+  } finally {
+    calendarBusy = false;
+    refresh();
+  }
 }
 
 function notificationsSection() {
@@ -610,6 +705,7 @@ function debugSection(): TemplateResult {
                   : "best-effort",
             )}
             ${diagRow("Storage used", storageLabel())}
+            ${diagRow("Theme", currentThemeLabel())}
           `,
         )}
         ${diagGroup(
@@ -792,7 +888,11 @@ export async function loadSettings(force = false): Promise<void> {
         bs.EVAL_NOTIFY_EVALUATOR_REVEALED !== false,
       EVAL_NOTIFY_CORRECTED_REVEALED:
         bs.EVAL_NOTIFY_CORRECTED_REVEALED !== false,
+      EVENT_NOTIFY_SOON: bs.EVENT_NOTIFY_SOON !== false,
     };
+    themeMode = getThemePreference();
+    applyThemeSettings(bs);
+    calendarToken = getCalendarToken();
   } catch (e) {
     logmeError = e instanceof Error ? e.message : String(e);
   }

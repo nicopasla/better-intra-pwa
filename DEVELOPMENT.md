@@ -36,7 +36,7 @@ Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture imag
 - **Vite 8** + `@tailwindcss/vite`. No framework; views are plain functions returning lit-html templates.
 - **lit-html** for all DOM templating (`render`, `until`, `unsafeHTML`).
 - **Tailwind v4**: CSS-driven config, no `tailwind.config.js`. `style.css` starts with `@import "tailwindcss" source("./")`, so content detection is scoped to this directory.
-- **daisyUI 5**: enabled via `@plugin "daisyui"` in `style.css` with an explicit `include` list of components (button, card, toggle, alert, badge, loading, divider, menu, avatar, dock, progress, indicator, input, select, checkbox, swap, stat, join, list, modal, collapse, status). Adding a daisyUI component to a view requires adding it to that list.
+- **daisyUI 5**: enabled via `@plugin "daisyui"` in `style.css` with an explicit `include` list of components (button, card, toggle, alert, badge, loading, divider, menu, avatar, dock, progress, indicator, input, select, checkbox, swap, stat, join, list, modal, collapse, status). Adding a daisyUI component to a view requires adding it to that list. The `themes` list holds every preset the extension can select (see [Themes](#themes)).
 - **TypeScript**: `strict: true`, `moduleResolution: bundler`, `noEmit` (type-check only). Imports use explicit `.ts` extensions (`allowImportingTsExtensions`).
 - `__APP_VERSION__` is injected at build time from `package.json` by `vite.config.ts` and shown in Settings → About & Debug.
 - Prettier is used at the editor level; no committed config and no linter.
@@ -51,7 +51,8 @@ data.ts              typed worker fetchers (me, evals, friends, students, events
 push.ts              Web Push subscribe/unsubscribe/test + eval-tracking sync
 mock.ts              mock mode fixtures (mockMode, mock)
 refresh.ts           setRefresh()/refresh(), asks the shell to repaint
-theme.ts             system/dark/light preference (ft_theme) + meta theme-color
+theme.ts             theme modes (system/light/dark/extension) + meta theme-color
+lib/theme-presets.ts built-in preset ids (mirrors the extension's theme list)
 pull-refresh.ts      pull-to-refresh gesture
 style.css            Tailwind + daisyUI config and PWA-safe-area styles
 index.html           app shell, manifest + icon links, apple-mobile-web-app meta
@@ -112,7 +113,7 @@ assets/              SVG icons imported with ?raw
 4. **`?error=not_registered`** renders the "Not available" screen (the account doesn't exist in the worker yet).
 5. **OAuth callback**: a `?code=` param is exchanged via `POST /api/v1/public/auth/exchange`, the session is stored, and the URL is cleaned with `history.replaceState`.
 6. **No session** renders the sign-in screen; `ft_pwa_expired` in `sessionStorage` adds a "your session expired" notice.
-7. Otherwise: default the hash to `#/dashboard`, register `setSessionExpiredHandler`, wire `setRefresh`/`setRouteRenderer`, `initRouter`, `initPullRefresh`, `gateCampusTabs`, `healPush`, `hydrateCaches`, `renderRoute`.
+7. Otherwise: default the hash to `#/dashboard`, register `setSessionExpiredHandler`, wire `setRefresh`/`setRouteRenderer`, `initRouter`, `initPullRefresh`, `gateCampusTabs`, `healPush`, `syncThemeFromCloud()`, `hydrateCaches`, `renderRoute`.
 
 Sign-in goes through `loginUrl()`, which points at the worker's full-page OAuth entry (`/login`) with a `redirect_uri` back to the app and an `ft_device` param carrying the stable per-device name from `getDeviceName()` (a random username persisted in `ft_pwa_device`, so repeated phone logins collapse into one server-side session).
 
@@ -142,8 +143,9 @@ Private (bearer + hashed login):
 | `GET /api/v1/private/friends/data?logins=`                     | friend rows                                                           |
 | `GET/POST/DELETE /api/v1/private/settings`                     | cloud settings blob (POST is revision-based, returns 409 on conflict) |
 | `GET /api/v1/private/sessions`, `DELETE ?id=`                  | session list and revocation                                           |
-| `GET /api/v1/private/events`                                   | 42 calendar events                                                    |
+| `GET /api/v1/private/events`                                   | 42 calendar events (ICS synced by the extension) + `syncedAt`          |
 | `GET /api/v1/private/event-subscribers?event=`                 | subscribers for an event                                              |
+| `POST /api/v1/private/calendar/token`                          | registers the calendar subscription token (`/calendar/<t>.ics`)        |
 | `POST /api/v1/private/push/subscribe`, `/unsubscribe`, `/test` | push lifecycle                                                        |
 
 Public / unauthenticated:
@@ -167,6 +169,10 @@ Dashboard and profile payloads are cached in `localStorage` under a versioned, l
 
 `healPush()` runs on boot and whenever the app becomes visible: it re-registers a rotated subscription, re-asserts the current subscription, and re-asserts eval tracking.
 
+**Event reminders** ("Event in 15 min") are sent by the worker's every-minute Cloudflare Cron Trigger (`scheduled()` in the worker), not by the app. It reads the ICS the extension synced into D1 and pushes 15 minutes before a subscribed event starts. The Settings → Notifications "Events" toggle writes `EVENT_NOTIFY_SOON` to the cloud blob; a missing key means on. Because the events come from that ICS, reminders only work for accounts where the extension has synced at least once, and anyone who also subscribes the ICS in a native calendar gets two alerts (the ICS carries its own `-PT15M` VALARM).
+
+**Calendar sync**: Settings → Calendar has a single "Add to phone calendar" button. It registers a random token (`POST /api/v1/private/calendar/token`), stores it in `ft_pwa_calendar_token`, then opens `webcal://api.betterintra.com/calendar/<token>.ics` so the phone's calendar app offers to subscribe. The URL is never shown in the app.
+
 The service worker (`public/sw.js`):
 
 - **Offline shell**: installs a precache list into `bi-shell-v6`, network-first for GETs, caches successful same-origin responses, and falls back to the cached `index.html` for navigations. The cache name and `SW_VERSION` are bumped together with the `SHELL` list when the precache changes; `activate` deletes every other cache.
@@ -183,7 +189,9 @@ The service worker (`public/sw.js`):
 |-------------------------------------|------------------------------------------------------------------|
 | `ft_pwa_token`, `ft_pwa_login`      | session (`api.ts`)                                               |
 | `ft_pwa_device`                     | stable per-device name used as the server session label          |
-| `ft_theme`                          | theme preference (`system`/`dark`/`light`)                       |
+| `ft_theme`                          | theme mode (`system`/`light`/`dark`/`extension`)                 |
+| `ft_theme_resolved`                 | last resolved `{ preset, mode }`, read by the pre-paint script   |
+| `ft_pwa_calendar_token`             | calendar subscription token created by the app                   |
 | `PROFILE_SUB_TAB`                   | last selected profile sub-tab                                    |
 | `ft_pwa_cache_*`                    | versioned, login-scoped response caches (`dashboard`, `profile`) |
 | `ft_pwa_evals`, `ft_pwa_evals_done` | evaluation cache (last 30 days, upcoming + past) and the set of dismissed evals |
@@ -202,6 +210,18 @@ then revalidated with the worker's `ETag` (a 304 when unchanged). Pull-to-refres
 forces a check, and a failed refresh keeps the last map with a 1-minute backoff.
 
 The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`) and the friends keys (`FRIENDS_LIST`, `SHOW_CUSTOM_AVATARS_IN_FRIENDS`, `ft_pwa_friends_custom`), refreshing the active tab, or reloading when the session disappears.
+
+## Themes
+
+Settings → Theme offers four modes (`ft_theme`):
+
+- **System** — the phone's light/dark setting.
+- **Light** / **Dark** — forced daisyUI `light`/`dark`.
+- **Extension** — mirrors the theme chosen in the browser extension, read from the cloud settings blob (`BETTER_INTRA_THEME` + `PROFILE_THEME_PRESET`, plus `THEME_SCHEDULE_*_PRESET` when the desktop uses `schedule`). It is read-only on purpose: the phone never writes the theme back, so a scheduled setup on desktop can't be clobbered.
+
+`style.css` declares the full preset list the extension exposes: the stock daisyUI themes plus five app-defined ones (`soap`, `citrus`, `neon`, `seishin`, `twilight`) copied from the extension's `src/assets/themes.css`. `lib/theme-presets.ts` must stay in sync with that list — an unknown or custom preset id falls back to the plain dark/light mode (custom extension themes are not rendered on mobile yet).
+
+`data-theme` carries the preset id, `data-mode` the effective `light`/`dark` (use it for any CSS that needs to branch — `[data-theme="dark"]` is no longer sufficient). An inline script in `index.html` applies the cached `ft_theme_resolved` before first paint; `theme.ts` rewrites that cache after every resolution. `syncThemeFromCloud()` runs on boot and when the app becomes visible so a desktop change shows up.
 
 ## Campus gating
 

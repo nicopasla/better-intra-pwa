@@ -8,7 +8,7 @@ import {
   setSession,
   setSessionExpiredHandler,
 } from "./api.ts";
-import { initTheme } from "./theme.ts";
+import { initTheme, syncThemeFromCloud } from "./theme.ts";
 import { initCampusBadges } from "./lib/campus-badges.ts";
 import {
   currentTab,
@@ -325,6 +325,9 @@ function initAppListeners(): void {
     if (document.visibilityState === "visible") {
       refreshActiveTab();
       healPush();
+      // A theme change made on the desktop should show up when the app is
+      // reopened from the home screen.
+      void syncThemeFromCloud();
     }
   });
   window.addEventListener("storage", onStorage);
@@ -428,6 +431,7 @@ async function boot(): Promise<void> {
     initRouter(renderRoute);
     initPullRefresh();
     gateCampusTabs();
+    void syncThemeFromCloud();
     if (!location.hash) location.hash = "/dashboard";
     hydrateCaches();
     renderRoute();
@@ -490,6 +494,7 @@ async function boot(): Promise<void> {
   initPullRefresh();
   gateCampusTabs();
   healPush();
+  void syncThemeFromCloud();
   hydrateCaches();
   renderRoute();
 }

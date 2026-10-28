@@ -66,5 +66,8 @@ export function safeLabelsColor(color: string, isDark: boolean): string {
 }
 
 export function isDarkTheme(): boolean {
-  return document.documentElement.dataset.theme === "dark";
+  const mode = document.documentElement.dataset.mode;
+  if (mode === "dark") return true;
+  if (mode === "light") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }

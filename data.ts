@@ -408,6 +408,50 @@ export const events = () =>
         (d) => d.events,
       );
 
+const CALENDAR_TOKEN_KEY = "ft_pwa_calendar_token";
+
+/** The calendar subscription token generated on this device, if any. Scoped to
+ *  the signed-in login so a different account can't inherit the old link. */
+export function getCalendarToken(): string | null {
+  try {
+    const raw = localStorage.getItem(CALENDAR_TOKEN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { login?: string; token?: string };
+    const login = getSession()?.login;
+    if (!parsed?.token) return null;
+    if (parsed.login && login && parsed.login !== login) return null;
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
+
+export function setCalendarToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(
+        CALENDAR_TOKEN_KEY,
+        JSON.stringify({ login: getSession()?.login ?? "", token }),
+      );
+    } else {
+      localStorage.removeItem(CALENDAR_TOKEN_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Registers a publication token so `…/calendar/<token>.ics` resolves. */
+export async function createCalendarToken(token: string): Promise<void> {
+  if (mockMode) return;
+  const res = await workerFetch("/api/v1/private/calendar/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+}
+
 export interface EventSubscriber {
   login: string;
   displayName: string;
