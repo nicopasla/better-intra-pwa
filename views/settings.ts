@@ -43,7 +43,6 @@ import {
   applyThemeSettings,
   currentResolvedTheme,
   currentThemeLabel,
-  extensionUsesCustomTheme,
   getThemePreference,
   setThemePreference,
   ThemeMode,
@@ -248,13 +247,8 @@ function themeSection() {
       )}
     </div>
     ${themeMode === "extension"
-      ? html`<p class="text-xs opacity-60">
-          Following your extension: ${presetLabel(resolved.preset)} ·
-          ${resolved.mode}.
-          ${extensionUsesCustomTheme()
-            ? " Custom extension themes aren't supported on mobile yet, so dark/light is shown instead."
-            : ""}
-          Change it in the extension on your computer.
+      ? html`<p class="text-center text-xs opacity-60">
+          ${presetLabel(resolved.preset)}
         </p>`
       : ""}
   `;

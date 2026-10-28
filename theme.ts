@@ -133,15 +133,6 @@ export function currentThemeLabel(): string {
   return `${presetLabel(resolved.preset)} · ${resolved.mode}`;
 }
 
-/** True when the desktop uses a theme the phone cannot render (custom id). */
-export function extensionUsesCustomTheme(): boolean {
-  if (getThemePreference() !== "extension" || !cloudSettings) return false;
-  const preset = cloudSettings.preset;
-  return (
-    typeof preset === "string" && preset !== "" && !THEME_PRESETS.has(preset)
-  );
-}
-
 function themeColor(): string {
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue("--color-base-200")
