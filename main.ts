@@ -410,7 +410,16 @@ function gateCampusTabs(): void {
     });
 }
 
+/** Dismisses any modal opened on top of the previous route; dialogs are
+ *  appended to <body> (outside #app), so a route render won't remove them. */
+function closeOpenDialogs(): void {
+  document
+    .querySelectorAll<HTMLDialogElement>("dialog[open]")
+    .forEach((dialog) => dialog.close());
+}
+
 function renderRoute(): void {
+  closeOpenDialogs();
   if (userLoginFromHash()) lastProfileLoadedAt = Date.now();
   else triggerLoad(currentTab());
   renderBody();
