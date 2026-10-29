@@ -2,7 +2,11 @@ import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import X_SVG from "../assets/x.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
-import { eventSubscribers, type EventSubscriber } from "../data.ts";
+import {
+  eventSubscribers,
+  type EventSubscriber,
+  type EventSubscribersPage,
+} from "../data.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
@@ -62,6 +66,7 @@ function row(u: EventSubscriber, onOpen: () => void) {
 export function openSubscribersDialog(
   eventId: number,
   eventName: string,
+  initial?: EventSubscribersPage | null,
 ): void {
   document.getElementById(DIALOG_ID)?.remove();
 
@@ -71,9 +76,10 @@ export function openSubscribersDialog(
   dialog.style.cssText =
     "margin:auto;padding:0;border:none;outline:none;max-width:26rem;width:calc(100dvw - 2rem);";
 
-  let loaded = false;
+  let loaded = Boolean(initial);
   let error = false;
-  let users: EventSubscriber[] = [];
+  let users: EventSubscriber[] = initial?.users ?? [];
+  let truncated = initial?.truncated ?? false;
 
   const close = () => {
     dialog.close();
@@ -98,6 +104,11 @@ export function openSubscribersDialog(
     }
     return html`<div class="flex flex-col gap-0.5">
       ${users.map((u) => row(u, close))}
+      ${truncated
+        ? html`<p class="px-3 py-2 text-center text-xs opacity-60">
+            Showing the first ${users.length} subscribers.
+          </p>`
+        : ""}
     </div>`;
   };
 
@@ -149,9 +160,12 @@ export function openSubscribersDialog(
   dialog.showModal();
   draw();
 
+  if (initial) return;
+
   eventSubscribers(eventId)
-    .then((list) => {
-      users = list;
+    .then((res) => {
+      users = res.users;
+      truncated = res.truncated;
       loaded = true;
       draw();
     })

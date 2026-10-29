@@ -9,7 +9,11 @@ import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 import { dateTime } from "../lib/format.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import { openSubscribersDialog } from "./subscribers-dialog.ts";
-import type { CalendarEvent } from "../data.ts";
+import {
+  eventSubscribers,
+  type CalendarEvent,
+  type EventSubscribersPage,
+} from "../data.ts";
 
 const DIALOG_ID = "ft-event-dialog";
 
@@ -71,87 +75,97 @@ export function openEventDialog(e: CalendarEvent): void {
   const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
   const href =
     e.url ?? (e.id ? `https://events.intra.42.fr/events/${e.id}` : undefined);
-  const subs =
-    e.subscribers != null
-      ? e.maxSubscribers != null
-        ? `${e.subscribers}/${e.maxSubscribers}`
-        : String(e.subscribers)
-      : null;
+  const canList = Boolean(e.id) && !isExam;
+
+  // The ICS snapshot only carries the count from the last extension sync, which
+  // can be stale. Prefer the live API list (same source as the subscribers
+  // dialog) and keep the snapshot as the initial/fallback value.
+  let live: EventSubscribersPage | null = null;
+
+  const countLabel = (count: number, truncated: boolean): string =>
+    `${count}${truncated ? "+" : ""}${
+      e.maxSubscribers != null ? `/${e.maxSubscribers}` : ""
+    } subscribed`;
+
+  const subscribersLabel = (): string | null => {
+    if (live) return countLabel(live.users.length, live.truncated);
+    if (e.subscribers == null) return null;
+    return countLabel(e.subscribers, false);
+  };
 
   const close = () => {
     dialog.close();
     dialog.remove();
   };
 
-  render(
-    html`
-      <div
-        class="bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
-      >
+  const draw = () => {
+    const subs = subscribersLabel();
+    render(
+      html`
         <div
-          class="flex items-start justify-between gap-3 px-4 py-3 border-b border-base-300"
+          class="bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
         >
-          <div class="min-w-0">
-            <div class="font-bold leading-snug ${isExam ? "text-error" : ""}">
-              ${e.name}
-            </div>
-          </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm shrink-0"
-            aria-label="Close"
-            @click=${close}
+          <div
+            class="flex items-start justify-between gap-3 px-4 py-3 border-b border-base-300"
           >
-            ${unsafeHTML(X_SVG.replace("<svg", '<svg width="18" height="18"'))}
-          </button>
-        </div>
-        <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto min-h-0">
-          <div class="flex flex-wrap items-center gap-2">
-            ${detailBadge(
-              "var(--color-info)",
-              CALENDAR_SVG,
-              dateTime(e.beginAt),
-            )}
-            ${detailBadge(
-              "var(--color-primary)",
-              CLOCK_SVG,
-              formatDuration(start, end),
-            )}
-            ${subs
-              ? e.id && !isExam
-                ? detailBadgeButton(
-                    "var(--color-accent)",
-                    USERS_SVG,
-                    `${subs} subscribed`,
-                    () => openSubscribersDialog(e.id!, e.name),
-                  )
-                : detailBadge(
-                    "var(--color-accent)",
-                    USERS_SVG,
-                    `${subs} subscribed`,
-                  )
-              : ""}
-            ${e.location
-              ? detailBadge("var(--color-success)", MAP_PIN_SVG, e.location)
+            <div class="min-w-0">
+              <div class="font-bold leading-snug ${isExam ? "text-error" : ""}">
+                ${e.name}
+              </div>
+            </div>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm shrink-0"
+              aria-label="Close"
+              @click=${close}
+            >
+              ${unsafeHTML(X_SVG.replace("<svg", '<svg width="18" height="18"'))}
+            </button>
+          </div>
+          <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto min-h-0">
+            <div class="flex flex-wrap items-center gap-2">
+              ${detailBadge(
+                "var(--color-info)",
+                CALENDAR_SVG,
+                dateTime(e.beginAt),
+              )}
+              ${detailBadge(
+                "var(--color-primary)",
+                CLOCK_SVG,
+                formatDuration(start, end),
+              )}
+              ${subs
+                ? canList
+                  ? detailBadgeButton(
+                      "var(--color-accent)",
+                      USERS_SVG,
+                      subs,
+                      () => openSubscribersDialog(e.id!, e.name, live),
+                    )
+                  : detailBadge("var(--color-accent)", USERS_SVG, subs)
+                : ""}
+              ${e.location
+                ? detailBadge("var(--color-success)", MAP_PIN_SVG, e.location)
+                : ""}
+            </div>
+            ${e.description
+              ? html`<p class="text-sm whitespace-pre-wrap wrap-break-word opacity-90">${e.description.trim()}</p>`
+              : html`<p class="text-sm opacity-60">No description.</p>`}
+            ${href
+              ? html`<a
+                  class="btn btn-primary btn-sm self-center px-6"
+                  href=${href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Open on Intra</a
+                >`
               : ""}
           </div>
-          ${e.description
-            ? html`<p class="text-sm whitespace-pre-wrap wrap-break-word opacity-90">${e.description.trim()}</p>`
-            : html`<p class="text-sm opacity-60">No description.</p>`}
-          ${href
-            ? html`<a
-                class="btn btn-primary btn-sm self-center px-6"
-                href=${href}
-                target="_blank"
-                rel="noopener noreferrer"
-                >Open on Intra</a
-              >`
-            : ""}
         </div>
-      </div>
-    `,
-    dialog,
-  );
+      `,
+      dialog,
+    );
+  };
 
   dialog.addEventListener("click", (ev) => {
     if (ev.target === dialog) close();
@@ -163,4 +177,16 @@ export function openEventDialog(e: CalendarEvent): void {
   document.body.appendChild(dialog);
   lockScroll();
   dialog.showModal();
+  draw();
+
+  if (!canList) return;
+
+  eventSubscribers(e.id!)
+    .then((res) => {
+      live = res;
+      if (dialog.isConnected) draw();
+    })
+    .catch(() => {
+      // Keep the ICS count as the fallback.
+    });
 }

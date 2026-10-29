@@ -469,13 +469,37 @@ export interface EventSubscriber {
   location: string | null;
 }
 
+export interface EventSubscribersPage {
+  users: EventSubscriber[];
+  /** True when the worker stopped at its per-request cap. */
+  truncated: boolean;
+}
+
+const SUBSCRIBERS_TTL = 5 * 60 * 1000;
+const subscribersCache = new Map<
+  number,
+  { at: number; page: EventSubscribersPage }
+>();
+
 /** Users subscribed to a 42 event (live from the API via the worker). */
-export const eventSubscribers = (id: number): Promise<EventSubscriber[]> =>
-  mockMode
-    ? Promise.resolve(mock.eventSubscribers(id))
-    : json<{ users?: EventSubscriber[] }>(
+export async function eventSubscribers(
+  id: number,
+): Promise<EventSubscribersPage> {
+  const cached = subscribersCache.get(id);
+  if (cached && Date.now() - cached.at < SUBSCRIBERS_TTL) return cached.page;
+
+  const page = mockMode
+    ? { users: mock.eventSubscribers(id), truncated: false }
+    : await json<{ users?: EventSubscriber[]; truncated?: boolean }>(
         `/api/v1/private/event-subscribers?event=${id}`,
-      ).then((d) => d.users ?? []);
+      ).then((d) => ({
+        users: d.users ?? [],
+        truncated: Boolean(d.truncated),
+      }));
+
+  subscribersCache.set(id, { at: Date.now(), page });
+  return page;
+}
 
 export interface StudentEntry {
   login: string;
