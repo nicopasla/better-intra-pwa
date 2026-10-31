@@ -432,7 +432,7 @@ function evaluationsTab() {
             )}
           </div>
           <div
-            class="overflow-auto min-h-0 flex-1 pr-2"
+            class="overflow-auto min-h-0 flex-1 -mr-6 pr-6"
             style="scrollbar-gutter:stable;"
           >
             ${months.length
@@ -504,7 +504,7 @@ function evaluationsTab() {
             )}
           </div>
           <div
-            class="overflow-auto min-h-0 flex-1 pr-2"
+            class="overflow-auto min-h-0 flex-1 -mr-6 pr-6"
             style="scrollbar-gutter:stable;"
           >
             ${entries.length
