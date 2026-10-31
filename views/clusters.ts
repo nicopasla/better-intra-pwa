@@ -423,7 +423,10 @@ function mapView(map: ClusterMapDef): unknown {
               </span>
             </div>
             ${connections.length
-              ? html`<div class="min-h-0 flex-1 overflow-y-auto">
+              ? html`<div
+                  class="min-h-0 flex-1 overflow-y-auto -mr-3 pr-3"
+                  style="scrollbar-gutter:stable"
+                >
                   <ul class="flex flex-col divide-y divide-base-300">
                     ${connections.map((entry) => connectionRow(entry))}
                   </ul>
