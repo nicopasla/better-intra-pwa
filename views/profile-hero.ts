@@ -39,6 +39,8 @@ export interface HeroBadges {
 
 export interface ProfileHeroOptions {
   showOriginalAvatar?: boolean;
+  /** Home always shows the custom avatar, even when the global setting is off. */
+  forceCustomAvatar?: boolean;
   avatarFailed?: boolean;
   /** Show the "open on intra" link (disabled on the home dashboard). */
   showShare?: boolean;
@@ -260,7 +262,8 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
   const v = p.visuals;
   const size = "w-24 h-24 rounded-full shadow-lg flex-none text-3xl";
   const customSrc = customAvatarUrl(v.customAvatar);
-  const hasCustom = Boolean(customSrc) && showCustomAvatars();
+  const hasCustom =
+    Boolean(customSrc) && (opts.forceCustomAvatar || showCustomAvatars());
   const showCustom = hasCustom && !opts.showOriginalAvatar;
   // 42 avatars go through the signed worker proxy; custom R2 avatars win.
   const src = p.avatarUrl ?? (mockMode ? p.avatar : null);
@@ -298,7 +301,9 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
     style="border-radius:${v.avatarShape === "square" ? "0" : "9999px"}"
     role="button"
     tabindex="0"
-    title="${opts.showOriginalAvatar ? "Show custom avatar" : "Show initials"}"
+    title="${opts.showOriginalAvatar
+      ? "Show custom avatar"
+      : "Show original avatar"}"
     @click=${toggle}
     @keydown=${(e: KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") toggle();
