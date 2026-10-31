@@ -38,6 +38,11 @@ const TAP_TIME = 500;
 const states = new WeakMap<HTMLElement, MapState>();
 /** Container size, kept fresh by the ResizeObserver (avoids layout reads). */
 const sizes = new WeakMap<HTMLElement, { w: number; h: number }>();
+/** Base `viewBox` per SVG, used to zoom without rasterizing the vector map. */
+const baseViewBoxes = new WeakMap<
+  SVGSVGElement,
+  { x: number; y: number; w: number; h: number } | null
+>();
 /** `image[id]` lookup per SVG, so seat taps and highlights don't rescan. */
 const seatIndexes = new WeakMap<SVGSVGElement, Map<string, SVGImageElement>>();
 
@@ -63,12 +68,22 @@ function containerSize(container: HTMLElement): { w: number; h: number } {
   return measured;
 }
 
-/** GPU promotion is only worth it during a gesture; it costs memory otherwise. */
-function setPromoted(container: HTMLElement, on: boolean): void {
-  const svg = container.querySelector<SVGSVGElement>("svg");
-  if (!svg) return;
-  svg.style.willChange = on ? "transform" : "auto";
-  if (on) svg.style.transformOrigin = "0 0";
+function baseViewBox(svg: SVGSVGElement): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} | null {
+  let base = baseViewBoxes.get(svg);
+  if (base === undefined) {
+    const parts = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+    base =
+      parts.length === 4 && parts[2] > 0 && parts[3] > 0
+        ? { x: parts[0], y: parts[1], w: parts[2], h: parts[3] }
+        : null;
+    baseViewBoxes.set(svg, base);
+  }
+  return base;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -83,15 +98,28 @@ function apply(container: HTMLElement, state: MapState): void {
   state.x = clamp(state.x, width - width * state.scale, 0);
   state.y = clamp(state.y, height - height * state.scale, 0);
 
-  svg.style.transformOrigin = "0 0";
-  // A 3D transform (translate3d / will-change) makes the browser rasterize the
-  // inline SVG at CSS resolution, which looks blurry on Retina screens. Use a
-  // 2D transform, and leave the fitted view untransformed.
-  if (state.scale === 1 && state.x === 0 && state.y === 0) {
-    svg.style.transform = "";
+  const base = baseViewBox(svg);
+  if (!base) {
+    // No viewBox: fall back to a 2D transform (the old behaviour).
+    svg.style.transformOrigin = "0 0";
+    svg.style.transform =
+      state.scale === 1 && state.x === 0 && state.y === 0
+        ? ""
+        : `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
     return;
   }
-  svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+
+  // Replacing the viewBox makes the browser redraw the vector map at the new
+  // zoom level instead of scaling a rasterized layer.
+  svg.style.transform = "";
+  const k0 = Math.min(width / base.w, height / base.h);
+  const ox = (width - base.w * k0) / 2;
+  const oy = (height - base.h * k0) / 2;
+  const k = k0 * state.scale;
+  svg.setAttribute(
+    "viewBox",
+    `${base.x - ox / k0 - state.x / k} ${base.y - oy / k0 - state.y / k} ${width / k} ${height / k}`,
+  );
 }
 
 function zoomAt(
@@ -149,7 +177,6 @@ export function attachMapGestures(container: HTMLElement): void {
   const onDown = (ev: PointerEvent) => {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
     ev.preventDefault();
-    setPromoted(container, true);
     try {
       container.setPointerCapture(ev.pointerId);
     } catch {
@@ -256,7 +283,6 @@ export function attachMapGestures(container: HTMLElement): void {
     state.pinch = null;
     state.pointers.clear();
     container.classList.remove("is-panning");
-    setPromoted(container, false);
 
     if (cancelled || !tracked || !drag || drag.moved || drag.pinch) return;
     if (performance.now() - drag.at > TAP_TIME) return;
@@ -273,17 +299,10 @@ export function attachMapGestures(container: HTMLElement): void {
 
   const onUp = (ev: PointerEvent) => finish(ev, false);
   const onCancel = (ev: PointerEvent) => finish(ev, true);
-  let wheelTimer: ReturnType<typeof setTimeout> | null = null;
   const onWheel = (ev: WheelEvent) => {
     // Trackpad pinch and Ctrl/Cmd+wheel zoom; plain scroll still scrolls the page.
     if (!(ev.ctrlKey || ev.metaKey)) return;
     ev.preventDefault();
-    setPromoted(container, true);
-    if (wheelTimer) clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(() => {
-      wheelTimer = null;
-      setPromoted(container, false);
-    }, 250);
     zoomAt(
       container,
       state,
@@ -398,8 +417,8 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
   }
   const { x, y, w, h } = seat;
 
-  const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
-  if (vb.length < 4 || !vb[2] || !vb[3]) return true;
+  const base = baseViewBox(svg);
+  if (!base) return true;
 
   attachMapGestures(container);
   const state = states.get(container);
@@ -410,11 +429,11 @@ export function focusMapSeat(container: HTMLElement, seatId: string): boolean {
 
   // The SVG is stretched to the container box and letterboxed by
   // preserveAspectRatio, so map units scale by the limiting dimension.
-  const k = Math.min(width / vb[2], height / vb[3]);
-  const offsetX = (width - vb[2] * k) / 2;
-  const offsetY = (height - vb[3] * k) / 2;
-  const px = offsetX + (x + w / 2 - vb[0]) * k;
-  const py = offsetY + (y + h / 2 - vb[1]) * k;
+  const k = Math.min(width / base.w, height / base.h);
+  const offsetX = (width - base.w * k) / 2;
+  const offsetY = (height - base.h * k) / 2;
+  const px = offsetX + (x + w / 2 - base.x) * k;
+  const py = offsetY + (y + h / 2 - base.y) * k;
 
   state.scale = clamp(1.6, MIN_SCALE, MAX_SCALE);
   state.x = Math.min(
