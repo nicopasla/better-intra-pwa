@@ -141,10 +141,6 @@ function writeProfileCache(): void {
     me: {
       ...meData,
       avatarUrl: undefined,
-      achievements: meData.achievements.map((a) => ({
-        ...a,
-        imageUrl: undefined,
-      })),
     },
     stats,
   } satisfies ProfileCache);
@@ -354,6 +350,21 @@ function pill(label: string, value: string, color: string, extra = "") {
 // Achievements
 // ---------------------------------------------------------------------------
 
+/** Signed icon links expire; ignore a stale one so the cached first paint never
+ *  requests a URL the worker will reject (the fresh `/me` re-mints it). */
+function usableIcon(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const exp = Number(new URL(url).searchParams.get("exp"));
+    if (Number.isFinite(exp) && exp > 0 && exp * 1000 <= Date.now()) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return url;
+}
+
 function achievementsTab(m: Me) {
   if (m.achievements.length === 0) {
     return card(
@@ -363,17 +374,26 @@ function achievementsTab(m: Me) {
   }
   return card(
     html`<ul class="list">
-      ${m.achievements.map(
-        (a) => html`
+      ${m.achievements.map((a) => {
+        // Only the signed proxy can serve these cross-origin; the raw CDN
+        // path always 403s in the PWA.
+        const icon = usableIcon(a.imageUrl);
+        return html`
           <li class="list-row items-center">
-            ${(a.imageUrl ?? a.image)
+            ${icon
               ? html`<img
                   class="size-10 rounded-box"
-                  src="${a.imageUrl ?? a.image}"
+                  src="${icon}"
                   alt=""
                   loading="lazy"
                   referrerpolicy="no-referrer"
-                  onerror="this.style.visibility='hidden'"
+                  @error=${(e: Event) => {
+                    (e.currentTarget as HTMLImageElement).style.visibility =
+                      "hidden";
+                  }}
+                  @load=${(e: Event) => {
+                    (e.currentTarget as HTMLImageElement).style.visibility = "";
+                  }}
                 />`
               : html`<div class="size-10 rounded-box bg-base-200"></div>`}
             <div class="list-col-grow min-w-0">
@@ -385,8 +405,8 @@ function achievementsTab(m: Me) {
                 : ""}
             </div>
           </li>
-        `,
-      )}
+        `;
+      })}
     </ul>`,
     `Achievements (${m.achievementsCount})`,
   );

@@ -185,6 +185,13 @@ function mockLogtimeDays(login: string): Record<string, number> {
   return days;
 }
 
+/** Inline badge so the mock renders offline: the real icons live behind the
+ *  signed worker proxy and the raw CDN 403s. */
+function badgeIcon(label: string, color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="${color}"/><text x="32" y="43" font-family="system-ui,sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#fff">${label}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 export const mock = {
   me: {
     login: "jsmith",
@@ -279,6 +286,7 @@ export const mock = {
         kind: "project",
         nbrOfSuccess: null,
         image: "https://cdn.intra.42.fr/achievement/image/1/PRO001.svg",
+        imageUrl: badgeIcon("1", "#00babc"),
       },
       {
         name: "Bonus Hunter",
@@ -287,6 +295,7 @@ export const mock = {
         kind: "project",
         nbrOfSuccess: 3,
         image: "https://cdn.intra.42.fr/achievement/image/18/PRO005.svg",
+        imageUrl: badgeIcon("3", "#f59e0b"),
       },
       {
         name: "It's a rich man's world",
@@ -295,6 +304,7 @@ export const mock = {
         kind: "social",
         nbrOfSuccess: 100,
         image: "https://cdn.intra.42.fr/achievement/image/36/SOC004.svg",
+        imageUrl: badgeIcon("$", "#22c55e"),
       },
     ],
     achievementsCount: 3,

@@ -1092,10 +1092,6 @@ function writeDashboardCache(): void {
     me: {
       ...meData,
       avatarUrl: undefined,
-      achievements: meData.achievements.map((a) => ({
-        ...a,
-        imageUrl: undefined,
-      })),
     },
     myProfile: myProfile ? { ...myProfile, avatarUrl: undefined } : null,
     upcoming,
