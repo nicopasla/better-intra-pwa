@@ -781,3 +781,13 @@ html.ft-editing body {
     animation: none;
   }
 }
+
+/* Scrollable lists where the overlay scrollbar would cover the content. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

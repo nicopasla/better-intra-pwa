@@ -705,7 +705,7 @@ function upcomingCard() {
           </summary>
           <div class="collapse-content">
             <ul
-              class="flex max-h-96 flex-col divide-y divide-base-300 overflow-y-auto overscroll-contain"
+              class="flex max-h-96 flex-col divide-y divide-base-300 overflow-y-auto overscroll-contain pr-3 no-scrollbar"
               style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
             >
               ${pastItems.map((e) => evalRow(e, true))}
