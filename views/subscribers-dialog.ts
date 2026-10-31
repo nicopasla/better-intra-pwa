@@ -44,7 +44,7 @@ function row(
           <div class="w-10 h-10 rounded-full bg-base-300">
             ${avatarSrc
               ? html`<img
-                  class="w-full h-full rounded-full object-cover avatar-media"
+                  class="w-full h-full rounded-full object-cover skeleton"
                   src="${avatarSrc}"
                   alt="${u.login}"
                   loading="lazy"

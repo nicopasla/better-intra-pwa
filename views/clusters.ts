@@ -241,7 +241,7 @@ function row(e: OccupancyEntry): unknown {
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
           <img
-            class="size-10 rounded-full object-cover shrink-0 bg-base-200 avatar-media"
+            class="size-10 rounded-full object-cover shrink-0 bg-base-200 skeleton"
             src="${avatar}"
             alt="${e.login}"
             loading="lazy"
@@ -321,7 +321,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
         title="${entry.host} · since ${time}"
       >
         <img
-          class="size-8 rounded-full object-cover shrink-0 bg-base-200 avatar-media"
+          class="size-8 rounded-full object-cover shrink-0 bg-base-200 skeleton"
           src="${avatar}"
           alt="${entry.login}"
           loading="lazy"

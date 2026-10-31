@@ -284,7 +284,7 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
       return initialsAvatar(p.login, `${size} ring-4 ring-base-100`);
     }
     return html`<img
-      class="${size} ring-4 ring-base-100 object-cover avatar-media"
+      class="${size} ring-4 ring-base-100 object-cover skeleton"
       src="${src}"
       alt="${p.login}"
       referrerpolicy="no-referrer"

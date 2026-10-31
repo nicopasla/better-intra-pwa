@@ -127,7 +127,7 @@ function renderFriendRow(
                   ></div>`
                 : html`<div class="w-14 h-14 rounded-full ${medalClass}">
                     <img
-                      class="avatar-media"
+                      class="skeleton"
                       src="${currentSrc}"
                       alt="${friend.login}"
                       loading="lazy"

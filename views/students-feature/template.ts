@@ -442,7 +442,7 @@ export function renderStudentsDialogTemplate(
       customAvatarUrl(r.custom_avatar) ?? (mockMode ? r.image_url : null);
     return src
       ? html`<img
-          class="avatar avatar-media"
+          class="avatar skeleton"
           src="${src}"
           alt="${r.login}"
           loading="lazy"

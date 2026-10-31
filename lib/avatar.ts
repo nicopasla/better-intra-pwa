@@ -97,8 +97,8 @@ export function avatarErrorFallback(e: Event): void {
   if (img.isConnected) letterFallback(img);
 }
 
-/** Stops the loading shimmer once an avatar image has painted. */
+/** Stops the loading skeleton once an avatar image has painted. */
 export function avatarLoaded(e: Event): void {
   const img = e.currentTarget as HTMLImageElement | null;
-  img?.classList.add("is-loaded");
+  img?.classList.remove("skeleton");
 }
