@@ -138,7 +138,14 @@ function writeProfileCache(): void {
   writeCache(PROFILE_CACHE, {
     v: CACHE_VERSION,
     login: session.login,
-    me: { ...meData, avatarUrl: undefined },
+    me: {
+      ...meData,
+      avatarUrl: undefined,
+      achievements: meData.achievements.map((a) => ({
+        ...a,
+        imageUrl: undefined,
+      })),
+    },
     stats,
   } satisfies ProfileCache);
 }
@@ -359,10 +366,10 @@ function achievementsTab(m: Me) {
       ${m.achievements.map(
         (a) => html`
           <li class="list-row items-center">
-            ${a.image
+            ${(a.imageUrl ?? a.image)
               ? html`<img
                   class="size-10 rounded-box"
-                  src="${a.image}"
+                  src="${a.imageUrl ?? a.image}"
                   alt=""
                   loading="lazy"
                   referrerpolicy="no-referrer"

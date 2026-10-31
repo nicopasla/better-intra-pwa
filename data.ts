@@ -43,6 +43,8 @@ export interface MeAchievement {
   kind: string | null;
   nbrOfSuccess: number | null;
   image: string | null;
+  /** Signed proxy URL for the icon; preferred over `image`. */
+  imageUrl?: string | null;
 }
 
 export interface UserGroup {

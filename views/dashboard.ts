@@ -1089,7 +1089,14 @@ function writeDashboardCache(): void {
   writeCache(DASHBOARD_CACHE, {
     v: CACHE_VERSION,
     login: session.login,
-    me: { ...meData, avatarUrl: undefined },
+    me: {
+      ...meData,
+      avatarUrl: undefined,
+      achievements: meData.achievements.map((a) => ({
+        ...a,
+        imageUrl: undefined,
+      })),
+    },
     myProfile: myProfile ? { ...myProfile, avatarUrl: undefined } : null,
     upcoming,
     events: allEvents,
