@@ -45,8 +45,8 @@ export interface HeaderBadgeOptions {
   tip?: string;
   /** daisyUI `badge-*` colour class (default `badge-primary`). */
   class?: string;
-  /** Outline-only badge: no fill, neutral border. */
-  outline?: boolean;
+  /** Draw the thicker coloured ring around the badge (default true). */
+  ring?: boolean;
 }
 
 /** The standard count badge used in the shared header's leading group. */
@@ -54,15 +54,13 @@ export function headerBadge(
   content: unknown,
   opts: HeaderBadgeOptions = {},
 ): TemplateResult {
-  const border = opts.outline
-    ? ""
-    : "border:3px solid color-mix(in oklab, var(--color-primary) 55%, transparent);";
+  const border =
+    opts.ring === false
+      ? ""
+      : "border:3px solid color-mix(in oklab, var(--color-primary) 55%, transparent);";
   return html`
     <span
-      class="badge ${opts.class ??
-      (opts.outline
-        ? "badge-outline badge-info"
-        : "badge-primary")} font-bold font-mono"
+      class="badge ${opts.class ?? "badge-primary"} font-bold font-mono"
       style="${border}border-radius:var(--radius-field);height:2.5rem;padding-block:0;font-weight:600;min-width:2.5rem;justify-content:center;"
       data-tip="${opts.tip ?? ""}"
       >${content}</span

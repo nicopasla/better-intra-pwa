@@ -156,7 +156,11 @@ export function clustersView(): unknown {
   return html`
     <div class="flex flex-col bg-base-100 rounded-xl mb-4">
       ${pageHeader({
-        leading: headerBadge(entries.length, { tip: "online", outline: true }),
+        leading: headerBadge(entries.length, {
+          tip: "online",
+          class: "badge-info",
+          ring: false,
+        }),
         trailing: html`
           ${activeSortControl(sortState, setSort)}
           <span
@@ -337,7 +341,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
           <div class="text-xs opacity-60 truncate">${entry.login}</div>
         </div>
         <span
-          class="badge badge-outline badge-success badge-sm shrink-0 tabular-nums"
+          class="badge badge-success badge-sm shrink-0 tabular-nums"
           title="connected at ${time}"
           >${ago}</span
         >
@@ -416,7 +420,7 @@ function mapView(map: ClusterMapDef): unknown {
             <div class="flex shrink-0 items-center justify-between gap-2 pb-1">
               <h2 class="font-semibold">Connections</h2>
               <span
-                class="badge badge-outline badge-info font-mono tabular-nums"
+                class="badge badge-info font-mono tabular-nums"
                 title="${deadNote}"
               >
                 ${svg ? `${taken} / ${usable}` : "…"}
