@@ -125,7 +125,8 @@ function mockMapSvg(cluster: string): string {
       const row = Math.floor(i / 3);
       const x = 40 + col * 70;
       const y = 40 + row * 70;
-      return `<g class="posts"><rect id="${id}" x="${x}" y="${y}" width="56" height="56" rx="4"/><image id="${id}" x="${x}" y="${y}" width="56" height="56"/></g>`;
+      const newer = i % 3 === 0 ? ' class="seat-newer"' : "";
+      return `<g class="posts"><rect id="${id}"${newer} x="${x}" y="${y}" width="56" height="56" rx="4"/><image id="${id}" x="${x}" y="${y}" width="56" height="56"/></g>`;
     })
     .join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect class="zone" x="20" y="20" width="260" height="360" rx="8"/>${cells}</svg>`;

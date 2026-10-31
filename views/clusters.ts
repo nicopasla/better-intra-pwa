@@ -587,6 +587,7 @@ function ensureOutsideClose(): void {
 }
 
 const XLINK_NS = "http://www.w3.org/1999/xlink";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
  * What is painted in each seat image, per SVG. Re-renders are frequent (poll,
@@ -606,9 +607,22 @@ function applyMapOccupancy(): void {
   let newer = newerSeats.get(svg);
   if (!newer) {
     newer = new Set<string>();
-    svg.querySelectorAll<Element>("rect.seat-newer[id]").forEach((r) => {
-      const id = (r.getAttribute("id") || "").trim().toLowerCase();
-      if (id) newer!.add(id);
+    const index = mapSeatIndex(svg);
+    svg.querySelectorAll<Element>("rect.seat-newer[id]").forEach((rect) => {
+      const id = (rect.getAttribute("id") || "").trim().toLowerCase();
+      if (!id) return;
+      newer!.add(id);
+      const img = index.get(id);
+      if (!img?.parentNode) return;
+      // The seat's own stroke sits under its avatar, so draw the ring above the
+      // <image> to keep the newer-seat outline visible when someone is seated.
+      const ring = document.createElementNS(SVG_NS, "rect");
+      ring.setAttribute("class", "seat-newer-ring");
+      for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
+        const value = rect.getAttribute(name);
+        if (value) ring.setAttribute(name, value);
+      }
+      img.parentNode.insertBefore(ring, img.nextSibling);
     });
     newerSeats.set(svg, newer);
   }
@@ -628,7 +642,6 @@ function applyMapOccupancy(): void {
   for (const [id, img] of mapSeatIndex(svg)) {
     const entry = byHost.get(id);
     if (!entry) {
-      img.classList.remove("seat-newer");
       if (!painted.has(id)) continue;
       img.removeAttribute("href");
       img.removeAttributeNS(XLINK_NS, "href");
@@ -637,7 +650,6 @@ function applyMapOccupancy(): void {
       painted.delete(id);
       continue;
     }
-    img.classList.toggle("seat-newer", newer.has(id));
     const fallback = initialAvatarDataUrl(entry.login);
     const src =
       (showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??

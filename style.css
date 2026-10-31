@@ -522,14 +522,16 @@ html.ft-fixed-view body {
 /* Seats the map builder marked as having a newer computer. */
 .cluster-map .posts rect.seat-newer,
 .cluster-map rect[id].seat-newer {
-  fill: color-mix(in oklab, var(--color-success) 20%, var(--seat-fill, #e5e5e5));
+  fill: color-mix(in oklab, var(--color-success) 30%, var(--seat-fill, #e5e5e5));
   stroke: var(--color-success);
 }
 
-.cluster-map image.seat-newer {
+.cluster-map rect.seat-newer-ring {
+  fill: none;
   stroke: var(--color-success);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .cluster-map .zone {
