@@ -154,7 +154,7 @@ export function clustersView(): unknown {
   }
   mapExpanded = false;
   return html`
-    <div class="flex flex-col bg-base-100 rounded-xl mb-4">
+    <div class="flex flex-col bg-base-100 rounded-b-xl mb-4">
       ${pageHeader({
         leading: headerBadge(entries.length, {
           tip: "online",

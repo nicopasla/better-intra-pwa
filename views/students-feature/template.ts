@@ -799,7 +799,7 @@ export function renderStudentsDialogTemplate(
       }
     </style>
     <div
-      class="students-feature flex flex-col bg-base-100 rounded-xl pb-4 mb-4"
+      class="students-feature flex flex-col bg-base-100 rounded-b-xl pb-4 mb-4"
     >
       ${pageHeader({
         stack: true,

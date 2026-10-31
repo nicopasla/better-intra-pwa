@@ -881,7 +881,7 @@ function renderWidget(state: WidgetState) {
 
       <!-- Dropdown (always open, in-flow, sticky header) -->
       <div
-        class="flex-1 flex flex-col bg-base-100 rounded-xl"
+        class="flex-1 flex flex-col bg-base-100 rounded-b-xl"
         style="position:static;transform:none;inset:auto;width:100%;max-width:none;margin:0;"
       >
         <!-- Header -->
