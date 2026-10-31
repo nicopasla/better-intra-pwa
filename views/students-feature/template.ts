@@ -22,6 +22,7 @@ import {
   avatarErrorFallback,
   customAvatarUrl,
   initialsAvatar,
+  showCustomAvatars,
 } from "../../lib/avatar.ts";
 import { mockMode } from "../../mock.ts";
 import {
@@ -438,8 +439,7 @@ export function renderStudentsDialogTemplate(
         : "all students";
   const renderAvatar = (r: StudentEntry) => {
     const src =
-      customAvatarUrl(r.custom_avatar) ??
-      r.avatar_url ??
+      (showCustomAvatars() ? customAvatarUrl(r.custom_avatar) : null) ??
       (mockMode ? r.image_url : null);
     return src
       ? html`<img

@@ -54,6 +54,7 @@ import {
   ThemeMode,
 } from "../theme.ts";
 import { presetLabel } from "../lib/theme-presets.ts";
+import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
 import BELL_SLASH_SVG from "../assets/bell-slash.svg?raw";
 import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
@@ -193,6 +194,7 @@ export function settingsView(): TemplateResult {
     ${section("Notifications", notificationsSection())}
     ${isStandalone() ? "" : section("Install", installSection())}
     ${section("Theme", themeSection())}
+    ${section("Avatars", avatarsSection())}
     ${section("Calendar", calendarSection())}
     ${section("Account", accountSection(session?.login ?? ""))}
     ${section("Community", communitySection())}
@@ -235,6 +237,28 @@ function section(title: string, content: unknown) {
         ${content}
       </div>
     </div>
+  `;
+}
+
+function avatarsSection() {
+  return html`
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="flex flex-col">
+        <span>Show custom avatars</span>
+        <span class="text-xs opacity-60"
+          >Original 42 photos are shown when this is off.</span
+        >
+      </span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${showCustomAvatars()}
+        @change=${(e: Event) => {
+          setShowCustomAvatars((e.target as HTMLInputElement).checked);
+          refresh();
+        }}
+      />
+    </label>
   `;
 }
 

@@ -76,6 +76,7 @@ import { initTooltips } from "./lib/tooltip.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
 import { myCampus } from "./data.ts";
+import { SHOW_CUSTOM_AVATARS_KEY } from "./lib/avatar.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
 
 const app = () => document.getElementById("app")!;
@@ -332,7 +333,7 @@ function onStorage(e: StorageEvent): void {
   }
   if (
     e.key === "FRIENDS_LIST" ||
-    e.key === "SHOW_CUSTOM_AVATARS_IN_FRIENDS" ||
+    e.key === SHOW_CUSTOM_AVATARS_KEY ||
     e.key === "ft_pwa_friends_custom"
   ) {
     refreshActiveTab(true);

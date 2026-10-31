@@ -9,6 +9,7 @@ import {
   avatarErrorFallback,
   customAvatarUrl,
   initialsAvatar,
+  showCustomAvatars,
 } from "../lib/avatar.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
 import STAR_SVG from "../assets/star-lucide.svg?raw";
@@ -45,7 +46,13 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
   };
 
   const toggleAvatar = () => {
-    if (!user || !customAvatarUrl(user.visuals.customAvatar)) return;
+    if (
+      !user ||
+      !showCustomAvatars() ||
+      !customAvatarUrl(user.visuals.customAvatar)
+    ) {
+      return;
+    }
     showOriginalAvatar = !showOriginalAvatar;
     draw();
   };
@@ -63,7 +70,9 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
     }
     const u = user;
     const visual = u.visuals;
-    const customSrc = customAvatarUrl(visual.customAvatar);
+    const customSrc = showCustomAvatars()
+      ? customAvatarUrl(visual.customAvatar)
+      : null;
     const square = visual.avatarShape === "square";
     const showCustom = Boolean(customSrc) && !showOriginalAvatar;
     const avatarSrc = u.avatarUrl ?? (AVATARS_ENABLED ? u.avatar : null);

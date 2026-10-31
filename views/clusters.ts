@@ -7,7 +7,11 @@ import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { getBlob } from "../data.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
-import { customAvatarUrl, initialAvatarDataUrl } from "../lib/avatar.ts";
+import {
+  customAvatarUrl,
+  initialAvatarDataUrl,
+  showCustomAvatars,
+} from "../lib/avatar.ts";
 import { mockMode } from "../mock.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
 import {
@@ -220,7 +224,7 @@ function row(e: OccupancyEntry): unknown {
     : "";
   const fallbackAvatar = initialAvatarDataUrl(e.login);
   const avatar =
-    customAvatarUrl(e.custom_avatar) ??
+    (showCustomAvatars() ? customAvatarUrl(e.custom_avatar) : null) ??
     e.avatar_url ??
     (mockMode ? e.cdn_uri : null) ??
     fallbackAvatar;
@@ -299,7 +303,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
   const ago = valid ? formatTimeAgo(since.getTime()) : "—";
   const fallbackAvatar = initialAvatarDataUrl(entry.login);
   const avatar =
-    customAvatarUrl(entry.custom_avatar) ??
+    (showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??
     entry.avatar_url ??
     (mockMode ? entry.cdn_uri : null) ??
     fallbackAvatar;
@@ -612,7 +616,7 @@ function applyMapOccupancy(): void {
     }
     const fallback = initialAvatarDataUrl(entry.login);
     const src =
-      customAvatarUrl(entry.custom_avatar) ??
+      (showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??
       entry.avatar_url ??
       (mockMode ? entry.cdn_uri : fallback);
     const signature = `${entry.login}\n${src}\n${fallback}`;

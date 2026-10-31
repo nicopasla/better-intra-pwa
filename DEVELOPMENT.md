@@ -29,7 +29,7 @@ npm run deploy     # build, then wrangler deploy
 
 Appending `?mock` to the URL (or building with `VITE_MOCK=1`) skips auth entirely and renders the app with fixture data from `mock.ts`. Useful for UI work without a worker session or network access.
 
-Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production never loads 42 CDN avatars (they sit behind a bot challenge); it uses initials, or a custom avatar uploaded to Better Intra's R2 storage.
+Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production renders 42 photos through the worker's signed proxy (`/api/v1/public/avatar/...` → 42 CDN via the Deno relay), falls back to initials when a photo is missing, and shows custom avatars only when **Settings → Avatars → Show custom avatars** is enabled (off by default). The Students tab always uses initials (plus custom avatars when enabled) and never requests 42 photos.
 
 ## Toolchain
 
@@ -212,7 +212,7 @@ browser HTTP cache only, not in `bi-shell-v6`: they're fetched with
 then revalidated with the worker's `ETag` (a 304 when unchanged). Pull-to-refresh
 forces a check, and a failed refresh keeps the last map with a 1-minute backoff.
 
-The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`) and the friends keys (`FRIENDS_LIST`, `SHOW_CUSTOM_AVATARS_IN_FRIENDS`, `ft_pwa_friends_custom`), refreshing the active tab, or reloading when the session disappears.
+The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`), the friends keys (`FRIENDS_LIST`, `ft_pwa_friends_custom`), and the avatars preference (`ft_pwa_show_custom_avatars`), refreshing the active tab, or reloading when the session disappears.
 
 ## Themes
 

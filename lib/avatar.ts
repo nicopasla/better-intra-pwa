@@ -9,6 +9,28 @@ import { mockMode } from "../mock.ts";
  */
 export const AVATARS_ENABLED: boolean = mockMode;
 
+/**
+ * Whether custom avatars are shown in the PWA. Off by default: the original 42
+ * photo is preferred everywhere until the user opts in from Settings.
+ */
+export const SHOW_CUSTOM_AVATARS_KEY = "ft_pwa_show_custom_avatars";
+
+export function showCustomAvatars(): boolean {
+  try {
+    return localStorage.getItem(SHOW_CUSTOM_AVATARS_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setShowCustomAvatars(value: boolean): void {
+  try {
+    localStorage.setItem(SHOW_CUSTOM_AVATARS_KEY, value ? "true" : "false");
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 /** Renders a circular initials placeholder. `className` controls the sizing. */
 export function initialsAvatar(
   login: string,

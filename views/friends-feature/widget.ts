@@ -15,7 +15,7 @@ import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { headerBadge, pageHeader } from "../../lib/page-header.ts";
 import { navigateToSeat } from "../../shell.ts";
-import { AVATARS_ENABLED } from "../../lib/avatar.ts";
+import { AVATARS_ENABLED, showCustomAvatars } from "../../lib/avatar.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -441,7 +441,6 @@ interface WidgetState {
   onAdd: () => void;
   onToggleAdd: () => void;
   onConnect: () => void;
-  showCustomAvatars: boolean;
 }
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -1012,7 +1011,7 @@ function renderWidget(state: WidgetState) {
                                       state.sortDir === "desc"
                                       ? i
                                       : -1,
-                                    state.showCustomAvatars,
+                                    showCustomAvatars(),
                                     state.deleteMode,
                                     state.selected.includes(f.login),
                                     state.onToggleSelect,
@@ -1201,8 +1200,6 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
     notConnected: !getSession(),
     deleteMode: false,
     selected: [],
-    showCustomAvatars:
-      localStorage.getItem("SHOW_CUSTOM_AVATARS_IN_FRIENDS") !== "false",
     onToggle: () => {
       emit();
     },
