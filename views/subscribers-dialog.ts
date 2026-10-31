@@ -12,6 +12,7 @@ import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
   avatarErrorFallback,
+  avatarLoaded,
   initialsAvatar,
 } from "../lib/avatar.ts";
 import { navigateToSeat, navigateToUser } from "../shell.ts";
@@ -43,12 +44,13 @@ function row(
           <div class="w-10 h-10 rounded-full bg-base-300">
             ${avatarSrc
               ? html`<img
-                  class="w-full h-full rounded-full object-cover"
+                  class="w-full h-full rounded-full object-cover avatar-media"
                   src="${avatarSrc}"
                   alt="${u.login}"
                   loading="lazy"
                   decoding="async"
                   referrerpolicy="no-referrer"
+                  @load=${avatarLoaded}
                   @error=${avatarErrorFallback}
                 />`
               : initialsAvatar(u.login, "w-full h-full")}

@@ -749,3 +749,35 @@ html.ft-editing body {
     }
   }
 }
+/* Shimmer shown while avatar images load (hidden once the bitmap paints). */
+.avatar-media {
+  background-color: var(--color-base-200);
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in oklab, var(--color-base-100) 65%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 220% 100%;
+  animation: avatar-shimmer 1.4s linear infinite;
+}
+
+.avatar-media.is-loaded {
+  animation: none;
+  background-image: none;
+}
+
+@keyframes avatar-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-media {
+    animation: none;
+  }
+}

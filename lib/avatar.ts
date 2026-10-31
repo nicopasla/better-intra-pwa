@@ -96,3 +96,9 @@ export function avatarErrorFallback(e: Event): void {
   const img = e.target as HTMLImageElement;
   if (img.isConnected) letterFallback(img);
 }
+
+/** Stops the loading shimmer once an avatar image has painted. */
+export function avatarLoaded(e: Event): void {
+  const img = e.currentTarget as HTMLImageElement | null;
+  img?.classList.add("is-loaded");
+}

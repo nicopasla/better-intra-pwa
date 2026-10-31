@@ -3,6 +3,7 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import type { UserProfile, UserVisuals } from "../data.ts";
 import { mockMode } from "../mock.ts";
 import {
+  avatarLoaded,
   customAvatarUrl,
   initialsAvatar,
   showCustomAvatars,
@@ -287,10 +288,11 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
       return initialsAvatar(p.login, `${size} ring-4 ring-base-100`);
     }
     return html`<img
-      class="${size} ring-4 ring-base-100 object-cover"
+      class="${size} ring-4 ring-base-100 object-cover avatar-media"
       src="${src}"
       alt="${p.login}"
       referrerpolicy="no-referrer"
+      @load=${avatarLoaded}
       @error=${failAvatar}
     />`;
   })();

@@ -7,6 +7,7 @@ import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
   avatarErrorFallback,
+  avatarLoaded,
   customAvatarUrl,
   initialsAvatar,
   showCustomAvatars,
@@ -106,10 +107,11 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
                 ></div>`
               : avatarSrc
                 ? html`<img
-                    class="w-full h-full rounded-full object-cover"
+                    class="w-full h-full rounded-full object-cover avatar-media"
                     src="${avatarSrc}"
                     alt="${u.login}"
                     referrerpolicy="no-referrer"
+                    @load=${avatarLoaded}
                     @error=${avatarErrorFallback}
                   />`
                 : initialsAvatar(u.login, "w-full h-full")}

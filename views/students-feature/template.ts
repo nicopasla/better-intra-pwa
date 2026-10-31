@@ -20,6 +20,7 @@ import { segmentedTabs } from "../../lib/segmented-tabs.ts";
 import { pageHeader } from "../../lib/page-header.ts";
 import {
   avatarErrorFallback,
+  avatarLoaded,
   customAvatarUrl,
   initialsAvatar,
   showCustomAvatars,
@@ -443,11 +444,12 @@ export function renderStudentsDialogTemplate(
       (mockMode ? r.image_url : null);
     return src
       ? html`<img
-          class="avatar"
+          class="avatar avatar-media"
           src="${src}"
           alt="${r.login}"
           loading="lazy"
           referrerpolicy="no-referrer"
+          @load=${avatarLoaded}
           @error=${avatarErrorFallback}
         />`
       : initialsAvatar(r.login, "avatar");

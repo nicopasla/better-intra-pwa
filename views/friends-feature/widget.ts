@@ -15,7 +15,7 @@ import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { headerBadge, pageHeader } from "../../lib/page-header.ts";
 import { navigateToSeat } from "../../shell.ts";
-import { AVATARS_ENABLED, showCustomAvatars } from "../../lib/avatar.ts";
+import { AVATARS_ENABLED, avatarLoaded, showCustomAvatars } from "../../lib/avatar.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -125,10 +125,12 @@ function renderFriendRow(
                   ></div>`
                 : html`<div class="w-14 h-14 rounded-full ${medalClass}">
                     <img
+                      class="avatar-media"
                       src="${currentSrc}"
                       alt="${friend.login}"
                       loading="lazy"
                       referrerpolicy="no-referrer"
+                      @load="${avatarLoaded}"
                       data-tip="${toggleTitle}"
                       @click="${toggleCustom}"
                       @error="${(e: Event) => {

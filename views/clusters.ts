@@ -8,6 +8,7 @@ import { refresh } from "../refresh.ts";
 import { getBlob } from "../data.ts";
 import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import {
+  avatarLoaded,
   customAvatarUrl,
   initialAvatarDataUrl,
   showCustomAvatars,
@@ -236,11 +237,12 @@ function row(e: OccupancyEntry): unknown {
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
           <img
-            class="size-10 rounded-full object-cover shrink-0 bg-base-200"
+            class="size-10 rounded-full object-cover shrink-0 bg-base-200 avatar-media"
             src="${avatar}"
             alt="${e.login}"
             loading="lazy"
             referrerpolicy="no-referrer"
+            @load=${avatarLoaded}
             @error=${(ev: Event) => {
               const img = ev.target as HTMLImageElement;
               if (!img.isConnected || img.dataset.fallbackSet) return;
@@ -315,11 +317,12 @@ function connectionRow(entry: OccupancyEntry): unknown {
         title="${entry.host} · since ${time}"
       >
         <img
-          class="size-8 rounded-full object-cover shrink-0 bg-base-200"
+          class="size-8 rounded-full object-cover shrink-0 bg-base-200 avatar-media"
           src="${avatar}"
           alt="${entry.login}"
           loading="lazy"
           referrerpolicy="no-referrer"
+          @load=${avatarLoaded}
           @error=${(ev: Event) => {
             const img = ev.target as HTMLImageElement;
             if (!img.isConnected || img.dataset.fallbackSet) return;
