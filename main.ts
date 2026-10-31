@@ -12,10 +12,12 @@ import { initTheme, syncThemeFromCloud } from "./theme.ts";
 import { initCampusBadges } from "./lib/campus-badges.ts";
 import {
   currentTab,
+  redirectToDashboard,
   renderScreen,
   renderShell,
   Tab,
   setRouteRenderer,
+  setTabHidden,
   userLoginFromHash,
 } from "./shell.ts";
 import { setRefresh } from "./refresh.ts";
@@ -73,32 +75,50 @@ import { initRouter } from "./lib/router.ts";
 import { initTooltips } from "./lib/tooltip.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
-import { me } from "./data.ts";
+import { myCampus } from "./data.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
-import { comingSoonView } from "./lib/coming-soon.ts";
-import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
-import CLUSTERS_SVG from "./assets/clusters.svg?raw";
 
 const app = () => document.getElementById("app")!;
 
-/** Belgium-only features (students, clusters) are gated by campus. */
-let campusAllowed = true;
-
 const BELGIUM_CAMPUS = 12;
+const BELGIUM_TABS: Tab[] = ["students", "clusters"];
 
-function comingSoonFor(tab: Tab): unknown {
-  if (tab === "students") {
-    return comingSoonView({
-      icon: GRADUATION_SVG,
-      description:
-        "Students is only available to Belgium students for now. It's rolling out to more campuses soon.",
-    });
+/** Belgium-only features are gated by the caller's primary campus. The worker
+ *  enforces the same rule on every students endpoint; this is the UX side. */
+let campusAllowed = false;
+/** False until the campus check settles, so deep links wait instead of redirecting. */
+let campusResolved = false;
+
+// Hidden until the me endpoint confirms the campus, so non-Belgium users never
+// see the tabs (and deep links into them are redirected).
+for (const tab of BELGIUM_TABS) setTabHidden(tab, true);
+
+function applyCampusAccess(campusId: number | null): void {
+  campusResolved = true;
+  campusAllowed = campusId === BELGIUM_CAMPUS;
+  for (const tab of BELGIUM_TABS) setTabHidden(tab, !campusAllowed);
+
+  const tab = currentTab();
+  if (!campusAllowed && BELGIUM_TABS.includes(tab)) {
+    redirectToDashboard();
+    return;
   }
-  return comingSoonView({
-    icon: CLUSTERS_SVG,
-    description:
-      "Clusters is only available to Belgium students for now. It's rolling out to more campuses soon.",
-  });
+  if (campusAllowed && BELGIUM_TABS.includes(tab)) triggerLoad(tab, true);
+  renderBody();
+}
+
+/** Asks the worker for the campus stored in D1/KV; retries once on failure. */
+async function checkCampusAccess(attempt = 0): Promise<void> {
+  try {
+    const info = await myCampus();
+    applyCampusAccess(info?.campusId ?? null);
+  } catch {
+    if (attempt < 1) {
+      window.setTimeout(() => void checkCampusAccess(attempt + 1), 2000);
+      return;
+    }
+    applyCampusAccess(null);
+  }
 }
 
 function loadingScreen() {
@@ -329,7 +349,12 @@ function initAppListeners(): void {
       // A theme change made on the desktop should show up when the app is
       // reopened from the home screen.
       void syncThemeFromCloud();
+      // Retry a campus check that failed while offline.
+      if (!campusAllowed) void checkCampusAccess();
     }
+  });
+  window.addEventListener("online", () => {
+    if (!campusAllowed) void checkCampusAccess();
   });
   window.addEventListener("storage", onStorage);
 }
@@ -356,6 +381,16 @@ function renderBody(): void {
     return;
   }
   const tab = currentTab();
+  if (BELGIUM_TABS.includes(tab)) {
+    if (!campusResolved) {
+      renderShell(null, loadingScreen());
+      return;
+    }
+    if (!campusAllowed) {
+      redirectToDashboard();
+      return;
+    }
+  }
   let body: unknown;
   let bottomBar: unknown = "";
   switch (tab) {
@@ -370,20 +405,12 @@ function renderBody(): void {
       body = friendsView();
       break;
     case "students":
-      if (campusAllowed) {
-        body = studentsView();
-        bottomBar = studentsBottomBar();
-      } else {
-        body = comingSoonFor("students");
-      }
+      body = studentsView();
+      bottomBar = studentsBottomBar();
       break;
     case "clusters":
-      if (campusAllowed) {
-        body = clustersView();
-        bottomBar = clustersBottomBar();
-      } else {
-        body = comingSoonFor("clusters");
-      }
+      body = clustersView();
+      bottomBar = clustersBottomBar();
       break;
     case "settings":
       body = settingsView();
@@ -400,14 +427,7 @@ function renderBody(): void {
 }
 
 function gateCampusTabs(): void {
-  void me()
-    .then((m) => {
-      campusAllowed = !m || m.campusId === BELGIUM_CAMPUS;
-      renderBody();
-    })
-    .catch(() => {
-      /* campus unknown — keep the features available */
-    });
+  void checkCampusAccess();
 }
 
 /** Dismisses any modal opened on top of the previous route; dialogs are

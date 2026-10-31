@@ -228,7 +228,7 @@ Settings → Theme offers four modes (`ft_theme`):
 
 ## Campus gating
 
-`BELGIUM_CAMPUS = 12`. After boot, `gateCampusTabs()` calls `me()` and compares `campusId`; when it isn't Belgium, the Students and Clusters tabs render `comingSoonView()` (`lib/coming-soon.ts`) instead. If the campus can't be determined the features stay available.
+`BELGIUM_CAMPUS = 12`. The Students and Clusters tabs start hidden; after boot, `gateCampusTabs()` calls `/api/v1/private/campus` (the campus stored in the worker's D1/KV record, with a single retry and a re-check when the app comes back online/visible) and unhides them only when the campus is Belgium. Deep links to a hidden tab redirect to `#/dashboard`. The worker enforces the same rule on every students endpoint (primary campus only, fail closed), so the tabs are UX, not security.
 
 ## Deploying
 

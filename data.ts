@@ -178,6 +178,23 @@ async function json<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const me = () =>
   mockMode ? Promise.resolve(mock.me) : json<Me>("/api/v1/private/me");
 
+export interface CampusAccess {
+  campusId: number | null;
+  campusName: string | null;
+  allowed: boolean;
+}
+
+/** Campus from the worker's D1/KV record; the 42 me endpoint is only used when
+ *  the campus is still unknown. Used to gate the Belgium-only tabs. */
+export const myCampus = (): Promise<CampusAccess> =>
+  mockMode
+    ? Promise.resolve({
+        campusId: mock.me.campusId,
+        campusName: mock.me.campusName,
+        allowed: mock.me.campusId === 12,
+      })
+    : json<CampusAccess>("/api/v1/private/campus");
+
 export const upcomingEvals = () =>
   mockMode
     ? Promise.resolve(mock.upcoming)
