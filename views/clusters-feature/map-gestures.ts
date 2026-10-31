@@ -84,7 +84,14 @@ function apply(container: HTMLElement, state: MapState): void {
   state.y = clamp(state.y, height - height * state.scale, 0);
 
   svg.style.transformOrigin = "0 0";
-  svg.style.transform = `translate3d(${state.x}px, ${state.y}px, 0) scale(${state.scale})`;
+  // A 3D transform (translate3d / will-change) makes the browser rasterize the
+  // inline SVG at CSS resolution, which looks blurry on Retina screens. Use a
+  // 2D transform, and leave the fitted view untransformed.
+  if (state.scale === 1 && state.x === 0 && state.y === 0) {
+    svg.style.transform = "";
+    return;
+  }
+  svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
 }
 
 function zoomAt(
