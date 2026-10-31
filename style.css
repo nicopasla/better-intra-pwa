@@ -519,6 +519,19 @@ html.ft-fixed-view body {
   stroke: var(--seat-stroke, #7f7f7f);
 }
 
+/* Seats the map builder marked as having a newer computer. */
+.cluster-map .posts rect.seat-newer,
+.cluster-map rect[id].seat-newer {
+  fill: color-mix(in oklab, var(--color-success) 20%, var(--seat-fill, #e5e5e5));
+  stroke: var(--color-success);
+}
+
+.cluster-map image.seat-newer {
+  stroke: var(--color-success);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .cluster-map .zone {
   fill: var(--zone-fill, #d5d5d5);
   stroke: var(--zone-stroke, #a5a8ab);

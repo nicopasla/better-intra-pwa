@@ -593,6 +593,8 @@ const XLINK_NS = "http://www.w3.org/1999/xlink";
  * tab switch), so unchanged seats are never touched again.
  */
 const paintedSeats = new WeakMap<SVGSVGElement, Map<string, string>>();
+/** Normalised ids of seats exported with the builder's `seat-newer` class. */
+const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
 
 /** Fills each seat's empty <image> with the avatar of whoever is sitting there. */
 function applyMapOccupancy(): void {
@@ -600,6 +602,16 @@ function applyMapOccupancy(): void {
   if (!mapEl) return;
   const svg = mapEl.querySelector<SVGSVGElement>("svg");
   if (!svg) return;
+
+  let newer = newerSeats.get(svg);
+  if (!newer) {
+    newer = new Set<string>();
+    svg.querySelectorAll<Element>("rect.seat-newer[id]").forEach((r) => {
+      const id = (r.getAttribute("id") || "").trim().toLowerCase();
+      if (id) newer!.add(id);
+    });
+    newerSeats.set(svg, newer);
+  }
 
   const byHost = new Map<string, OccupancyEntry>();
   for (const entry of entries) {
@@ -616,6 +628,7 @@ function applyMapOccupancy(): void {
   for (const [id, img] of mapSeatIndex(svg)) {
     const entry = byHost.get(id);
     if (!entry) {
+      img.classList.remove("seat-newer");
       if (!painted.has(id)) continue;
       img.removeAttribute("href");
       img.removeAttributeNS(XLINK_NS, "href");
@@ -624,6 +637,7 @@ function applyMapOccupancy(): void {
       painted.delete(id);
       continue;
     }
+    img.classList.toggle("seat-newer", newer.has(id));
     const fallback = initialAvatarDataUrl(entry.login);
     const src =
       (showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??

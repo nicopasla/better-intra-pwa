@@ -1,7 +1,7 @@
 {
   "name": "better-intra-pwa",
   "private": true,
-  "version": "0.46.13",
+  "version": "0.46.14",
   "type": "module",
   "scripts": {
     "dev": "vite",
