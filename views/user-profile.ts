@@ -359,8 +359,14 @@ function scrollLogtimeToLatest(el: HTMLElement): void {
 // Projects
 // ---------------------------------------------------------------------------
 
-const projectUrl = (slug: string | null) =>
-  slug ? `https://projects.intra.42.fr/projects/${slug}` : undefined;
+/** A user's occurrence page: 42 resolves the bare slug against whoever is
+ *  logged in, so the `projects_users` id is needed to show the right owner. */
+const projectUrl = (p: { slug: string | null; id?: number | null }) =>
+  p.slug
+    ? p.id
+      ? `https://projects.intra.42.fr/projects/${p.slug}/projects_users/${p.id}`
+      : `https://projects.intra.42.fr/projects/${p.slug}`
+    : undefined;
 
 const occurrenceBadge = (n: number) =>
   n > 0
@@ -385,7 +391,7 @@ function projectsSection(p: UserProfile) {
       ? card(
           html`<ul class="flex flex-col divide-y divide-base-300">
             ${projects.active.map((proj) => {
-              const href = projectUrl(proj.slug);
+              const href = projectUrl(proj);
               const row = html`<span class="font-medium truncate"
                   >${proj.name}</span
                 >
@@ -423,7 +429,7 @@ function projectsSection(p: UserProfile) {
 }
 
 function recentProjectRow(proj: UserRecentProject) {
-  const href = projectUrl(proj.slug);
+  const href = projectUrl(proj);
   const row = html`<div class="min-w-0">
       <div class="font-medium truncate">${proj.name}</div>
       <div class="flex items-center gap-1.5 text-xs opacity-60">
