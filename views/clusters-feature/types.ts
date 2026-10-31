@@ -4,6 +4,7 @@ export interface OccupancyEntry {
   name?: string;
   cdn_uri: string;
   custom_avatar?: string | null;
+  avatar_url?: string | null;
   begin_at: string;
   end_at: string | null;
 }

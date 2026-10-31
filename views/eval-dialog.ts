@@ -66,6 +66,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
     const customSrc = customAvatarUrl(visual.customAvatar);
     const square = visual.avatarShape === "square";
     const showCustom = Boolean(customSrc) && !showOriginalAvatar;
+    const avatarSrc = u.avatarUrl ?? (AVATARS_ENABLED ? u.avatar : null);
     return html`
       <div
         class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/40 p-3"
@@ -79,7 +80,7 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
           title="${customSrc
             ? showOriginalAvatar
               ? "Show custom avatar"
-              : "Show initials"
+              : "Show 42 avatar"
             : ""}"
           @click=${toggleAvatar}
           @keydown=${(ev: KeyboardEvent) => {
@@ -94,10 +95,10 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
                     ? "0"
                     : "9999px"};background-image:url('${customSrc}');background-size:${visual.avatarScale}%;background-position:${visual.avatarPosX}% ${visual.avatarPosY}%;background-color:${visual.avatarBg};background-repeat:no-repeat;"
                 ></div>`
-              : AVATARS_ENABLED
+              : avatarSrc
                 ? html`<img
                     class="w-full h-full rounded-full object-cover"
-                    src="${u.avatar ?? "/icons/icon-192.png"}"
+                    src="${avatarSrc}"
                     alt="${u.login}"
                     referrerpolicy="no-referrer"
                     @error=${avatarErrorFallback}

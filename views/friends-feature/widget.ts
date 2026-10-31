@@ -80,9 +80,7 @@ function renderFriendRow(
     ? null
     : hasCustom && !showingOriginal
       ? friend.customAvatar
-      : AVATARS_ENABLED
-        ? friend.avatar
-        : null;
+      : (friend.avatarUrl ?? (AVATARS_ENABLED ? friend.avatar : null));
   const toggleTitle = hasCustom
     ? showingOriginal
       ? "Click to view custom avatar"
@@ -139,10 +137,10 @@ function renderFriendRow(
                         if (
                           hasCustom &&
                           !img.dataset.fallback &&
-                          friend.avatar
+                          (friend.avatarUrl || friend.avatar)
                         ) {
                           img.dataset.fallback = "42";
-                          img.src = friend.avatar;
+                          img.src = friend.avatarUrl || friend.avatar || "";
                           return;
                         }
                         img.dataset.fallback = "letter";

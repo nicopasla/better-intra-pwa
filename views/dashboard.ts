@@ -1089,8 +1089,8 @@ function writeDashboardCache(): void {
   writeCache(DASHBOARD_CACHE, {
     v: CACHE_VERSION,
     login: session.login,
-    me: meData,
-    myProfile,
+    me: { ...meData, avatarUrl: undefined },
+    myProfile: myProfile ? { ...myProfile, avatarUrl: undefined } : null,
     upcoming,
     events: allEvents,
     profileColor,

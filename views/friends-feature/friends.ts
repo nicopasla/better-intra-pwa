@@ -6,6 +6,7 @@ export interface FriendData {
   login: string;
   displayName: string;
   avatar: string | null;
+  avatarUrl?: string | null;
   customAvatar: string | null;
   avatarBg?: string;
   avatarShape?: "round" | "square";

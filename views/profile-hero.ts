@@ -258,8 +258,8 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
   const customSrc = customAvatarUrl(v.customAvatar);
   const hasCustom = Boolean(customSrc);
   const showCustom = hasCustom && !opts.showOriginalAvatar;
-  // 42's CDN is behind a bot challenge; only custom R2 avatars or initials.
-  const src = mockMode ? p.avatar : null;
+  // 42 avatars go through the signed worker proxy; custom R2 avatars win.
+  const src = p.avatarUrl ?? (mockMode ? p.avatar : null);
   const toggleable = hasCustom && !saveData;
   const toggle = () => opts.onToggleAvatar?.();
   const failAvatar = () => opts.onAvatarError?.();

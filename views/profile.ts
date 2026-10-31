@@ -138,7 +138,7 @@ function writeProfileCache(): void {
   writeCache(PROFILE_CACHE, {
     v: CACHE_VERSION,
     login: session.login,
-    me: meData,
+    me: { ...meData, avatarUrl: undefined },
     stats,
   } satisfies ProfileCache);
 }

@@ -221,6 +221,7 @@ function row(e: OccupancyEntry): unknown {
   const fallbackAvatar = initialAvatarDataUrl(e.login);
   const avatar =
     customAvatarUrl(e.custom_avatar) ??
+    e.avatar_url ??
     (mockMode ? e.cdn_uri : null) ??
     fallbackAvatar;
   return html`
@@ -299,6 +300,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
   const fallbackAvatar = initialAvatarDataUrl(entry.login);
   const avatar =
     customAvatarUrl(entry.custom_avatar) ??
+    entry.avatar_url ??
     (mockMode ? entry.cdn_uri : null) ??
     fallbackAvatar;
   return html`
@@ -611,6 +613,7 @@ function applyMapOccupancy(): void {
     const fallback = initialAvatarDataUrl(entry.login);
     const src =
       customAvatarUrl(entry.custom_avatar) ??
+      entry.avatar_url ??
       (mockMode ? entry.cdn_uri : fallback);
     const signature = `${entry.login}\n${src}\n${fallback}`;
     if (painted.get(id) === signature) continue;

@@ -65,6 +65,7 @@ export interface Me {
   displayName: string;
   usualFullName: string;
   image: string | null;
+  avatarUrl?: string | null;
   kind: string | null;
   staff: boolean;
   alumni: boolean;
@@ -134,6 +135,7 @@ export interface Friend {
   login: string;
   displayName: string;
   avatar: string | null;
+  avatarUrl?: string | null;
   customAvatar: string | null;
   avatarBg?: string;
   avatarShape?: "round" | "square";
@@ -218,6 +220,7 @@ export interface UserLookup {
   login: string;
   displayName: string;
   avatar: string | null;
+  avatarUrl?: string | null;
   level: number;
   grade: string | null;
   location: string | null;
@@ -291,6 +294,7 @@ export interface UserProfile {
   displayName: string;
   usualFullName: string;
   avatar: string | null;
+  avatarUrl?: string | null;
   kind: string | null;
   staff: boolean;
   alumni: boolean;
@@ -483,6 +487,7 @@ export interface EventSubscriber {
   login: string;
   displayName: string;
   avatar: string | null;
+  avatarUrl?: string | null;
   location: string | null;
 }
 
@@ -522,6 +527,7 @@ export interface StudentEntry {
   login: string;
   displayname: string;
   image_url: string;
+  avatar_url?: string | null;
   begin_at?: string | null;
   blackholed_at?: string | null;
   active?: boolean;

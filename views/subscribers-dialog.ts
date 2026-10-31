@@ -26,6 +26,7 @@ function row(
   onProfile: () => void,
   onSeat: (seat: string) => void,
 ) {
+  const avatarSrc = u.avatarUrl ?? (AVATARS_ENABLED ? u.avatar : null);
   return html`
     <div
       class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-base-200 active:bg-base-200"
@@ -40,10 +41,10 @@ function row(
       >
         <div class="avatar ${u.location ? "avatar-online" : ""} shrink-0">
           <div class="w-10 h-10 rounded-full bg-base-300">
-            ${AVATARS_ENABLED
+            ${avatarSrc
               ? html`<img
                   class="w-full h-full rounded-full object-cover"
-                  src="${u.avatar || "/icons/icon-192.png"}"
+                  src="${avatarSrc}"
                   alt="${u.login}"
                   loading="lazy"
                   decoding="async"

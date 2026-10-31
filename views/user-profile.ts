@@ -159,7 +159,9 @@ function writeCache(): void {
       SESSION_KEY,
       JSON.stringify({
         login: state.login,
-        profile: state.profile,
+        profile: state.profile
+          ? { ...state.profile, avatarUrl: undefined }
+          : null,
         stats: state.stats,
       }),
     );

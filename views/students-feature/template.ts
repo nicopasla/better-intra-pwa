@@ -438,7 +438,9 @@ export function renderStudentsDialogTemplate(
         : "all students";
   const renderAvatar = (r: StudentEntry) => {
     const src =
-      customAvatarUrl(r.custom_avatar) ?? (mockMode ? r.image_url : null);
+      customAvatarUrl(r.custom_avatar) ??
+      r.avatar_url ??
+      (mockMode ? r.image_url : null);
     return src
       ? html`<img
           class="avatar"

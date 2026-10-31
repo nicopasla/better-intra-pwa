@@ -2,9 +2,10 @@ import { html, type TemplateResult } from "lit-html";
 import { mockMode } from "../mock.ts";
 
 /**
- * Real 42 avatars are not used: the CDN sits behind a bot challenge and must
- * not be scraped. Production renders initials, or a Better Intra custom avatar
- * uploaded to our own R2 storage. Mock mode keeps fixture images.
+ * 42 avatars are served through the worker's signed proxy (`avatarUrl` fields),
+ * which downloads the CDN image server-side with the app token. This flag only
+ * gates mock fixtures; production views use the signed URL and fall back to
+ * initials (or a custom R2 avatar) when it is missing.
  */
 export const AVATARS_ENABLED: boolean = mockMode;
 
