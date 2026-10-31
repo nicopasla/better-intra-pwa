@@ -23,7 +23,6 @@ import {
   avatarLoaded,
   customAvatarUrl,
   initialsAvatar,
-  showCustomAvatars,
 } from "../../lib/avatar.ts";
 import { mockMode } from "../../mock.ts";
 import {
@@ -440,8 +439,7 @@ export function renderStudentsDialogTemplate(
         : "all students";
   const renderAvatar = (r: StudentEntry) => {
     const src =
-      (showCustomAvatars() ? customAvatarUrl(r.custom_avatar) : null) ??
-      (mockMode ? r.image_url : null);
+      customAvatarUrl(r.custom_avatar) ?? (mockMode ? r.image_url : null);
     return src
       ? html`<img
           class="avatar avatar-media"

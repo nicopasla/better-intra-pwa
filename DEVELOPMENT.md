@@ -29,7 +29,7 @@ npm run deploy     # build, then wrangler deploy
 
 Appending `?mock` to the URL (or building with `VITE_MOCK=1`) skips auth entirely and renders the app with fixture data from `mock.ts`. Useful for UI work without a worker session or network access.
 
-Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production renders 42 photos through the worker's signed proxy (`/api/v1/public/avatar/...` → 42 CDN via the Deno relay), falls back to initials when a photo is missing, and shows custom avatars only when **Settings → Avatars → Show custom avatars** is enabled (off by default). The Students tab always uses initials (plus custom avatars when enabled) and never requests 42 photos.
+Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production renders 42 photos through the worker's signed proxy (`/api/v1/public/avatar/...` → 42 CDN via the Deno relay), falls back to initials when a photo is missing, and always prefers custom avatars outside the Clusters tab. Clusters shows 42 photos unless **Settings → Avatars → Show custom avatars in clusters** is enabled (off by default). The Students tab never requests 42 photos and uses initials or custom avatars.
 
 ## Toolchain
 

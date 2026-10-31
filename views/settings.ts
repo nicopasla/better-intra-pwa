@@ -244,9 +244,9 @@ function avatarsSection() {
   return html`
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span class="flex flex-col">
-        <span>Show custom avatars</span>
+        <span>Show custom avatars in clusters</span>
         <span class="text-xs opacity-60"
-          >Original 42 photos are shown when this is off.</span
+          >Clusters show original 42 photos when this is off.</span
         >
       </span>
       <input

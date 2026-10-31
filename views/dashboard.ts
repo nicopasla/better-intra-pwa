@@ -412,7 +412,6 @@ function heroCard() {
   if (!myProfile) return heroSkeleton();
   const layout = getHomeLayout();
   return profileHero(myProfile, {
-    forceCustomAvatar: true,
     showShare: false,
     badges: {
       order: layout.badges.map((item) => item.id),

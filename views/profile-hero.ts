@@ -6,7 +6,6 @@ import {
   avatarLoaded,
   customAvatarUrl,
   initialsAvatar,
-  showCustomAvatars,
 } from "../lib/avatar.ts";
 import { saveData } from "../lib/network.ts";
 import {
@@ -40,8 +39,6 @@ export interface HeroBadges {
 
 export interface ProfileHeroOptions {
   showOriginalAvatar?: boolean;
-  /** Home always shows the custom avatar, even when the global setting is off. */
-  forceCustomAvatar?: boolean;
   avatarFailed?: boolean;
   /** Show the "open on intra" link (disabled on the home dashboard). */
   showShare?: boolean;
@@ -263,8 +260,7 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
   const v = p.visuals;
   const size = "w-24 h-24 rounded-full shadow-lg flex-none text-3xl";
   const customSrc = customAvatarUrl(v.customAvatar);
-  const hasCustom =
-    Boolean(customSrc) && (opts.forceCustomAvatar || showCustomAvatars());
+  const hasCustom = Boolean(customSrc);
   const showCustom = hasCustom && !opts.showOriginalAvatar;
   // 42 avatars go through the signed worker proxy; custom R2 avatars win.
   const src = p.avatarUrl ?? (mockMode ? p.avatar : null);
