@@ -610,6 +610,11 @@ function renderWidget(state: WidgetState) {
     ? state.friends.filter((f) => f.isOnline)
     : state.friends;
   const sorted = sortFriends(visible, state.sortBy, state.sortDir);
+  const emptyState =
+    !state.loadError &&
+    !state.notConnected &&
+    !state.needsReconnect &&
+    (state.friends.length === 0 || sorted.length === 0);
   const primaryColor = "var(--color-primary)";
   const primaryContent = "var(--color-primary-content)";
 
@@ -972,9 +977,23 @@ function renderWidget(state: WidgetState) {
         </div>
       </div>
 
+      <!-- Empty state (fixed, out of flow) -->
+      ${emptyState
+        ? renderEmptyState(
+            state.friends.length === 0
+              ? "No friends yet"
+              : "No friends online",
+            state.friends.length === 0
+              ? "Add friends from their profile"
+              : "Turn off the online filter to see everyone",
+          )
+        : ""}
+
       <!-- Dropdown (always open, in-flow, sticky header) -->
       <div
-        class="flex-1 flex flex-col bg-base-100 rounded-xl"
+        class="flex-1 flex flex-col bg-base-100 rounded-xl ${emptyState
+          ? "hidden"
+          : ""}"
         style="position:static;transform:none;inset:auto;width:100%;max-width:none;margin:0;"
       >
         <!-- Friend list + floating actions -->
