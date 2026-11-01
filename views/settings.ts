@@ -56,7 +56,6 @@ import {
 import { presetLabel } from "../lib/theme-presets.ts";
 import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
-import BELL_SLASH_SVG from "../assets/bell-slash.svg?raw";
 import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
@@ -137,29 +136,49 @@ let testing = false;
 let logmeError = "";
 /** Cached so the switch paints in its real position before the async check. */
 let pushEnabled: boolean | null = readPushState();
-let pushMessage = "";
+let pushMessage: { ok: boolean; text: string } | null = null;
 const NOTIFY_GROUPS: {
   title: string;
   hint: string;
-  types: { key: string; label: string }[];
+  rows: { key: string; label: string; hint: string }[];
 }[] = [
   {
     title: "Evaluations you give",
-    hint: "When you're booked to evaluate someone.",
-    types: [
-      { key: "EVAL_NOTIFY_EVALUATOR_BOOKED", label: "Booked to evaluate" },
-      { key: "EVAL_NOTIFY_EVALUATOR_REVEALED", label: "In 15 min" },
+    hint: "When you're the one evaluating.",
+    rows: [
+      {
+        key: "EVAL_NOTIFY_EVALUATOR_BOOKED",
+        label: "Evaluation booked",
+        hint: "A slot was booked for you to evaluate someone.",
+      },
+      {
+        key: "EVAL_NOTIFY_EVALUATOR_REVEALED",
+        label: "Starts in 15 minutes",
+        hint: "Reminder with the project and who you're correcting.",
+      },
     ],
   },
   {
     title: "Evaluations you receive",
-    hint: "When someone is assigned to evaluate you.",
-    types: [{ key: "EVAL_NOTIFY_CORRECTED_REVEALED", label: "Your evaluator" }],
+    hint: "When someone evaluates you.",
+    rows: [
+      {
+        key: "EVAL_NOTIFY_CORRECTED_REVEALED",
+        label: "Evaluation in 15 minutes",
+        hint: "Reminder with the login of who's evaluating you.",
+      },
+    ],
   },
   {
-    title: "Events",
-    hint: "15 minutes before a 42 event you're subscribed to.",
-    types: [{ key: "EVENT_NOTIFY_SOON", label: "Starting in 15 min" }],
+    title: "42 events",
+    hint: "Events you subscribed to in the calendar.",
+    rows: [
+      {
+        key: "EVENT_NOTIFY_SOON",
+        label: "Event in 15 minutes",
+        hint: "One reminder for each event you subscribed to.",
+      },
+    ],
   },
 ];
 const DEFAULT_NOTIFY_TYPES: Record<string, boolean> = {
@@ -213,8 +232,7 @@ export function settingsView(): TemplateResult {
     ${section("Avatars", USER_GROUP_SVG, avatarsSection())}
     ${section("Calendar", CALENDAR_SVG, calendarSection())}
     ${section("Account", USER_SVG, accountSection(session?.login ?? ""))}
-    ${section("Community", USERS_SVG, communitySection())}
-    ${debugSection()}
+    ${section("Community", USERS_SVG, communitySection())} ${debugSection()}
     ${logmeError
       ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
       : ""}
@@ -290,7 +308,9 @@ function themeSection() {
         (o) =>
           html`<button
             type="button"
-            class="btn btn-sm ${themeMode === o.id ? "btn-primary" : "btn-outline"}"
+            class="btn btn-sm ${themeMode === o.id
+              ? "btn-primary"
+              : "btn-outline"}"
             @click="${() => {
               themeMode = o.id;
               setThemePreference(o.id);
@@ -333,8 +353,8 @@ function calendarSection() {
 
   return html`
     <p class="text-sm opacity-70">
-      Your 42 events on your phone's calendar. The Better Intra extension
-      keeps the events up to date.
+      Your 42 events on your phone's calendar. The Better Intra extension keeps
+      the events up to date.
     </p>
     <button
       type="button"
@@ -380,86 +400,181 @@ async function onAddToCalendar() {
 
 function notificationsSection() {
   if (!pushSupported())
-    return html`<p class="text-sm opacity-70">
-      This browser does not support push notifications.
-    </p>`;
+    return html`<div class="alert alert-warning alert-soft">
+      <span>This browser can't receive push notifications.</span>
+    </div>`;
+
+  if (Notification.permission === "denied") {
+    return html`
+      <div class="alert alert-error alert-soft">
+        <span>
+          Notifications are blocked for this site. Re-enable them in your
+          browser settings, then reload this page.
+        </span>
+      </div>
+      ${notifyCategories(false)}
+    `;
+  }
 
   // iOS and Android deliver push most reliably to installed (standalone) apps.
   const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     Boolean((navigator as { standalone?: boolean }).standalone);
-  if (isMobile && !standalone) {
-    return html`<div class="flex flex-col gap-2">
-      <p class="text-sm opacity-70">
-        Add this app to your Home Screen (Share → Add to Home Screen), then open
-        it and enable notifications here.
-      </p>
-      <p class="text-xs opacity-60">
-        iOS and Android deliver push notifications most reliably to installed
-        (standalone) web apps.
-      </p>
-    </div>`;
-  }
+  if (isMobile && !standalone) return pushInstallNotice();
 
   return html`
+    ${pushMasterRow()} ${notifyCategories(pushEnabled === true)}
+    ${pushTestRow()}
+  `;
+}
+
+function pushMasterRow() {
+  const checking = pushEnabled === null;
+  return html`
     <label class="flex items-center justify-between gap-3 cursor-pointer">
-      <span>Evaluation push</span>
+      <span class="flex flex-col">
+        <span class="font-medium">Push notifications</span>
+        <span class="text-xs opacity-60"
+          >Evaluations and 42 events on this device.</span
+        >
+      </span>
       <input
         type="checkbox"
         class="toggle toggle-primary"
+        aria-label="Push notifications on this device"
         .checked=${pushEnabled === true}
-        ?disabled=${busy || pushEnabled === null}
+        ?disabled=${busy || checking}
         @change=${onTogglePush}
       />
     </label>
-    ${pushEnabled === null
-      ? html`<p class="text-xs opacity-60">Checking this device…</p>`
-      : ""}
-    <div class="flex flex-wrap gap-2 self-start">
-      <button
-        class="btn btn-sm btn-outline ${testing ? "loading" : ""}"
-        ?disabled=${pushEnabled !== true || testing}
-        @click=${() => onTest()}
-      >
-        Send test
-      </button>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      ${statusChip(
+        "This device",
+        pushEnabled === null ? "unknown" : pushEnabled ? "on" : "off",
+      )}
+      ${statusChip(
+        "Server",
+        evalTracked === null ? "unknown" : evalTracked ? "on" : "off",
+      )}
     </div>
-    ${pushMessage
-      ? html`<p
-          class="text-xs ${pushMessage.startsWith("Delivered")
-            ? "text-success"
-            : "text-warning"}"
-        >
-          ${pushMessage}
-        </p>`
+  `;
+}
+
+function statusChip(label: string, state: "on" | "off" | "unknown") {
+  const text = state === "on" ? "On" : state === "off" ? "Off" : "Checking…";
+  const tone = state === "on" ? "badge-success" : "badge-error";
+  return html`<span
+    class="badge ${tone} badge-soft badge-sm gap-1.5"
+    title="${label}: ${text}"
+  >
+    ${state === "unknown"
+      ? html`<span class="loading loading-spinner loading-xs"></span>`
       : ""}
-    ${NOTIFY_GROUPS.map(
-      (g, i) => html`
-        ${i > 0 ? html`<div class="divider my-0"></div>` : ""}
-        <div class="flex flex-col gap-1.5 mt-1">
-          <span class="text-sm font-semibold">${g.title}</span>
-          <span class="text-xs opacity-60">${g.hint}</span>
-          <div class="flex flex-wrap gap-2 mt-0.5">
-            ${g.types.map(
-              (t) =>
-                html`<button
-                  type="button"
-                  class="btn btn-sm gap-1.5 ${notifyTypes[t.key]
-                    ? "btn-primary"
-                    : "btn-outline"}"
-                  @click=${() => void toggleNotifyType(t.key)}
-                >
-                  <span class="size-4 flex items-center justify-center">
-                    ${svgIcon(notifyTypes[t.key] ? BELL_SVG : BELL_SLASH_SVG)}
-                  </span>
-                  ${t.label}
-                </button>`,
-            )}
-          </div>
-        </div>
-      `,
-    )}
+    <span class="opacity-70">${label}</span>
+    <span class="font-semibold">${text}</span>
+  </span>`;
+}
+
+function notifyCategories(enabled: boolean) {
+  return html`
+    <fieldset
+      class="flex flex-col gap-2"
+      aria-label="Notification preferences"
+      ?disabled=${!enabled}
+    >
+      <div
+        class="flex flex-col divide-y divide-base-300 ${enabled
+          ? ""
+          : "opacity-50"}"
+      >
+        ${NOTIFY_GROUPS.map((g) => notifyGroup(g))}
+      </div>
+    </fieldset>
+  `;
+}
+
+function notifyGroup(group: (typeof NOTIFY_GROUPS)[number]) {
+  return html`
+    <div class="flex flex-col gap-2 py-2.5">
+      <div class="flex flex-col">
+        <span class="text-sm font-medium">${group.title}</span>
+        <span class="text-xs opacity-60">${group.hint}</span>
+      </div>
+      ${group.rows.map((row) => notifyRow(row))}
+    </div>
+  `;
+}
+
+function notifyRow(row: { key: string; label: string; hint: string }) {
+  return html`
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="flex flex-col">
+        <span class="text-sm">${row.label}</span>
+        <span class="text-xs opacity-60">${row.hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        class="toggle toggle-sm toggle-primary"
+        .checked=${notifyTypes[row.key] !== false}
+        @change=${() => void toggleNotifyType(row.key)}
+      />
+    </label>
+  `;
+}
+
+function pushTestRow() {
+  return html`
+    <div class="flex flex-col gap-2">
+      <button
+        type="button"
+        class="btn btn-sm btn-ghost gap-1.5 self-start ${testing
+          ? "loading"
+          : ""}"
+        ?disabled=${pushEnabled !== true || testing}
+        @click=${() => void onTest()}
+      >
+        ${testing
+          ? ""
+          : html`<span class="size-4 flex items-center justify-center"
+              >${svgIcon(BELL_SVG)}</span
+            >`}
+        Send test notification
+      </button>
+      ${pushMessage
+        ? html`<div
+            class="alert ${pushMessage.ok
+              ? "alert-success"
+              : "alert-error"} alert-soft text-sm"
+            role="status"
+          >
+            <span>${pushMessage.text}</span>
+          </div>`
+        : ""}
+    </div>
+  `;
+}
+
+function pushInstallNotice() {
+  return html`
+    <div class="alert alert-info alert-soft">
+      <div class="flex flex-col gap-1">
+        <span class="font-medium">Install the app to get notifications</span>
+        <span class="text-sm opacity-80">
+          iOS and Android deliver push most reliably to installed web apps. Open
+          your browser menu → Share → Add to Home Screen, then reopen the app
+          and enable notifications here.
+        </span>
+        ${canInstall()
+          ? html`<button
+              class="btn btn-primary btn-sm self-start mt-1"
+              @click=${onInstall}
+            >
+              Install app
+            </button>`
+          : ""}
+      </div>
+    </div>
   `;
 }
 
@@ -485,43 +600,45 @@ function accountSection(login: string) {
       </summary>
       <div class="collapse-content">
         <div class="flex flex-col gap-2 pt-1">
-      ${groups.map((g) => {
-        const others = g.sessions.filter((s) => !s.current);
-        const lastUsed = sessionRecency(g.primary);
-        return html`<div
-          class="flex items-center justify-between gap-2 text-sm"
-        >
-          <div class="min-w-0">
-            <div class="truncate flex items-center gap-2">
-              <span class="truncate">${g.primary.name ?? g.primary.label}</span>
-              ${g.current
-                ? html`<span class="badge badge-primary badge-sm"
-                    >this phone</span
-                  >`
-                : ""}
-              ${g.sessions.length > 1
-                ? html`<span class="badge badge-ghost badge-sm"
-                    >${g.sessions.length}</span
-                  >`
-                : ""}
-            </div>
-            <div class="text-xs opacity-50">
-              ${lastUsed
-                ? `last used ${relativeTime(lastUsed)}`
-                : format24h(g.primary.createdAt)}
-            </div>
-          </div>
-          ${others.length === 0
-            ? ""
-            : html`<button
-                class="btn btn-xs btn-ghost text-error"
-                ?disabled=${busy}
-                @click=${() => void doRevokeMany(others.map((s) => s.id))}
-              >
-                Revoke
-              </button>`}
-        </div>`;
-      })}
+          ${groups.map((g) => {
+            const others = g.sessions.filter((s) => !s.current);
+            const lastUsed = sessionRecency(g.primary);
+            return html`<div
+              class="flex items-center justify-between gap-2 text-sm"
+            >
+              <div class="min-w-0">
+                <div class="truncate flex items-center gap-2">
+                  <span class="truncate"
+                    >${g.primary.name ?? g.primary.label}</span
+                  >
+                  ${g.current
+                    ? html`<span class="badge badge-primary badge-sm"
+                        >this phone</span
+                      >`
+                    : ""}
+                  ${g.sessions.length > 1
+                    ? html`<span class="badge badge-ghost badge-sm"
+                        >${g.sessions.length}</span
+                      >`
+                    : ""}
+                </div>
+                <div class="text-xs opacity-50">
+                  ${lastUsed
+                    ? `last used ${relativeTime(lastUsed)}`
+                    : format24h(g.primary.createdAt)}
+                </div>
+              </div>
+              ${others.length === 0
+                ? ""
+                : html`<button
+                    class="btn btn-xs btn-ghost text-error"
+                    ?disabled=${busy}
+                    @click=${() => void doRevokeMany(others.map((s) => s.id))}
+                  >
+                    Revoke
+                  </button>`}
+            </div>`;
+          })}
         </div>
       </div>
     </details>
@@ -842,34 +959,41 @@ async function onTogglePush(e: Event) {
     return;
   }
   busy = true;
-  pushMessage = "";
+  pushMessage = null;
   refresh();
   try {
     const on = input.checked;
     if (on) {
       const res = await enablePushWithTest();
       pushEnabled = res.subscribed;
+      evalTracked = res.tracked;
       pushMessage = res.delivered
-        ? `Delivered by ${res.host} (${res.status}).${
-            res.tracked ? "" : " Eval tracking is unavailable."
-          }`
-        : `Couldn't deliver a test notification${
-            res.host ? ` via ${res.host}` : ""
-          }${res.reason ? ` (${res.reason})` : ""}.${
-            res.subscribed
-              ? " Push remains enabled."
-              : " Notifications stay off."
-          }`;
+        ? { ok: true, text: "Test notification sent to this device." }
+        : {
+            ok: false,
+            text: res.subscribed
+              ? "Notifications are on, but the test couldn't be delivered."
+              : "Couldn't enable notifications. Check your connection and try again.",
+          };
     } else {
       await disablePush();
       pushEnabled = false;
+      // Another device may still be subscribed, so ask the worker what it tracks.
+      try {
+        evalTracked = (await evalTrackingStatus()).tracked;
+      } catch {
+        /* keep the last known value */
+      }
     }
     writePushState(pushEnabled);
   } catch (err) {
-    pushMessage =
-      err instanceof Error && err.message === "permission_denied"
-        ? "Notifications permission was denied."
-        : "Could not update notifications.";
+    pushMessage = {
+      ok: false,
+      text:
+        err instanceof Error && err.message === "permission_denied"
+          ? "Notification permission was denied."
+          : "Couldn't update notifications. Try again.",
+    };
   } finally {
     busy = false;
     // A rejected update must not leave the switch showing the tapped value.
@@ -880,15 +1004,21 @@ async function onTogglePush(e: Event) {
 
 async function onTest() {
   testing = true;
-  pushMessage = "";
+  pushMessage = null;
   refresh();
   try {
     const res = await sendTest();
     pushMessage = res.ok
-      ? `Delivered by ${res.host} (${res.status}).`
-      : `Rejected (${res.status})${res.host ? ` by ${res.host}` : ""}${res.reason ? ` — ${res.reason}` : ""}.`;
+      ? { ok: true, text: "Test notification sent to this device." }
+      : {
+          ok: false,
+          text: "The push service rejected the test. Try again in a moment.",
+        };
   } catch {
-    pushMessage = "Failed to reach the push service.";
+    pushMessage = {
+      ok: false,
+      text: "Couldn't reach the push service. Check your connection.",
+    };
   } finally {
     testing = false;
     refresh();
@@ -896,13 +1026,21 @@ async function onTest() {
 }
 
 async function toggleNotifyType(key: string) {
-  notifyTypes = { ...notifyTypes, [key]: !notifyTypes[key] };
+  const previous = notifyTypes[key];
+  notifyTypes = { ...notifyTypes, [key]: !previous };
   writeNotifyTypes(notifyTypes);
   refresh();
   try {
     await updateBlob({ [key]: notifyTypes[key] });
   } catch {
-    /* ignore */
+    // Revert the optimistic flip so the switch never lies about what's synced.
+    notifyTypes = { ...notifyTypes, [key]: previous };
+    writeNotifyTypes(notifyTypes);
+    pushMessage = {
+      ok: false,
+      text: "Couldn't save that preference. Try again.",
+    };
+    refresh();
   }
 }
 
