@@ -597,16 +597,8 @@ html.ft-fixed-view body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-touch-callout: none;
   overscroll-behavior: contain;
   cursor: grab;
-}
-
-/* iOS still offers Copy/Look Up on long-press unless every descendant opts out. */
-.cluster-map * {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 [data-mode="dark"] .cluster-map {

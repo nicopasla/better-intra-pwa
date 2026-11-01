@@ -26,7 +26,6 @@ import {
   highlightMapSeat,
   mapSeatIndex,
   resetMapZoom,
-  setSeatLongPressHandler,
 } from "./clusters-feature/map-gestures.ts";
 import {
   CLUSTER_MAPS,
@@ -48,7 +47,44 @@ import type { OccupancyEntry } from "./clusters-feature/types.ts";
 
 const POLL_INTERVAL = 60_000;
 
-const SEP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
+/** Long-press state for connection rows (opens the seat sheet). */
+let rowPressTimer: ReturnType<typeof setTimeout> | null = null;
+let rowPressStart: { x: number; y: number } | null = null;
+let suppressRowClick = false;
+
+function clearRowPress(): void {
+  if (rowPressTimer != null) {
+    clearTimeout(rowPressTimer);
+    rowPressTimer = null;
+  }
+  rowPressStart = null;
+}
+
+function startRowPress(ev: PointerEvent, host: string): void {
+  if (ev.pointerType === "mouse" && ev.button !== 0) return;
+  clearRowPress();
+  rowPressStart = { x: ev.clientX, y: ev.clientY };
+  rowPressTimer = setTimeout(() => {
+    rowPressTimer = null;
+    rowPressStart = null;
+    suppressRowClick = true;
+    // If no click follows (e.g. the sheet took over), don't swallow the next one.
+    window.setTimeout(() => {
+      suppressRowClick = false;
+    }, 800);
+    navigator.vibrate?.(12);
+    openSeatSheet(host);
+  }, 450);
+}
+
+function moveRowPress(ev: PointerEvent): void {
+  if (!rowPressStart || rowPressTimer == null) return;
+  if (
+    Math.hypot(ev.clientX - rowPressStart.x, ev.clientY - rowPressStart.y) > 8
+  ) {
+    clearRowPress();
+  }
+}
 
 let entries: OccupancyEntry[] = [];
 let loading = true;
@@ -236,6 +272,17 @@ function row(e: OccupancyEntry): unknown {
         <a
           href="#/u/${e.login}"
           class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
+          @pointerdown=${(ev: PointerEvent) => startRowPress(ev, e.host)}
+          @pointermove=${moveRowPress}
+          @pointerup=${clearRowPress}
+          @pointercancel=${clearRowPress}
+          @pointerleave=${clearRowPress}
+          @contextmenu=${(ev: Event) => ev.preventDefault()}
+          @click=${(ev: Event) => {
+            if (!suppressRowClick) return;
+            suppressRowClick = false;
+            ev.preventDefault();
+          }}
         >
           <img
             class="size-10 rounded-full object-cover shrink-0 bg-base-200 skeleton"
@@ -258,27 +305,16 @@ function row(e: OccupancyEntry): unknown {
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
-        ${e.begin_at
-          ? html`<details class="relative shrink-0" data-cluster-time>
-              <summary
-                class="badge badge-lg badge-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+        <span class="flex shrink-0 items-center gap-1.5">
+          <span class="badge badge-success badge-lg">${e.host}</span>
+          ${e.begin_at
+            ? html`<span
+                class="badge badge-success badge-lg tabular-nums"
                 title="${tooltip}"
-              >
-                ${e.host}
-              </summary>
-              <div
-                class="absolute right-0 top-full z-40 mt-1 flex w-max items-center gap-2 rounded-box bg-base-100 p-3 text-base shadow-xl"
-              >
-                <span>since ${time}</span>
-                <span class="shrink-0 opacity-50" aria-hidden="true"
-                  >${unsafeHTML(SEP_SVG)}</span
-                >
-                <span>${durationLabel(since.getTime())}</span>
-              </div>
-            </details>`
-          : html`<span class="badge badge-lg badge-secondary shrink-0"
-              >${e.host}</span
-            >`}
+                >${time}</span
+              >`
+            : ""}
+        </span>
       </div>
     </li>
   `;
@@ -428,6 +464,17 @@ function connectionRow(entry: OccupancyEntry): unknown {
         href="#/u/${entry.login}"
         class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
         title="${entry.host} · since ${time}"
+        @pointerdown=${(ev: PointerEvent) => startRowPress(ev, entry.host)}
+        @pointermove=${moveRowPress}
+        @pointerup=${clearRowPress}
+        @pointercancel=${clearRowPress}
+        @pointerleave=${clearRowPress}
+        @contextmenu=${(ev: Event) => ev.preventDefault()}
+        @click=${(ev: Event) => {
+          if (!suppressRowClick) return;
+          suppressRowClick = false;
+          ev.preventDefault();
+        }}
       >
         <img
           class="size-8 rounded-full object-cover shrink-0 bg-base-200 skeleton"
@@ -455,7 +502,9 @@ function connectionRow(entry: OccupancyEntry): unknown {
               class="size-4 shrink-0 flex items-center justify-center text-info"
               title="Friend"
               aria-label="Friend"
-              >${unsafeHTML(FRIEND_SVG.replace("<svg", '<svg width="16" height="16"'))}</span
+              >${unsafeHTML(
+                FRIEND_SVG.replace("<svg", '<svg width="16" height="16"'),
+              )}</span
             >`
           : ""}
         <span
@@ -757,22 +806,6 @@ async function applyDefaultCluster(): Promise<void> {
   refresh();
 }
 
-let outsideCloseAttached = false;
-
-/** Closes any open time popover when tapping outside it. */
-function ensureOutsideClose(): void {
-  if (outsideCloseAttached) return;
-  outsideCloseAttached = true;
-  document.addEventListener("click", (ev) => {
-    const target = ev.target as Node;
-    document
-      .querySelectorAll<HTMLDetailsElement>("details[data-cluster-time][open]")
-      .forEach((d) => {
-        if (!d.contains(target)) d.open = false;
-      });
-  });
-}
-
 const XLINK_NS = "http://www.w3.org/1999/xlink";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -890,8 +923,6 @@ function applyMapOccupancy(): void {
 
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
-  ensureOutsideClose();
-  setSeatLongPressHandler(openSeatSheet);
   refreshLabel();
   applyMapOccupancy();
   const seat = seatFromHash();
