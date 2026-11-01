@@ -139,12 +139,10 @@ let pushEnabled: boolean | null = readPushState();
 let pushMessage: { ok: boolean; text: string } | null = null;
 const NOTIFY_GROUPS: {
   title: string;
-  hint: string;
   rows: { key: string; label: string; hint: string }[];
 }[] = [
   {
     title: "Evaluations you give",
-    hint: "When you're the one evaluating.",
     rows: [
       {
         key: "EVAL_NOTIFY_EVALUATOR_BOOKED",
@@ -160,7 +158,6 @@ const NOTIFY_GROUPS: {
   },
   {
     title: "Evaluations you receive",
-    hint: "When someone evaluates you.",
     rows: [
       {
         key: "EVAL_NOTIFY_CORRECTED_REVEALED",
@@ -171,7 +168,6 @@ const NOTIFY_GROUPS: {
   },
   {
     title: "42 events",
-    hint: "Events you subscribed to in the calendar.",
     rows: [
       {
         key: "EVENT_NOTIFY_SOON",
@@ -479,15 +475,11 @@ function statusChip(label: string, state: "on" | "off" | "unknown") {
 function notifyCategories(enabled: boolean) {
   return html`
     <fieldset
-      class="flex flex-col gap-2"
+      class="flex flex-col gap-3"
       aria-label="Notification preferences"
       ?disabled=${!enabled}
     >
-      <div
-        class="flex flex-col divide-y divide-base-300 ${enabled
-          ? ""
-          : "opacity-50"}"
-      >
+      <div class="flex flex-col gap-3 ${enabled ? "" : "opacity-50"}">
         ${NOTIFY_GROUPS.map((g) => notifyGroup(g))}
       </div>
     </fieldset>
@@ -496,12 +488,11 @@ function notifyCategories(enabled: boolean) {
 
 function notifyGroup(group: (typeof NOTIFY_GROUPS)[number]) {
   return html`
-    <div class="flex flex-col gap-2 py-2.5">
-      <div class="flex flex-col">
-        <span class="text-sm font-medium">${group.title}</span>
-        <span class="text-xs opacity-60">${group.hint}</span>
+    <div class="flex flex-col gap-2 rounded-box bg-base-200/60 p-3">
+      <span class="text-sm font-semibold">${group.title}</span>
+      <div class="flex flex-col divide-y divide-base-300">
+        ${group.rows.map((row) => notifyRow(row))}
       </div>
-      ${group.rows.map((row) => notifyRow(row))}
     </div>
   `;
 }
