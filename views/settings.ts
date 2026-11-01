@@ -58,6 +58,7 @@ import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
 import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
+import CIRCLE_CHECK_SVG from "../assets/circle-check.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
 import PALETTE_SVG from "../assets/palette.svg?raw";
@@ -72,8 +73,8 @@ import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 
 const REPO_URL = "https://github.com/nicopasla/better-intra";
 
-const svgIcon = (raw: string) =>
-  unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+const svgIcon = (raw: string, size = 16) =>
+  unsafeHTML(raw.replace("<svg", `<svg width="${size}" height="${size}"`));
 
 /** Decorative icon in front of a settings section title. */
 const sectionIcon = (raw: string) =>
@@ -211,11 +212,19 @@ function storageLabel(): string {
     : formatBytes(storageUsed);
 }
 
-const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
-  { id: "system", label: "System" },
-  { id: "light", label: "Light" },
-  { id: "dark", label: "Dark" },
-  { id: "extension", label: "Extension" },
+const THEME_OPTIONS: { id: ThemeMode; label: string; desc: string }[] = [
+  {
+    id: "system",
+    label: "System",
+    desc: "Follows your device appearance",
+  },
+  { id: "light", label: "Light", desc: "Always light" },
+  { id: "dark", label: "Dark", desc: "Always dark" },
+  {
+    id: "extension",
+    label: "Extension",
+    desc: "Mirror the theme from your extension",
+  },
 ];
 
 export function settingsView(): TemplateResult {
@@ -298,30 +307,40 @@ function avatarsSection() {
 
 function themeSection() {
   const resolved = currentResolvedTheme();
+  const preset = presetLabel(resolved.preset);
   return html`
     <div class="grid grid-cols-2 gap-2">
-      ${THEME_OPTIONS.map(
-        (o) =>
-          html`<button
+      ${THEME_OPTIONS.map((o) => {
+        const selected = themeMode === o.id;
+        const title = o.id === "extension" ? `${o.label} (${preset})` : o.label;
+        return html`
+          <button
             type="button"
-            class="btn btn-sm ${themeMode === o.id
-              ? "btn-primary"
-              : "btn-outline"}"
-            @click="${() => {
+            class="flex items-center gap-2 rounded-box border p-3 text-left ${selected
+              ? "border-primary bg-primary/10"
+              : "border-base-300 bg-base-100"}"
+            aria-pressed=${selected}
+            @click=${() => {
               themeMode = o.id;
               setThemePreference(o.id);
               refresh();
-            }}"
+            }}
           >
-            ${o.label}
-          </button>`,
-      )}
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="text-sm font-semibold">${title}</span>
+              <span class="text-xs opacity-60">${o.desc}</span>
+            </span>
+            ${selected
+              ? html`<span
+                  class="size-5 shrink-0 flex items-center justify-center text-primary"
+                  aria-hidden="true"
+                  >${svgIcon(CIRCLE_CHECK_SVG, 20)}</span
+                >`
+              : ""}
+          </button>
+        `;
+      })}
     </div>
-    ${themeMode === "extension"
-      ? html`<p class="text-center text-xs opacity-60">
-          ${presetLabel(resolved.preset)}
-        </p>`
-      : ""}
   `;
 }
 
