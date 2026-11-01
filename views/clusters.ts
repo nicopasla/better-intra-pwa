@@ -1,9 +1,13 @@
-import { html } from "lit-html";
+import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
+import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
+import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
+import SHARE_SVG from "../assets/share.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import { currentTab } from "../shell.ts";
+import { getSession } from "../api.ts";
 import { refresh } from "../refresh.ts";
 import { getBlob } from "../data.ts";
 import {
@@ -14,6 +18,7 @@ import {
 } from "../lib/avatar.ts";
 import { mockMode } from "../mock.ts";
 import { rowSkeleton } from "../lib/skeletons.ts";
+import { getFriendsList } from "./friends-feature/friends.ts";
 import { fetchOccupancy } from "./clusters-feature/data.ts";
 import {
   attachMapGestures,
@@ -21,6 +26,7 @@ import {
   highlightMapSeat,
   mapSeatIndex,
   resetMapZoom,
+  setSeatLongPressHandler,
 } from "./clusters-feature/map-gestures.ts";
 import {
   CLUSTER_MAPS,
@@ -60,6 +66,8 @@ let activeTab = "active";
 let initialTabResolved = false;
 /** Last seat focused from a location link; kept while the map is shown. */
 let focusSeat: string | null = null;
+/** Logins of the user's friends, used to highlight their seats. */
+let friends: Set<string> = new Set();
 
 const sortState = loadActiveSort();
 
@@ -282,6 +290,116 @@ function seatedEntries(map: ClusterMapDef): OccupancyEntry[] {
   );
 }
 
+function sessionLogin(): string {
+  return (getSession()?.login ?? "").trim().toLowerCase();
+}
+
+async function loadFriendLogins(): Promise<void> {
+  try {
+    const list = await getFriendsList();
+    friends = new Set(list.map((l) => l.trim().toLowerCase()));
+    refresh();
+  } catch {
+    /* offline: no friend highlights */
+  }
+}
+
+/** Bottom sheet opened by long-pressing a seat on the map. */
+function openSeatSheet(seat: string): void {
+  document.getElementById("ft-seat-sheet")?.remove();
+
+  const entry = entries.find(
+    (e) => (e.host || "").trim().toLowerCase() === seat.trim().toLowerCase(),
+  );
+  const avatar = entry
+    ? ((showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??
+      entry.avatar_url ??
+      (mockMode ? entry.cdn_uri : null) ??
+      initialAvatarDataUrl(entry.login))
+    : null;
+  const dialog = document.createElement("dialog");
+  dialog.id = "ft-seat-sheet";
+  dialog.className = "modal modal-bottom";
+
+  render(
+    html`
+      <div class="modal-box">
+        <div class="flex items-center gap-3">
+          ${avatar
+            ? html`<img
+                class="size-11 shrink-0 rounded-full bg-base-200 object-cover"
+                src="${avatar}"
+                alt=""
+                referrerpolicy="no-referrer"
+              />`
+            : html`<span
+                class="flex size-11 shrink-0 items-center justify-center rounded-full bg-base-200 opacity-60"
+                aria-hidden="true"
+                >${unsafeHTML(
+                  MAP_PIN_SVG.replace("<svg", '<svg width="20" height="20"'),
+                )}</span
+              >`}
+          <h3 class="min-w-0 flex-1 truncate font-semibold">
+            ${entry ? entry.name || entry.login : "Empty seat"}
+          </h3>
+          <span
+            class="badge badge-info badge-md shrink-0 font-semibold tabular-nums"
+            >${seat}</span
+          >
+        </div>
+
+        <div class="modal-action mt-4 flex-nowrap gap-2">
+          <form method="dialog" class="flex-[1]">
+            <button class="btn btn-error w-full">Close</button>
+          </form>
+          <button
+            type="button"
+            class="btn btn-primary flex-[2] gap-1.5"
+            @click=${() => {
+              void shareSeat(seat).finally(() => dialog.close());
+            }}
+          >
+            ${unsafeHTML(
+              SHARE_SVG.replace("<svg", '<svg width="18" height="18"'),
+            )}
+            Share
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    `,
+    dialog,
+  );
+  document.body.appendChild(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.showModal();
+}
+
+async function shareSeat(host: string): Promise<void> {
+  const url = seatLink(host);
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: `${host} on the cluster map`, url });
+      return;
+    } catch {
+      return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    /* clipboard unavailable */
+  }
+}
+
+function seatLink(host: string): string {
+  return `https://mobile.betterintra.com/#/clusters?seat=${encodeURIComponent(
+    host,
+  )}`;
+}
+
 /** Entries ordered by connection time, newest first. */
 function connectionList(seated: OccupancyEntry[]): OccupancyEntry[] {
   return seated.slice().sort((a, b) => {
@@ -331,6 +449,15 @@ function connectionRow(entry: OccupancyEntry): unknown {
           </div>
           <div class="text-xs opacity-60 truncate">${entry.login}</div>
         </div>
+        ${friends.has(entry.login.trim().toLowerCase()) &&
+        entry.login.trim().toLowerCase() !== sessionLogin()
+          ? html`<span
+              class="size-4 shrink-0 flex items-center justify-center text-success"
+              title="Friend"
+              aria-label="Friend"
+              >${unsafeHTML(FRIEND_SVG.replace("<svg", '<svg width="16" height="16"'))}</span
+            >`
+          : ""}
         <span
           class="badge badge-success badge-sm shrink-0 tabular-nums"
           title="connected at ${time}"
@@ -596,6 +723,7 @@ export async function loadClusters(force = false): Promise<void> {
   if (!started) {
     started = true;
     startTimers();
+    void loadFriendLogins();
     await applyDefaultCluster();
     await loadOccupancy();
     return;
@@ -655,6 +783,8 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const paintedSeats = new WeakMap<SVGSVGElement, Map<string, string>>();
 /** Normalised ids of seats exported with the builder's `seat-newer` class. */
 const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
+/** Green rings marking friends' seats, per SVG. */
+const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
 
 /** Fills each seat's empty <image> with the avatar of whoever is sitting there. */
 function applyMapOccupancy(): void {
@@ -727,12 +857,41 @@ function applyMapOccupancy(): void {
     painted.set(id, signature);
   }
 
+  // Green ring around seats where a friend is sitting.
+  let rings = friendRings.get(svg);
+  if (!rings) {
+    rings = new Map();
+    friendRings.set(svg, rings);
+  }
+  const me = sessionLogin();
+  for (const [id, img] of mapSeatIndex(svg)) {
+    const entry = byHost.get(id);
+    const login = entry?.login.trim().toLowerCase() ?? "";
+    const isFriend = Boolean(login && login !== me && friends.has(login));
+    const ring = rings.get(id);
+    if (isFriend && !ring && img.parentNode) {
+      const rect = document.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("class", "seat-friend-ring");
+      rect.setAttribute("data-seat", id);
+      for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
+        const value = img.getAttribute(name);
+        if (value) rect.setAttribute(name, value);
+      }
+      img.parentNode.insertBefore(rect, img.nextSibling);
+      rings.set(id, rect);
+    } else if (!isFriend && ring) {
+      ring.remove();
+      rings.delete(id);
+    }
+  }
+
   attachMapGestures(mapEl);
 }
 
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
   ensureOutsideClose();
+  setSeatLongPressHandler(openSeatSheet);
   refreshLabel();
   applyMapOccupancy();
   const seat = seatFromHash();

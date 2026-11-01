@@ -60,7 +60,7 @@ export function headerBadge(
       : "border:3px solid color-mix(in oklab, var(--color-primary) 55%, transparent);";
   return html`
     <span
-      class="badge ${opts.class ?? "badge-primary"} font-bold font-mono"
+      class="badge ${opts.class ?? "badge-primary"} font-bold tabular-nums"
       style="${border}border-radius:var(--badge-radius);height:2.5rem;padding-block:0;font-weight:600;min-width:2.5rem;justify-content:center;"
       data-tip="${opts.tip ?? ""}"
       >${content}</span

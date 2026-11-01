@@ -33,7 +33,7 @@ function renderDayCell(
   const dateLabel = `${dayOfMonth}/${month}/${year}`;
 
   return html`<div
-    class="day-cell aspect-square flex items-center justify-center text-[11px] font-bold font-mono ${dKey ===
+    class="day-cell aspect-square flex items-center justify-center text-[11px] font-bold tabular-nums ${dKey ===
     todayStr
       ? "today-highlight"
       : ""}"
@@ -162,7 +162,7 @@ export function renderMonthCard(
         >${forceShort ? monthShort : monthName}</span
       >
       <span
-        class="lt-month-badge badge badge-lg font-bold font-mono transition-all duration-200 ${isGoalMet
+        class="lt-month-badge badge badge-lg font-bold tabular-nums transition-all duration-200 ${isGoalMet
           ? "badge-rainbow"
           : "badge-outline badge-success"}"
       >
@@ -186,7 +186,7 @@ export function renderMonthCard(
           : ""}
       </div>
       ${config.show_average
-        ? html`<span>Avg: <b class="font-mono">${fmtHours(avg)}</b></span>`
+        ? html`<span>Avg: <b class="tabular-nums">${fmtHours(avg)}</b></span>`
         : ""}
     </div>
 
@@ -258,14 +258,14 @@ export function renderHeaderContent(
     >
     ${showTotalTacos
       ? html`<span
-          class="badge badge-dash badge-success badge-lg font-bold font-mono lt-tacos-badge"
+          class="badge badge-dash badge-success badge-lg font-bold tabular-nums lt-tacos-badge"
           >${totalTacos} ${config.emoji}</span
         >`
       : ""}
     <span class="ml-auto flex items-center gap-2">
       ${lastSeenValue !== "N/A"
         ? html`<span
-            class="badge badge-success font-bold font-mono tracking-tight lt-active-badge"
+            class="badge badge-success font-bold tabular-nums tracking-tight lt-active-badge"
             >Active ${lastSeenValue}</span
           >`
         : ""}

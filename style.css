@@ -364,7 +364,7 @@ html.ft-fixed-view body {
     transition: none !important;
   }
 
-  .ft-ptr-logo.spinning {
+  .ft-ptr-logo.pulsing {
     animation: none !important;
   }
 }
@@ -388,13 +388,20 @@ html.ft-fixed-view body {
   fill: currentColor;
 }
 
-.ft-ptr-logo.spinning {
-  animation: ft-ptr-spin 900ms linear infinite;
+.ft-ptr-logo.pulsing {
+  animation: ft-ptr-pulse 1s ease-in-out infinite;
 }
 
-@keyframes ft-ptr-spin {
-  to {
-    transform: rotate(360deg);
+@keyframes ft-ptr-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
   }
 }
 
@@ -728,6 +735,15 @@ html.ft-fixed-view body {
     stroke-width: 3;
     stroke-opacity: 0.5;
   }
+}
+
+/* Friend seated on the map: quiet green ring above the avatar. */
+.cluster-map rect.seat-friend-ring {
+  fill: none !important;
+  stroke: var(--color-success) !important;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .cluster-map .sign path {

@@ -246,7 +246,7 @@ const projectUrl = (p: { slug: string | null; id?: number | null }) =>
 
 const occurrenceBadge = (n: number) =>
   n > 0
-    ? html`<span class="badge badge-sm badge-ghost font-mono"
+    ? html`<span class="badge badge-sm badge-ghost tabular-nums"
         >${n} ${n === 1 ? "retry" : "retries"}</span
       >`
     : "";
@@ -254,7 +254,7 @@ const occurrenceBadge = (n: number) =>
 const outstandingBadge = (n: number) =>
   n > 0
     ? html`<span
-        class="badge badge-lg badge-outline badge-warning gap-1 font-mono"
+        class="badge badge-lg badge-outline badge-warning gap-1 tabular-nums"
         title="Outstanding corrector"
         >⭐ ${n}</span
       >`
@@ -496,14 +496,14 @@ function evaluationsTab() {
                       ([month, s]) =>
                         html`<tr class="border-t border-base-300">
                           <td class="py-1.5">${formatMonth(month)}</td>
-                          <td class="py-1.5 text-right font-mono">
+                          <td class="py-1.5 text-right tabular-nums">
                             ${s.total}
                           </td>
-                          <td class="py-1.5 text-right font-mono">
+                          <td class="py-1.5 text-right tabular-nums">
                             ${s.failed}
                           </td>
                           <td
-                            class="py-1.5 text-right font-mono font-semibold"
+                            class="py-1.5 text-right tabular-nums font-semibold"
                             style="color:${(s.successPercentage ?? 0) >= 67
                               ? "rgb(34,197,94)"
                               : "rgb(239,68,68)"}"
@@ -563,7 +563,7 @@ function evaluationsTab() {
                         <td class="py-1.5">${date}</td>
                         <td class="py-1.5 text-right">
                           <span
-                            class="badge badge-lg font-mono font-bold"
+                            class="badge badge-lg tabular-nums font-bold"
                             style="border:2px solid rgb(34,197,94);color:rgb(34,197,94);"
                             >+${e.sum}</span
                           >

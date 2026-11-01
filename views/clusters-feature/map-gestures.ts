@@ -34,6 +34,17 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const TAP_SLOP = 6;
 const TAP_TIME = 500;
+/** Press-and-hold a seat to share it. */
+const LONG_PRESS_MS = 450;
+
+/** Registered by the clusters view to open the share sheet for a seat. */
+let seatLongPress: ((seatId: string) => void) | null = null;
+
+export function setSeatLongPressHandler(
+  handler: ((seatId: string) => void) | null,
+): void {
+  seatLongPress = handler;
+}
 
 const states = new WeakMap<HTMLElement, MapState>();
 /** Container size, kept fresh by the ResizeObserver (avoids layout reads). */
@@ -174,6 +185,14 @@ export function attachMapGestures(container: HTMLElement): void {
   };
   states.set(container, state);
 
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  const clearLongPress = (): void => {
+    if (longPressTimer != null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  };
+
   const onDown = (ev: PointerEvent) => {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
     ev.preventDefault();
@@ -197,6 +216,21 @@ export function attachMapGestures(container: HTMLElement): void {
         target: ev.target instanceof Element ? ev.target : null,
       };
       state.pinch = null;
+
+      // Press-and-hold a seat (empty or occupied) to share it.
+      const seat = (ev.target as Element | null)?.closest?.(
+        "image[id], rect[id]",
+      ) as SVGElement | null;
+      const seatId = seat?.getAttribute("id")?.trim() ?? "";
+      if (seatId) {
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          if (!state.drag || state.drag.moved || state.drag.pinch) return;
+          state.drag.moved = true; // swallow the tap that would open a profile
+          navigator.vibrate?.(12);
+          seatLongPress?.(seatId);
+        }, LONG_PRESS_MS);
+      }
     } else if (state.pointers.size === 2) {
       const [a, b] = [...state.pointers.values()];
       const rect = container.getBoundingClientRect();
@@ -242,7 +276,10 @@ export function attachMapGestures(container: HTMLElement): void {
     } else if (state.pointers.size === 1 && state.drag && !state.drag.pinch) {
       const dx = ev.clientX - state.drag.x;
       const dy = ev.clientY - state.drag.y;
-      if (Math.hypot(dx, dy) > TAP_SLOP) state.drag.moved = true;
+      if (Math.hypot(dx, dy) > TAP_SLOP) {
+        state.drag.moved = true;
+        clearLongPress();
+      }
       if (state.drag.moved) {
         state.x = state.drag.tx + dx;
         state.y = state.drag.ty + dy;
@@ -253,6 +290,7 @@ export function attachMapGestures(container: HTMLElement): void {
   };
 
   const finish = (ev: PointerEvent, cancelled: boolean) => {
+    clearLongPress();
     const tracked = state.pointers.delete(ev.pointerId);
     try {
       container.releasePointerCapture(ev.pointerId);

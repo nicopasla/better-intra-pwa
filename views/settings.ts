@@ -588,7 +588,7 @@ function accountSection(login: string) {
   const groups = groupSessions(sessions);
   return html`
     <div class="flex items-center justify-between gap-2">
-      <span class="badge badge-lg badge-primary font-mono font-semibold"
+      <span class="badge badge-lg badge-primary tabular-nums font-semibold"
         >${login}</span
       >
       <button
@@ -671,7 +671,7 @@ function communitySection(): TemplateResult {
             class="flex flex-col items-center rounded-xl bg-base-100 px-4 py-2"
             style="border: 2px solid #00babc"
           >
-            <span class="text-2xl font-bold font-mono leading-none"
+            <span class="text-2xl font-bold tabular-nums leading-none"
               >${s.total}</span
             >
             <span class="text-xs opacity-60">users</span>
@@ -680,7 +680,7 @@ function communitySection(): TemplateResult {
             ${windows.map(
               (w) =>
                 html`<span
-                  class="badge badge-lg gap-1 bg-base-100 font-mono"
+                  class="badge badge-lg gap-1 bg-base-100 tabular-nums"
                   style="border: 2px solid ${w.color}"
                   >+${w.value}<span class="opacity-60">${w.label}</span></span
                 >`,
@@ -696,7 +696,7 @@ function communitySection(): TemplateResult {
 function diagRow(label: string, value: unknown): TemplateResult {
   return html`<li class="list-row items-center py-2">
     <div class="list-col-grow text-sm">${label}</div>
-    <div class="text-right font-mono text-sm opacity-70">${value}</div>
+    <div class="text-right tabular-nums text-sm opacity-70">${value}</div>
   </li>`;
 }
 
@@ -748,7 +748,7 @@ function aboutSection(): TemplateResult {
         <div class="flex items-center gap-2">
           <span class="text-lg font-bold">Better Intra PWA</span>
           <a
-            class="badge badge-ghost font-mono"
+            class="badge badge-ghost tabular-nums"
             href=${PWA_REPO_URL + "/releases"}
             target="_blank"
             rel="noopener noreferrer"
@@ -775,7 +775,7 @@ function aboutSection(): TemplateResult {
         ${until(
           getRepoStars().then((c) =>
             c != null
-              ? html`<span class="badge badge-sm font-mono">${c}</span>`
+              ? html`<span class="badge badge-sm tabular-nums">${c}</span>`
               : "",
           ),
           html`<span class="loading loading-spinner loading-xs"></span>`,
@@ -794,7 +794,7 @@ function aboutSection(): TemplateResult {
         ${until(
           getFollowerCount().then((c) =>
             c != null
-              ? html`<span class="badge badge-sm font-mono">${c}</span>`
+              ? html`<span class="badge badge-sm tabular-nums">${c}</span>`
               : "",
           ),
           html`<span class="loading loading-spinner loading-xs"></span>`,

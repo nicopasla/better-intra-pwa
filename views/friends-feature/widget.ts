@@ -54,7 +54,7 @@ function renderLevelBar(level: number) {
         style="height:1rem"
         aria-label="Level progress to level ${whole + 1}"
       ></progress>
-      <span class="text-lg font-bold font-mono opacity-60 w-8 shrink-0"
+      <span class="text-lg font-bold tabular-nums opacity-60 w-8 shrink-0"
         >${whole + 1}</span
       >
     </div>
@@ -187,7 +187,7 @@ function renderFriendRow(
       data-ft-level-badge
       style="border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
     >
-      <span class="text-sm font-bold font-mono"
+      <span class="text-sm font-bold tabular-nums"
         >${friend.level.toFixed(2)}</span
       >
     </div>
@@ -280,7 +280,7 @@ function renderFriendRow(
               </a>`
             : !friend.isOnline && friend.lastOnlineTimestamp
               ? html`<span
-                  class="badge badge-accent badge-md gap-1 px-2 font-mono"
+                  class="badge badge-accent badge-md gap-1 px-2 tabular-nums"
                   style="${badgeShape}"
                   >${relativeTime(friend.lastOnlineTimestamp)}</span
                 >`
@@ -842,7 +842,7 @@ function renderWidget(state: WidgetState) {
         <div class="indicator">
           ${onlineCount > 0 && !state.needsReconnect
             ? html`<span
-                class="indicator-item badge badge-success badge-sm font-bold font-mono min-w-6 px-1.5"
+                class="indicator-item badge badge-success badge-sm font-bold tabular-nums min-w-6 px-1.5"
                 >${onlineCount}</span
               >`
             : ""}
@@ -909,7 +909,7 @@ function renderWidget(state: WidgetState) {
                     aria-pressed="${state.onlineOnly}"
                   >
                     ${onlineCount > 0
-                      ? html`<span class="text-sm font-bold font-mono"
+                      ? html`<span class="text-sm font-bold tabular-nums"
                           >${onlineCount}</span
                         >`
                       : ""}
@@ -1034,7 +1034,7 @@ function renderWidget(state: WidgetState) {
                 ${state.deleteMode
                   ? html`<div class="friends-delete-bar">
                       <span
-                        class="badge badge-error badge-md font-bold font-mono shrink-0"
+                        class="badge badge-error badge-md font-bold tabular-nums shrink-0"
                         style="border:3px solid color-mix(in oklab, var(--color-error) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
                         >${state.selected.length} selected</span
                       >

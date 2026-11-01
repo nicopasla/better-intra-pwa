@@ -372,7 +372,7 @@ const projectUrl = (p: { slug: string | null; id?: number | null }) =>
 
 const occurrenceBadge = (n: number) =>
   n > 0
-    ? html`<span class="badge badge-sm badge-ghost font-mono"
+    ? html`<span class="badge badge-sm badge-ghost tabular-nums"
         >${n} ${n === 1 ? "retry" : "retries"}</span
       >`
     : "";
@@ -543,10 +543,10 @@ function evaluationsSection(stats: ProfileStats | null) {
               ([month, s]) =>
                 html`<tr class="border-t border-base-300">
                   <td class="py-1.5">${formatMonth(month)}</td>
-                  <td class="py-1.5 text-right font-mono">${s.total}</td>
-                  <td class="py-1.5 text-right font-mono">${s.failed}</td>
+                  <td class="py-1.5 text-right tabular-nums">${s.total}</td>
+                  <td class="py-1.5 text-right tabular-nums">${s.failed}</td>
                   <td
-                    class="py-1.5 text-right font-mono font-semibold"
+                    class="py-1.5 text-right tabular-nums font-semibold"
                     style="color:${(s.successPercentage ?? 0) >= 67
                       ? "rgb(34,197,94)"
                       : "rgb(239,68,68)"}"

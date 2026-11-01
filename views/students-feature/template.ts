@@ -292,12 +292,12 @@ function renderPiscineCalendar(
         return html`<div>
           <div class="piscine-cal-head flex items-center gap-2 mb-2 px-1">
             <span
-              class="piscine-cal-year badge badge-lg badge-primary font-mono font-bold"
+              class="piscine-cal-year badge badge-lg badge-primary tabular-nums font-bold"
             >
               ${year}
             </span>
             <span
-              class="piscine-cal-count badge badge-lg badge-accent font-mono"
+              class="piscine-cal-count badge badge-lg badge-accent tabular-nums"
               >${months.length} piscines</span
             >
           </div>
@@ -882,7 +882,7 @@ export function renderStudentsDialogTemplate(
           <div class="flex items-center gap-2 w-full basis-full">
             <div class="flex items-center gap-2 shrink-0 mr-auto">
               <span
-                class="badge badge-accent shrink-0 gap-1 font-bold font-mono"
+                class="badge badge-accent shrink-0 gap-1 font-bold tabular-nums"
                 style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
                 data-tip="${cursusLabel} — ${dateLabel}"
               >
@@ -893,7 +893,7 @@ export function renderStudentsDialogTemplate(
               >
               ${tab === "students"
                 ? html`<span
-                    class="badge ${activeBadgeClass} shrink-0 font-bold font-mono"
+                    class="badge ${activeBadgeClass} shrink-0 font-bold tabular-nums"
                     style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
                     data-tip="${activeBadgeTip}"
                     >${activeBadgeValue} ${activeBadgeLabel}</span
@@ -982,12 +982,12 @@ export function renderStudentsDialogTemplate(
                           return html`<div>
                             <div class="flex items-center gap-2 mb-2 px-1">
                               <span
-                                class="badge badge-lg badge-primary font-mono font-bold"
+                                class="badge badge-lg badge-primary tabular-nums font-bold"
                               >
                                 ${piscineMonthName(i.month)} ${i.year}
                               </span>
                               <span
-                                class="badge badge-lg badge-accent font-mono"
+                                class="badge badge-lg badge-accent tabular-nums"
                                 >${groupCount}
                                 ${groupCount === 1 ? "student" : "students"}
                               </span>

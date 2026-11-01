@@ -82,15 +82,12 @@ function render(value: number, armed: boolean, spinning: boolean): void {
   const progress = Math.max(0, Math.min(1, value / THRESHOLD));
   const offset = Math.min(value * 0.6, 90);
 
-  // Blend the revealed strip with the card color so the pull looks native.
-  document.body.style.background = value > 0 ? "var(--color-base-100)" : "";
-
   if (el) {
     if (value > 0 || spinning) showPulled(spinning ? SETTLED : offset);
     else hideIndicator();
     const logo = el.firstElementChild as HTMLElement | null;
     if (logo) {
-      logo.classList.toggle("spinning", spinning);
+      logo.classList.toggle("pulsing", spinning);
       if (spinning) {
         logo.style.transform = "";
         logo.style.opacity = "1";
@@ -123,7 +120,6 @@ function settle(y: number): void {
       }, 260);
     }
   }
-  if (y === 0) document.body.style.background = "";
 }
 
 function reloadCurrent(): void {
@@ -148,6 +144,18 @@ function reloadCurrent(): void {
   }
 }
 
+/** Tabs with a reload path; elsewhere the gesture would do nothing. */
+function supportsReload(): boolean {
+  if (userLoginFromHash()) return true;
+  const tab = currentTab();
+  return (
+    tab === "dashboard" ||
+    tab === "profile" ||
+    tab === "friends" ||
+    tab === "settings"
+  );
+}
+
 export function initPullRefresh(): void {
   if (!("ontouchstart" in window)) return;
 
@@ -159,7 +167,7 @@ export function initPullRefresh(): void {
       startY = t.clientY;
       lastDy = 0;
       pulling = false;
-      blocked = !enabled || isScrollArea(e.target);
+      blocked = !enabled || !supportsReload() || isScrollArea(e.target);
     },
     { passive: true },
   );

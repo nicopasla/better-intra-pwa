@@ -19,6 +19,10 @@ const MOCK_PEOPLE: { login: string; name: string }[] = [
   { login: "ebastien", name: "Emma Bastien" },
   { login: "ghubert", name: "Gaëtan Hubert" },
   { login: "vmarquet", name: "Victor Marquet" },
+  // Keep the clusters fixtures testable: one self seat and two friends.
+  { login: "mock.user", name: "Mock User" },
+  { login: "amelie", name: "Jean-Baptiste Alexandre de La Rochefoucauld" },
+  { login: "vmoreau", name: "Victor Moreau" },
 ];
 
 const MOCK_HOSTS = [
