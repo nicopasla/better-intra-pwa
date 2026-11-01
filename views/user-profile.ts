@@ -12,7 +12,10 @@ import { refresh } from "../refresh.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
-import { profileSkeleton } from "../lib/skeletons.ts";
+import {
+  profileCardsSkeleton,
+  profileHeroSkeleton,
+} from "../lib/skeletons.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { accentFor, profileHero } from "./profile-hero.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
@@ -100,7 +103,8 @@ export function userProfileView(login: string): unknown {
             ${evaluationsSection(s.stats)}
           `
         : s.loading
-          ? profileSkeleton("Loading profile")
+          ? html`${profileHeroSkeleton("Loading profile")}
+              ${profileCardsSkeleton()}`
           : errorCard(s.error)}
     </div>
   `;

@@ -34,23 +34,133 @@ export function rowSkeleton(
   `;
 }
 
-/** Profile hero (avatar, name, badges) plus a couple of cards. */
-export function profileSkeleton(label = "Loading profile"): unknown {
+/**
+ * Mirrors `profileHero()`: banner, avatar overlapping it on the left, name and
+ * login beside it, then the stats and badge rows.
+ */
+export function profileHeroSkeleton(label = "Loading profile"): unknown {
   return html`
-    <div class="flex flex-col gap-4" role="status" aria-label=${label}>
-      <div class="flex flex-col items-center gap-2" aria-hidden="true">
-        <span class="skeleton size-24 shrink-0 rounded-full"></span>
-        <span class="skeleton h-5 w-40"></span>
-        <span class="skeleton h-3 w-24"></span>
-        <span class="mt-1 flex gap-1.5">
-          <span class="skeleton h-9 w-20 rounded-full"></span>
-          <span class="skeleton h-9 w-20 rounded-full"></span>
-          <span class="skeleton h-9 w-20 rounded-full"></span>
-        </span>
+    <div
+      class="card bg-base-100 shadow-xl mb-4 overflow-hidden"
+      role="status"
+      aria-label=${label}
+    >
+      <div class="skeleton h-28 w-full" aria-hidden="true"></div>
+      <div class="card-body pt-0 gap-3" aria-hidden="true">
+        <div class="flex items-end gap-3 -mt-8">
+          <span class="skeleton size-24 shrink-0 rounded-full shadow-lg"></span>
+          <div class="flex min-w-0 flex-1 flex-col gap-2 pb-1">
+            <span class="skeleton h-6 w-32 max-w-full"></span>
+            <span class="skeleton h-4 w-24"></span>
+          </div>
+        </div>
+        <div class="flex w-full gap-1.5">
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+        </div>
+        <div class="flex justify-center gap-1.5">
+          <span class="skeleton h-7 w-20 rounded-full"></span>
+          <span class="skeleton h-7 w-20 rounded-full"></span>
+          <span class="skeleton h-7 w-16 rounded-full"></span>
+        </div>
+        <div class="flex justify-center gap-2">
+          <span class="skeleton h-8 w-24 rounded-full"></span>
+          <span class="skeleton h-8 w-20 rounded-full"></span>
+        </div>
       </div>
-      <div class="flex flex-col gap-3" aria-hidden="true">
-        <span class="skeleton h-24 w-full rounded-box"></span>
-        <span class="skeleton h-40 w-full rounded-box"></span>
+    </div>
+  `;
+}
+
+/** Logtime / Projects / Evaluations cards shown under another user's hero. */
+export function profileCardsSkeleton(): unknown {
+  return html`
+    <div role="status" aria-label="Loading profile details">
+      <div class="card bg-base-100 shadow-xl mb-4" aria-hidden="true">
+        <div class="card-body py-3 gap-2">
+          <div class="flex items-center justify-between">
+            <span class="skeleton h-4 w-20"></span>
+            <span class="skeleton h-6 w-16 rounded-full"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-xl mb-4" aria-hidden="true">
+        <div class="card-body gap-3">
+          <span class="skeleton h-5 w-24"></span>
+          <div class="flex gap-2">
+            <span class="skeleton h-16 flex-1 rounded-box"></span>
+            <span class="skeleton h-16 flex-1 rounded-box"></span>
+            <span class="skeleton h-16 flex-1 rounded-box"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-xl mb-4" aria-hidden="true">
+        <div class="card-body gap-3">
+          <span class="skeleton h-5 w-28"></span>
+          <div class="flex gap-2">
+            <span class="skeleton h-9 w-16 rounded-xl"></span>
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+          </div>
+          <div class="mt-1 flex flex-col gap-2">
+            <span class="skeleton h-3 w-full"></span>
+            <span class="skeleton h-3 w-5/6"></span>
+            <span class="skeleton h-3 w-full"></span>
+            <span class="skeleton h-3 w-2/3"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** Mirrors the Profile tab's fixed evaluations + roulette cards. */
+export function profileTabSkeleton(label = "Loading your profile"): unknown {
+  return html`
+    <div
+      class="fixed left-0 right-0 z-10 flex flex-col gap-3 px-4"
+      style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
+      role="status"
+      aria-label=${label}
+    >
+      <div
+        class="flex-60 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+      >
+        <div class="card-body min-h-0" aria-hidden="true">
+          <span class="skeleton h-5 w-28"></span>
+          <div class="flex items-stretch justify-center gap-2">
+            <span class="skeleton h-9 w-16 rounded-xl"></span>
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+          </div>
+          <div class="mt-2 flex min-h-0 flex-1 flex-col gap-2.5">
+            ${Array.from(
+              { length: 6 },
+              (_, i) => html`
+                <span
+                  class="skeleton h-3 ${i % 3 === 2 ? "w-2/3" : "w-full"}"
+                ></span>
+              `,
+            )}
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex-40 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
+      >
+        <div class="card-body min-h-0" aria-hidden="true">
+          <span class="skeleton h-5 w-36"></span>
+          <div class="flex items-stretch justify-center gap-2">
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+            <span class="skeleton h-9 flex-1 rounded-xl"></span>
+          </div>
+          <div class="mt-2 flex min-h-0 flex-1 flex-col gap-2.5">
+            <span class="skeleton h-3 w-full"></span>
+            <span class="skeleton h-3 w-5/6"></span>
+            <span class="skeleton h-3 w-3/4"></span>
+          </div>
+        </div>
       </div>
     </div>
   `;
