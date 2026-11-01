@@ -304,11 +304,10 @@ function themeSection() {
     <div class="grid grid-cols-2 gap-2">
       ${THEME_OPTIONS.map((o) => {
         const selected = themeMode === o.id;
-        const title = o.id === "extension" ? `${o.label} (${preset})` : o.label;
         return html`
           <button
             type="button"
-            class="flex items-center justify-between gap-2 rounded-box border p-3 text-left ${selected
+            class="relative flex min-h-[3.5rem] items-center justify-center rounded-box border px-8 py-3 text-center ${selected
               ? "border-primary bg-primary/10"
               : "border-base-300 bg-base-100"}"
             aria-pressed=${selected}
@@ -318,10 +317,15 @@ function themeSection() {
               refresh();
             }}
           >
-            <span class="text-sm font-semibold">${title}</span>
+            <span class="flex flex-col items-center gap-0.5 leading-tight">
+              <span class="text-sm font-semibold">${o.label}</span>
+              ${o.id === "extension"
+                ? html`<span class="text-xs opacity-60">${preset}</span>`
+                : ""}
+            </span>
             ${selected
               ? html`<span
-                  class="size-5 shrink-0 flex items-center justify-center text-primary"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 size-5 flex items-center justify-center text-primary"
                   aria-hidden="true"
                   >${svgIcon(CIRCLE_CHECK_SVG, 20)}</span
                 >`
