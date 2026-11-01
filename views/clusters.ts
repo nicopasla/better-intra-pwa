@@ -168,12 +168,41 @@ export function clustersView(): unknown {
   `;
 }
 
+/** Placeholder rows while the online list or a map's connections load. */
+function skeletonRows(
+  count: number,
+  avatar = "size-10",
+  padding = "px-4",
+): unknown {
+  const widths = ["w-1/3", "w-2/5", "w-1/4", "w-1/2"];
+  return html`
+    <div role="status" aria-label="Loading">
+      <ul
+        class="flex flex-col divide-y divide-base-300 ${padding}"
+        aria-hidden="true"
+      >
+        ${Array.from(
+          { length: count },
+          (_, i) => html`
+            <li class="flex items-center gap-3 py-2">
+              <span class="skeleton ${avatar} shrink-0 rounded-full"></span>
+              <span class="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span
+                  class="skeleton h-3 ${widths[i % widths.length]}"
+                ></span>
+                <span class="skeleton h-2.5 w-16"></span>
+              </span>
+              <span class="skeleton h-6 w-12 shrink-0 rounded-full"></span>
+            </li>
+          `,
+        )}
+      </ul>
+    </div>
+  `;
+}
+
 function activeList(): unknown {
-  if (loading && entries.length === 0) {
-    return html`<div class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
-    </div>`;
-  }
+  if (loading && entries.length === 0) return skeletonRows(7);
   if (error && entries.length === 0) {
     return html`<div
       class="flex flex-col items-center justify-center gap-3 py-12 px-6 text-center"
@@ -443,20 +472,26 @@ function mapView(map: ClusterMapDef): unknown {
                 </span>
               </div>
             </div>
-            ${connections.length
-              ? html`<div
-                  class="min-h-0 flex-1 overflow-y-auto -mr-3 pr-3 ${listExpanded
-                    ? "pb-10"
-                    : ""}"
-                  style="scrollbar-gutter:stable"
-                >
-                  <ul class="flex flex-col divide-y divide-base-300">
-                    ${connections.map((entry) => connectionRow(entry))}
-                  </ul>
-                </div>`
-              : html`<p class="py-3 text-center text-sm opacity-60">
-                  No one is seated in this cluster right now.
-                </p>`}
+            ${svg
+              ? connections.length
+                ? html`<div
+                    class="min-h-0 flex-1 overflow-y-auto -mr-3 pr-3 ${listExpanded
+                      ? "pb-10"
+                      : ""}"
+                    style="scrollbar-gutter:stable"
+                  >
+                    <ul class="flex flex-col divide-y divide-base-300">
+                      ${connections.map((entry) => connectionRow(entry))}
+                    </ul>
+                  </div>`
+                : html`<p class="py-3 text-center text-sm opacity-60">
+                    No one is seated in this cluster right now.
+                  </p>`
+              : map.failed
+                ? html`<p class="py-3 text-center text-sm opacity-60">
+                    No one is seated in this cluster right now.
+                  </p>`
+                : skeletonRows(3, "size-8", "")}
             ${listExpanded
               ? html`<button
                   type="button"
@@ -482,8 +517,12 @@ function ensureMap(map: ClusterMapDef): void {
 }
 
 function mapLoading(): unknown {
-  return html`<div class="flex items-center justify-center py-16">
-    <span class="loading loading-spinner loading-lg"></span>
+  return html`<div
+    class="flex min-h-0 flex-1 flex-col"
+    role="status"
+    aria-label="Loading the cluster map"
+  >
+    <div class="skeleton w-full flex-1 rounded-box"></div>
   </div>`;
 }
 
