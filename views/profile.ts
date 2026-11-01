@@ -385,20 +385,24 @@ function achievementsTab(m: Me) {
           <li class="list-row items-center">
             ${icon
               ? html`<img
-                  class="size-10 rounded-box"
+                  class="size-10 rounded-box skeleton"
                   src="${icon}"
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   referrerpolicy="no-referrer"
                   @error=${(e: Event) => {
-                    (e.currentTarget as HTMLImageElement).style.visibility =
-                      "hidden";
+                    const img = e.currentTarget as HTMLImageElement;
+                    img.style.visibility = "hidden";
+                    img.classList.remove("skeleton");
                   }}
                   @load=${(e: Event) => {
-                    (e.currentTarget as HTMLImageElement).style.visibility = "";
+                    const img = e.currentTarget as HTMLImageElement;
+                    img.style.visibility = "";
+                    img.classList.remove("skeleton");
                   }}
                 />`
-              : html`<div class="size-10 rounded-box bg-base-200"></div>`}
+              : html`<div class="size-10 rounded-box skeleton"></div>`}
             <div class="list-col-grow min-w-0">
               <div class="font-semibold">${a.name}</div>
               ${a.description
