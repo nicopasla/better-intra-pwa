@@ -57,6 +57,8 @@ export interface ProfileHeroOptions {
   editActive?: boolean;
   /** Toggle a badge by tapping it (home edit mode). */
   onBadgeToggle?: (id: string) => void;
+  /** Make campus role badges (PHOENIX, PEGASUS, …) open their app. */
+  badgeLinks?: boolean;
   onToggleAvatar?: () => void;
   onAvatarError?: () => void;
 }
@@ -80,7 +82,12 @@ export function profileHero(
     const name = typeof g === "string" ? g : g.name;
     const color =
       (typeof g === "string" ? null : g.color) ?? v.groupColors?.[name] ?? null;
-    return { name, color, url: opts.editActive ? null : badgeUrlFor(name) };
+    return {
+      name,
+      color,
+      url:
+        opts.badgeLinks && !opts.editActive ? badgeUrlFor(name) : null,
+    };
   });
   /** Admin-granted badges from D1, rendered with the role badges. */
   const customBadges = (p.customBadges ?? []).filter((b) => b.label.trim());

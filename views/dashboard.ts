@@ -413,6 +413,7 @@ function heroCard() {
   const layout = getHomeLayout();
   return profileHero(myProfile, {
     showShare: false,
+    badgeLinks: true,
     badges: {
       order: layout.badges.map((item) => item.id),
       hidden: layout.badges
