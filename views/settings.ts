@@ -444,7 +444,9 @@ function pushMasterRow() {
         @change=${onTogglePush}
       />
     </label>
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+    <div
+      class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs"
+    >
       ${statusChip(
         "This device",
         pushEnabled === null ? "unknown" : pushEnabled ? "on" : "off",
@@ -519,7 +521,7 @@ function pushTestRow() {
     <div class="flex flex-col gap-2">
       <button
         type="button"
-        class="btn btn-sm btn-ghost gap-1.5 self-start ${testing
+        class="btn btn-sm btn-ghost gap-1.5 self-center ${testing
           ? "loading"
           : ""}"
         ?disabled=${pushEnabled !== true || testing}
