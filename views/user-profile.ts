@@ -99,7 +99,9 @@ export function userProfileView(login: string): unknown {
             ${evaluationsSection(s.stats)}
           `
         : s.loading
-          ? html`<div class="flex justify-center py-16">
+          ? html`<div
+              class="fixed inset-0 z-10 flex items-center justify-center pointer-events-none"
+            >
               <span class="loading loading-spinner loading-lg"></span>
             </div>`
           : errorCard(s.error)}
