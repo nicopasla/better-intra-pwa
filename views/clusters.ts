@@ -452,7 +452,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
         ${friends.has(entry.login.trim().toLowerCase()) &&
         entry.login.trim().toLowerCase() !== sessionLogin()
           ? html`<span
-              class="size-4 shrink-0 flex items-center justify-center text-success"
+              class="size-4 shrink-0 flex items-center justify-center text-info"
               title="Friend"
               aria-label="Friend"
               >${unsafeHTML(FRIEND_SVG.replace("<svg", '<svg width="16" height="16"'))}</span

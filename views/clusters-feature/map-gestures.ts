@@ -355,6 +355,8 @@ export function attachMapGestures(container: HTMLElement): void {
   container.addEventListener("pointerup", onUp);
   container.addEventListener("pointercancel", onCancel);
   container.addEventListener("wheel", onWheel, { passive: false });
+  // Long-press on Android/iOS otherwise opens the system copy/lookup menu.
+  container.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
   new ResizeObserver(() => {
     sizes.set(container, {
