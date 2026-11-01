@@ -25,8 +25,8 @@ function mockHash(login: string): number {
 
 const MOCK_NAMES: Record<string, string> = {
   "mock.user": "Mock User",
-  jsmith: "Jane Smith",
-  amelie: "Amélie Martin",
+  jsmith: "Marie-Charlotte de la Fontaine-Beaumont",
+  amelie: "Jean-Baptiste Alexandre de La Rochefoucauld",
   bdurand: "Bob Durand",
   cpetit: "Charlie Petit",
   dleroy: "Diana Leroy",
@@ -195,8 +195,8 @@ function badgeIcon(label: string, color: string): string {
 export const mock = {
   me: {
     login: "jsmith",
-    displayName: "Jane Smith",
-    usualFullName: "Jane Smith",
+    displayName: "Marie-Charlotte de la Fontaine-Beaumont",
+    usualFullName: "Marie-Charlotte de la Fontaine-Beaumont",
     image: catImage(1),
     kind: "student",
     staff: false,
@@ -585,7 +585,7 @@ export const mock = {
   friends: [
     {
       login: "amelie",
-      displayName: "Amélie Martin",
+      displayName: "Jean-Baptiste Alexandre de La Rochefoucauld",
       avatar: catImage(2),
       customAvatar: null,
       avatarBg: "transparent",
@@ -784,7 +784,7 @@ export const mock = {
     const list: StudentEntry[] = [
       {
         login: "aberger",
-        displayname: "Anna Berger",
+        displayname: "Maximilien Alexandre de la Tour d'Auvergne",
         image_url: catImage(11),
         begin_at: mins(-20 * 24 * 60),
         blackholed_at: mins(90 * 24 * 60),

@@ -186,9 +186,9 @@ export function profileHero(
             >${svg18(ARROW_SHARE_SVG)}</a
           >`}
       <div class="card-body pt-0 gap-3">
-        <div class="flex items-end gap-3 -mt-8">
-          ${avatarBlock(p, opts)}
-          <div class="min-w-0 flex-1">
+        <div class="flex items-start gap-3">
+          <div class="-mt-8 shrink-0">${avatarBlock(p, opts)}</div>
+          <div class="min-w-0 flex-1 pt-1">
             <div class="flex items-center gap-2 min-w-0">
               <span
                 class="font-bold text-2xl leading-tight line-clamp-2 break-words"
