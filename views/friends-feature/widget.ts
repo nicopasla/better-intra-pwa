@@ -309,19 +309,27 @@ function renderFriendRow(
   `;
 }
 
-function renderEmpty() {
+/** Centred, fixed empty state: out of flow so the page can't scroll. */
+function renderEmptyState(title: string, hint: string) {
   return html`
     <div
-      class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem-env(safe-area-inset-bottom))] px-6 py-16 opacity-40"
+      class="fixed left-0 right-0 z-10 flex items-center justify-center px-6"
+      style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
     >
-      <span
-        class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
-        >${unsafeHTML(GHOST_SVG)}</span
-      >
-      <p class="text-sm font-bold">No friends yet</p>
-      <p class="text-xs">Add friends from their profile</p>
+      <div class="flex flex-col items-center justify-center gap-2 text-center opacity-40">
+        <span
+          class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
+          >${unsafeHTML(GHOST_SVG)}</span
+        >
+        <p class="text-sm font-bold">${title}</p>
+        <p class="text-xs">${hint}</p>
+      </div>
     </div>
   `;
+}
+
+function renderEmpty() {
+  return renderEmptyState("No friends yet", "Add friends from their profile");
 }
 
 function renderLoadError(onRefresh: () => void) {
@@ -1025,18 +1033,10 @@ function renderWidget(state: WidgetState) {
                     : state.friends.length === 0
                       ? renderEmpty()
                       : sorted.length === 0
-                        ? html`<div
-                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem-env(safe-area-inset-bottom))] px-6 py-16 opacity-40"
-                          >
-                            <span
-                              class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
-                              >${unsafeHTML(GHOST_SVG)}</span
-                            >
-                            <p class="text-sm font-bold">No friends online</p>
-                            <p class="text-xs">
-                              Turn off the online filter to see everyone
-                            </p>
-                          </div>`
+                        ? renderEmptyState(
+                            "No friends online",
+                            "Turn off the online filter to see everyone",
+                          )
                         : html`<ul class="list text-base-content">
                             ${sorted.map(
                               (f, i) =>

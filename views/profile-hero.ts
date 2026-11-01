@@ -168,10 +168,7 @@ export function profileHero(
       ${opts.onToggleFriend
         ? html`<button
             type="button"
-            class="btn btn-circle absolute top-2 left-2 size-11 border-none shadow-md bg-base-100/90 hover:bg-base-100 ${opts.friendState ===
-            "friend"
-              ? "text-info"
-              : ""}"
+            class="btn btn-circle absolute top-2 left-2 size-11 border-none shadow-md bg-base-100/90 hover:bg-base-100"
             aria-label=${opts.friendState === "friend"
               ? "Remove from friends"
               : "Add to friends"}
