@@ -312,22 +312,27 @@ html.ft-fixed-view body {
   flex-shrink: 0;
 }
 
-/* Separate "next refresh" card on the right of the clusters tab bar. Fixed
-   size so the countdown ticking (59s → 9s) never resizes it. */
-.clusters-refresh {
-  flex: 0 0 auto;
+/* Refresh countdown inside the clusters tab bar: a fixed-width, non-clickable
+   cell after a hairline divider. */
+.clusters-tabs .clusters-tab-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.2rem 0.1rem;
+  background: color-mix(in oklab, var(--color-base-content) 15%, transparent);
+}
+
+.clusters-tabs .clusters-tab-time {
+  flex: 0 0 2.2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  border-radius: var(--radius-field);
-  background: var(--color-base-200);
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  opacity: 0.7;
-  cursor: default;
+  opacity: 0.6;
+  pointer-events: none;
   user-select: none;
+  cursor: default;
 }
 
 /* Taken/seats counter next to a cluster tab's label. */

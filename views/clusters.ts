@@ -753,15 +753,14 @@ export function clustersBottomBar(): unknown {
                 ? html`<span class="tab-count">${online}</span>`
                 : ""}
             </button>
+            <span class="clusters-tab-sep" aria-hidden="true"></span>
+            <span
+              id="ft-clusters-countdown"
+              class="clusters-tab-time"
+              title="Auto-refreshes every minute"
+            ></span>
           </div>
         </div>
-      </div>
-      <div class="flex shrink-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
-        <span
-          id="ft-clusters-countdown"
-          class="clusters-refresh"
-          title="Auto-refreshes every minute"
-        ></span>
       </div>
     </div>
   `;
