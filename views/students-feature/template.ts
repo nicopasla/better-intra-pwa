@@ -18,6 +18,7 @@ import CHECK_SVG from "../../assets/check.svg?raw";
 import FORTY_TWO_SVG from "../../assets/42_Logo.svg?raw";
 import { segmentedTabs } from "../../lib/segmented-tabs.ts";
 import { pageHeader } from "../../lib/page-header.ts";
+import { nameTip } from "../../lib/names.ts";
 import {
   avatarErrorFallback,
   avatarLoaded,
@@ -493,7 +494,11 @@ export function renderStudentsDialogTemplate(
   const renderInfo = (r: StudentEntry) => html`
     <div class="info">
       <div class="displayname">
-        <span class="displayname-name">${r.displayname || r.login}</span>
+        <span
+          class="displayname-name"
+          data-tip=${nameTip(r.displayname || r.login)}
+          >${r.displayname || r.login}</span
+        >
         ${renderStatusBadges(r)}
       </div>
       ${renderLogin(r)}
@@ -565,7 +570,11 @@ export function renderStudentsDialogTemplate(
       >
         <div class="row-head">${renderAvatar(r)} ${renderLogin(r)}</div>
         <div class="fullname">
-          <span class="fullname-text">${r.displayname || r.login}</span>
+          <span
+            class="fullname-text"
+            data-tip=${nameTip(r.displayname || r.login)}
+            >${r.displayname || r.login}</span
+          >
           ${renderStatusBadges(r)}
         </div>
         ${pool || date ? html`<div class="row-line">${pool}${date}</div>` : ""}
@@ -652,9 +661,11 @@ export function renderStudentsDialogTemplate(
         color: var(--color-base-content);
       }
       .displayname-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
         min-width: 0;
       }
       .grid .displayname {
@@ -729,9 +740,11 @@ export function renderStudentsDialogTemplate(
         opacity: 0.6;
       }
       .grid.roster-students .fullname-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
         min-width: 0;
       }
       .row-head {

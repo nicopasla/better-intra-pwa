@@ -59,7 +59,8 @@ function row(
         <div class="min-w-0 flex-1 flex flex-col">
           <span class="font-semibold leading-tight truncate">${u.login}</span>
           ${u.displayName && u.displayName !== u.login
-            ? html`<span class="text-xs leading-tight opacity-60 truncate"
+            ? html`<span
+                class="text-xs leading-tight opacity-60 line-clamp-2 break-words"
                 >${u.displayName}</span
               >`
             : ""}

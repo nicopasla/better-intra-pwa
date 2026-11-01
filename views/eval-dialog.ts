@@ -3,6 +3,7 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { userProfile, type UpcomingEval, type UserProfile } from "../data.ts";
 import { navigateToSeat, navigateToUser } from "../shell.ts";
 import { dateTime, evalCountdown } from "../lib/format.ts";
+import { nameTip } from "../lib/names.ts";
 import { lockScroll, unlockScroll } from "../lib/scroll-lock.ts";
 import {
   AVATARS_ENABLED,
@@ -123,7 +124,9 @@ export function openEvalDialog(e: UpcomingEval, login: string): void {
               ${u.login}
             </button>
             ${u.displayName && u.displayName !== u.login
-              ? html`<span class="text-base opacity-80 truncate"
+              ? html`<span
+                  class="text-base opacity-80 line-clamp-2 break-words"
+                  data-tip=${nameTip(u.displayName)}
                   >${u.displayName}</span
                 >`
               : ""}

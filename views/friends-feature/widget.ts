@@ -13,6 +13,7 @@ import {
 import { loginUrl, getSession } from "../../api.ts";
 import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
+import { nameTip } from "../../lib/names.ts";
 import { headerBadge, pageHeader } from "../../lib/page-header.ts";
 import { navigateToSeat } from "../../shell.ts";
 import { refresh } from "../../refresh.ts";
@@ -205,7 +206,9 @@ function renderFriendRow(
       >
         <span class="font-bold text-lg text-primary">${friend.login}</span>
         ${friend.displayName && friend.displayName !== friend.login
-          ? html`<span class="text-sm opacity-80 truncate"
+          ? html`<span
+              class="text-sm opacity-80 line-clamp-2 break-words"
+              data-tip=${nameTip(friend.displayName)}
               >${friend.displayName}</span
             >`
           : ""}

@@ -244,7 +244,9 @@ function row(e: OccupancyEntry): unknown {
             }}
           />
           <div class="flex-1 min-w-0">
-            <div class="font-semibold truncate">${e.name || e.login}</div>
+            <div class="font-semibold line-clamp-2 break-words">
+              ${e.name || e.login}
+            </div>
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
@@ -324,7 +326,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
           }}
         />
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold truncate">
+          <div class="text-sm font-semibold line-clamp-2 break-words">
             ${entry.name || entry.login}
           </div>
           <div class="text-xs opacity-60 truncate">${entry.login}</div>

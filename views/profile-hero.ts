@@ -8,6 +8,7 @@ import {
   initialsAvatar,
 } from "../lib/avatar.ts";
 import { saveData } from "../lib/network.ts";
+import { nameTip } from "../lib/names.ts";
 import {
   alumniBadge,
   blackholeBadge,
@@ -189,7 +190,9 @@ export function profileHero(
           ${avatarBlock(p, opts)}
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="font-bold text-2xl leading-tight truncate"
+              <span
+                class="font-bold text-2xl leading-tight line-clamp-2 break-words"
+                data-tip=${nameTip(p.displayName)}
                 >${p.displayName}</span
               >
               <span
@@ -199,7 +202,10 @@ export function profileHero(
                 title="${p.location ? `Online · ${p.location}` : "Offline"}"
               ></span>
             </div>
-            <div class="text-lg leading-tight opacity-60 truncate">
+            <div
+              class="text-lg leading-tight opacity-60 truncate"
+              title=${p.login}
+            >
               ${p.login}
             </div>
           </div>
