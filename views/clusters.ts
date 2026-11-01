@@ -305,7 +305,9 @@ function row(e: OccupancyEntry): unknown {
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
-        <span class="badge badge-success badge-lg shrink-0" title="${tooltip}"
+        <span
+          class="badge badge-success badge-lg shrink-0"
+          data-tip="${tooltip}"
           >${e.host}</span
         >
       </div>
