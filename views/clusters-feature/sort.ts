@@ -1,5 +1,3 @@
-import { html } from "lit-html";
-import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import type { ActiveSortMode, SortDir } from "./types";
 import SORT_AZ_SVG from "../../assets/sort-az.svg?raw";
 import SORT_ZA_SVG from "../../assets/sort-za.svg?raw";
@@ -44,7 +42,7 @@ export function loadActiveSort(): ActiveSortState {
   }
 }
 
-export function persistActiveSort(state: ActiveSortState): void {
+function persist(state: ActiveSortState): void {
   try {
     localStorage.setItem(SORT_KEY, JSON.stringify(state));
   } catch {
@@ -52,56 +50,41 @@ export function persistActiveSort(state: ActiveSortState): void {
   }
 }
 
-export function toggleActiveSort(
-  state: ActiveSortState,
-  mode: ActiveSortMode,
-): void {
-  if (state.mode === mode) {
-    if (mode === "name")
-      state.nameDir = state.nameDir === "asc" ? "desc" : "asc";
-    else state.sinceDir = state.sinceDir === "desc" ? "asc" : "desc";
+/**
+ * Advances to the next sort, in the order a tap on the Active tab walks them:
+ * date newest → date oldest → name A→Z → name Z→A → date newest.
+ */
+export function cycleActiveSort(state: ActiveSortState): void {
+  if (state.mode === "since") {
+    if (state.sinceDir === "desc") {
+      state.sinceDir = "asc";
+    } else {
+      state.mode = "name";
+      state.nameDir = "asc";
+    }
+  } else if (state.nameDir === "asc") {
+    state.nameDir = "desc";
   } else {
-    state.mode = mode;
+    state.mode = "since";
+    state.sinceDir = "desc";
   }
-  persistActiveSort(state);
+  persist(state);
 }
 
-const svg16 = (raw: string) =>
-  unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+/** Icon matching the current sort, shown on the Active tab. */
+export function activeSortIcon(state: ActiveSortState): string {
+  if (state.mode === "name") {
+    return state.nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG;
+  }
+  return state.sinceDir === "desc" ? CAL_DOWN_SVG : CAL_UP_SVG;
+}
 
-export function activeSortControl(
-  state: ActiveSortState,
-  onChange: (mode: ActiveSortMode) => void,
-): unknown {
-  const { mode, nameDir, sinceDir } = state;
-  return html`
-    <div class="join shrink-0">
-      <button
-        type="button"
-        class="btn btn-md join-item ${mode === "name"
-          ? "btn-primary"
-          : "btn-outline border-base-content/20"}"
-        style="height:2.5rem"
-        data-tip="${nameDir === "asc"
-          ? "Name A → Z (click to invert)"
-          : "Name Z → A (click to invert)"}"
-        @click=${() => onChange("name")}
-      >
-        ${svg16(nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG)}
-      </button>
-      <button
-        type="button"
-        class="btn btn-md join-item ${mode === "since"
-          ? "btn-primary"
-          : "btn-outline border-base-content/20"}"
-        style="height:2.5rem"
-        data-tip="${sinceDir === "desc"
-          ? "Date (newest first)"
-          : "Date (oldest first)"}"
-        @click=${() => onChange("since")}
-      >
-        ${svg16(sinceDir === "desc" ? CAL_DOWN_SVG : CAL_UP_SVG)}
-      </button>
-    </div>
-  `;
+/** Human-readable sort, used in the Active tab's tooltip. */
+export function activeSortLabel(state: ActiveSortState): string {
+  if (state.mode === "name") {
+    return state.nameDir === "asc" ? "name A → Z" : "name Z → A";
+  }
+  return state.sinceDir === "desc"
+    ? "date, newest first"
+    : "date, oldest first";
 }

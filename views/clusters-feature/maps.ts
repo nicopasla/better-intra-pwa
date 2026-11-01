@@ -7,9 +7,8 @@ export interface ClusterMapDef {
   /** Matches the cluster name in campuses/belgium.json. */
   id: string;
   label: string;
-  available: boolean;
   /** Map file URL (campuses/maps/…), loaded at runtime. */
-  url?: string;
+  url: string;
   svg?: string;
   /** Seat hostnames parsed from the map's avatar <image> elements. */
   seatIds: Set<string>;
@@ -52,14 +51,13 @@ const crossedFromSvg = (svg: string): number =>
   (svg.match(/class="cross"/g) ?? []).length;
 
 /**
- * Cluster names come from campuses/belgium.json. SHI, FU and MI have maps for
- * now; the rest are shown as disabled tabs.
+ * Cluster names come from campuses/belgium.json; these are the ones with a map
+ * in the repo.
  */
 export const CLUSTER_MAPS: ClusterMapDef[] = [
   {
     id: "shi",
     label: "SHI",
-    available: true,
     url: `${MAP_BASE}/shi.svg`,
     seatIds: new Set(),
     crossed: 0,
@@ -68,7 +66,6 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
   {
     id: "fu",
     label: "FU",
-    available: true,
     url: `${MAP_BASE}/fu.svg`,
     seatIds: new Set(),
     crossed: 0,
@@ -77,24 +74,7 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
   {
     id: "mi",
     label: "MI",
-    available: true,
     url: `${MAP_BASE}/mi.svg`,
-    seatIds: new Set(),
-    crossed: 0,
-    loadedAt: 0,
-  },
-  {
-    id: "a2",
-    label: "A2",
-    available: false,
-    seatIds: new Set(),
-    crossed: 0,
-    loadedAt: 0,
-  },
-  {
-    id: "a3",
-    label: "A3",
-    available: false,
     seatIds: new Set(),
     crossed: 0,
     loadedAt: 0,
@@ -154,7 +134,6 @@ export function loadClusterMap(
   map: ClusterMapDef,
   force = false,
 ): Promise<void> {
-  if (!map.url) return Promise.resolve();
   if (!force && !isMapStale(map)) return Promise.resolve();
   if (mockMode) {
     map.svg = mockMapSvg(map.id);
@@ -170,7 +149,7 @@ export function loadClusterMap(
   map.loading = true;
   const load = (async () => {
     try {
-      const res = await fetchMapSvg(map.url!);
+      const res = await fetchMapSvg(map.url);
       if (!res.ok) throw new Error(String(res.status));
       const raw = await res.text();
       map.svg = stripStyle(raw);
@@ -193,10 +172,10 @@ export function loadClusterMap(
   return load;
 }
 
-/** Warms every available map when the clusters tab opens (refreshing stale ones). */
+/** Warms every map when the clusters tab opens (refreshing stale ones). */
 export function preloadClusterMaps(force = false): void {
   for (const map of CLUSTER_MAPS) {
-    if (!map.available || map.loading) continue;
+    if (map.loading) continue;
     if (!force && !isMapStale(map)) continue;
     void loadClusterMap(map, force);
   }

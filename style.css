@@ -286,10 +286,56 @@ html.ft-fixed-view body {
   overscroll-behavior: none;
 }
 
-/* Six short tabs (SHI, FU, MI, A2, A3, Active) in the clusters dock bar. */
+/* Four short tabs (SHI, FU, MI, Active) in the clusters dock bar. */
 .clusters-tabs .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
   font-size: 0.68rem;
   padding: 0.4rem 0.1rem;
+}
+
+.clusters-tabs .tab-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* Separate "next refresh" card on the right of the clusters tab bar. Fixed
+   size so the countdown ticking (59s → 9s) never resizes it. */
+.clusters-refresh {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  border-radius: var(--radius-field);
+  background: var(--color-base-200);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  cursor: default;
+  user-select: none;
+}
+
+/* Taken/seats counter next to a cluster tab's label. */
+.clusters-tabs .tab-count {
+  margin-left: 0.15em;
+  padding: 0 0.3em;
+  border-radius: 0.35em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-info);
+  background: color-mix(in oklab, var(--color-info) 14%, transparent);
+}
+
+/* On the selected tab the pill sits on the primary fill: keep it legible. */
+.clusters-tabs .tab-btn.active .tab-count {
+  color: var(--color-primary-content);
+  background: color-mix(in oklab,
+      var(--color-primary-content) 18%,
+      transparent);
 }
 
 /* Cross-document view transitions: smooths full page loads (e.g. returning
@@ -765,6 +811,7 @@ html.ft-editing body {
     }
   }
 }
+
 /* Scrollable lists where the overlay scrollbar would cover the content. */
 .no-scrollbar {
   scrollbar-width: none;

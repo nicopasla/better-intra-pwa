@@ -1,12 +1,11 @@
 import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
+import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import { currentTab } from "../shell.ts";
 import { refresh } from "../refresh.ts";
 import { getBlob } from "../data.ts";
-import { headerBadge, pageHeader } from "../lib/page-header.ts";
 import {
   avatarLoaded,
   customAvatarUrl,
@@ -32,15 +31,13 @@ import {
 } from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
-  activeSortControl,
+  activeSortIcon,
+  activeSortLabel,
+  cycleActiveSort,
   loadActiveSort,
-  toggleActiveSort,
 } from "./clusters-feature/sort.ts";
 import type { ClusterMapDef } from "./clusters-feature/maps.ts";
-import type {
-  ActiveSortMode,
-  OccupancyEntry,
-} from "./clusters-feature/types.ts";
+import type { OccupancyEntry } from "./clusters-feature/types.ts";
 
 const POLL_INTERVAL = 60_000;
 
@@ -78,32 +75,42 @@ function seatFromHash(): string | null {
 
 /** Longest available map id that prefixes the seat (`shi-r1-p1` → `shi`). */
 function mapIdForSeat(seat: string): string | null {
-  const match = CLUSTER_MAPS.filter(
-    (m) => m.available && seat.startsWith(`${m.id}-`),
-  ).sort((a, b) => b.id.length - a.id.length)[0];
+  const match = CLUSTER_MAPS.filter((m) => seat.startsWith(`${m.id}-`)).sort(
+    (a, b) => b.id.length - a.id.length,
+  )[0];
   return match?.id ?? null;
-}
-
-function setSort(mode: ActiveSortMode): void {
-  toggleActiveSort(sortState, mode);
-  refresh();
 }
 
 function switchTab(id: string): void {
   if (id === activeTab) return;
-  if (id !== "active" && !findClusterMap(id)?.available) return;
+  if (id !== "active" && !findClusterMap(id)) return;
   // Switching rooms drops any seat focus and returns the map to the fit view.
   const currentMap = document.getElementById("ft-cluster-map");
   if (currentMap) resetMapZoom(currentMap);
   focusSeat = null;
   mapExpanded = false;
+  listExpanded = false;
   activeTab = id;
   refresh();
+}
+
+/** First tap opens the online list, later taps cycle its sort order. */
+function onActiveTab(): void {
+  if (activeTab === "active") {
+    cycleActiveSort(sortState);
+    refresh();
+    return;
+  }
+  switchTab("active");
 }
 
 function refreshLabel(): void {
   const el = document.getElementById("ft-clusters-countdown");
   if (!el) return;
+  if (!lastUpdated) {
+    el.textContent = "…";
+    return;
+  }
   const secs = Math.max(
     0,
     Math.ceil((POLL_INTERVAL - (Date.now() - lastUpdated)) / 1000),
@@ -153,24 +160,9 @@ export function clustersView(): unknown {
     if (map) return mapView(map);
   }
   mapExpanded = false;
+  listExpanded = false;
   return html`
     <div class="flex flex-col bg-base-100 rounded-b-xl mb-4">
-      ${pageHeader({
-        leading: headerBadge(entries.length, {
-          tip: "online",
-          class: "badge-info",
-          ring: false,
-        }),
-        trailing: html`
-          ${activeSortControl(sortState, setSort)}
-          <span
-            id="ft-clusters-countdown"
-            class="badge badge-outline tabular-nums opacity-70"
-            style="height:2.5rem;min-width:2.5rem;justify-content:center"
-            title="Auto-refreshes every minute"
-          ></span>
-        `,
-      })}
       ${activeList()}
     </div>
   `;
@@ -291,7 +283,7 @@ function seatedEntries(map: ClusterMapDef): OccupancyEntry[] {
   );
 }
 
-/** Everyone seated in the cluster, newest connection first. */
+/** Entries ordered by connection time, newest first. */
 function connectionList(seated: OccupancyEntry[]): OccupancyEntry[] {
   return seated.slice().sort((a, b) => {
     const at = Date.parse(a.begin_at || "") || 0;
@@ -351,9 +343,17 @@ function connectionRow(entry: OccupancyEntry): unknown {
 }
 
 let mapExpanded = false;
+let listExpanded = false;
 
 function toggleMapExpanded(): void {
   mapExpanded = !mapExpanded;
+  if (mapExpanded) listExpanded = false;
+  refresh();
+}
+
+function toggleListExpanded(): void {
+  listExpanded = !listExpanded;
+  if (listExpanded) mapExpanded = false;
   refresh();
 }
 
@@ -363,7 +363,7 @@ function mapView(map: ClusterMapDef): unknown {
   const connections = connectionList(seated);
   const taken = seated.length;
   const svg = map.svg;
-  const usable = Math.max(0, map.seatIds.size - map.crossed);
+  const usable = usableSeats(map);
   const deadNote = map.crossed
     ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
     : "occupied seats";
@@ -374,9 +374,11 @@ function mapView(map: ClusterMapDef): unknown {
       data-no-swipe
     >
       <div
-        class="${mapExpanded
-          ? "absolute inset-0 flex flex-col bg-base-100 p-2"
-          : "relative flex-70 min-h-0 flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
+        class="${listExpanded
+          ? "hidden"
+          : mapExpanded
+            ? "absolute inset-0 flex flex-col bg-base-100 p-2"
+            : "relative flex-70 min-h-0 flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
         data-no-swipe
       >
         <button
@@ -405,30 +407,47 @@ function mapView(map: ClusterMapDef): unknown {
             >
               ${unsafeHTML(svg)}
             </div>`
-          : !map.available
-            ? mapComingSoon(map.label)
-            : map.failed
-              ? mapFailed(map)
-              : mapLoading()}
+          : map.failed
+            ? mapFailed(map)
+            : mapLoading()}
       </div>
 
       ${mapExpanded
         ? ""
         : html`<div
-            class="flex-30 min-h-0 flex flex-col rounded-xl bg-base-100 p-3 shadow-lg"
+            class="${listExpanded
+              ? "absolute inset-0 flex flex-col bg-base-100 p-3"
+              : "flex-30 min-h-0 flex flex-col rounded-xl bg-base-100 p-3 shadow-lg"}"
           >
             <div class="flex shrink-0 items-center justify-between gap-2 pb-1">
               <h2 class="font-semibold">Connections</h2>
-              <span
-                class="badge badge-info font-mono tabular-nums"
-                title="${deadNote}"
-              >
-                ${svg ? `${taken} / ${usable}` : "…"}
-              </span>
+              <div class="flex items-center gap-1.5">
+                ${listExpanded
+                  ? ""
+                  : html`<button
+                      type="button"
+                      class="btn btn-square btn-xs border border-base-300 bg-base-100"
+                      aria-label="Expand the connections list"
+                      title="Expand the list"
+                      @click=${toggleListExpanded}
+                    >
+                      ${unsafeHTML(
+                        MAXIMIZE_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </button>`}
+                <span class="badge badge-info tabular-nums" title="${deadNote}">
+                  ${svg ? `${taken} / ${usable}` : "…"}
+                </span>
+              </div>
             </div>
             ${connections.length
               ? html`<div
-                  class="min-h-0 flex-1 overflow-y-auto -mr-3 pr-3"
+                  class="min-h-0 flex-1 overflow-y-auto -mr-3 pr-3 ${listExpanded
+                    ? "pb-10"
+                    : ""}"
                   style="scrollbar-gutter:stable"
                 >
                   <ul class="flex flex-col divide-y divide-base-300">
@@ -438,6 +457,19 @@ function mapView(map: ClusterMapDef): unknown {
               : html`<p class="py-3 text-center text-sm opacity-60">
                   No one is seated in this cluster right now.
                 </p>`}
+            ${listExpanded
+              ? html`<button
+                  type="button"
+                  class="btn btn-square btn-sm absolute bottom-2 right-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur"
+                  aria-label="Restore the cluster map"
+                  title="Show the map"
+                  @click=${toggleListExpanded}
+                >
+                  ${unsafeHTML(
+                    MINIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
+                  )}
+                </button>`
+              : ""}
           </div>`}
     </div>
   `;
@@ -445,7 +477,7 @@ function mapView(map: ClusterMapDef): unknown {
 
 /** Fetches the map when its tab is shown (or finishes a preload already running). */
 function ensureMap(map: ClusterMapDef): void {
-  if (!map.available || !map.url || map.failed || !isMapStale(map)) return;
+  if (map.failed || !isMapStale(map)) return;
   void loadClusterMap(map).then(() => refresh());
 }
 
@@ -472,29 +504,26 @@ function mapFailed(map: ClusterMapDef): unknown {
   </div>`;
 }
 
-function mapComingSoon(label = "Map"): unknown {
-  return html`
-    <div
-      class="flex flex-col items-center justify-center gap-2 py-16 text-center"
-    >
-      <span class="opacity-40"
-        >${unsafeHTML(
-          MAP_PIN_SVG.replace("<svg", '<svg width="40" height="40"'),
-        )}</span
-      >
-      <h2 class="text-lg font-bold">${label} coming soon</h2>
-      <p class="text-sm opacity-60 max-w-xs">
-        This cluster map isn't available yet. Check back later.
-      </p>
-    </div>
-  `;
+/** Seats on the map that have a working computer. */
+function usableSeats(map: ClusterMapDef): number {
+  return Math.max(0, map.seatIds.size - map.crossed);
 }
 
 /** The Clusters bottom tab bar, rendered by the shell above the dock. */
 export function clustersBottomBar(): unknown {
+  const isActive = activeTab === "active";
+  const online = entries.length;
+  const activeTitle = isActive
+    ? `Sorted by ${activeSortLabel(sortState)}${
+        online ? ` · ${online} online` : ""
+      } — tap to change sorting`
+    : online
+      ? `Active — ${online} online`
+      : "Active";
+  const activeIcon = isActive ? activeSortIcon(sortState) : USER_GROUP_SVG;
   return html`
-    <div class="ft-subtabs px-4 pb-2">
-      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
+    <div class="ft-subtabs flex gap-2 px-4 pb-2">
+      <div class="min-w-0 flex-1 rounded-xl bg-base-100 p-1.5 shadow-lg">
         <div class="segmented-tabs-host">
           <div
             class="clusters-tabs flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
@@ -502,31 +531,52 @@ export function clustersBottomBar(): unknown {
             role="tablist"
             aria-label="Clusters"
           >
-            ${CLUSTER_MAPS.map(
-              (m) => html`
+            ${CLUSTER_MAPS.map((m) => {
+              const seats = usableSeats(m);
+              const seated = seats > 0 ? seatedEntries(m).length : 0;
+              return html`
                 <button
                   role="tab"
                   aria-selected=${activeTab === m.id ? "true" : "false"}
                   class="tab-btn ${activeTab === m.id ? "active" : ""}"
-                  style="${m.available ? "" : "opacity:.45;cursor:not-allowed"}"
-                  ?disabled=${!m.available}
-                  title=${m.available ? m.label : `${m.label} — coming soon`}
+                  title=${seated > 0
+                    ? `${m.label} — ${seated} of ${seats} seats taken`
+                    : m.label}
                   @click=${() => switchTab(m.id)}
                 >
                   ${m.label}
+                  ${seated > 0
+                    ? html`<span class="tab-count">${seated}/${seats}</span>`
+                    : ""}
                 </button>
-              `,
-            )}
+              `;
+            })}
             <button
               role="tab"
-              aria-selected=${activeTab === "active" ? "true" : "false"}
-              class="tab-btn ${activeTab === "active" ? "active" : ""}"
-              @click=${() => switchTab("active")}
+              aria-selected=${isActive ? "true" : "false"}
+              class="tab-btn ${isActive ? "active" : ""}"
+              title=${activeTitle}
+              aria-label=${activeTitle}
+              @click=${onActiveTab}
             >
-              Active
+              <span class="tab-icon"
+                >${unsafeHTML(
+                  activeIcon.replace("<svg", '<svg width="14" height="14"'),
+                )}</span
+              >
+              ${online > 0
+                ? html`<span class="tab-count">${online}</span>`
+                : ""}
             </button>
           </div>
         </div>
+      </div>
+      <div class="flex shrink-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
+        <span
+          id="ft-clusters-countdown"
+          class="clusters-refresh"
+          title="Auto-refreshes every minute"
+        ></span>
       </div>
     </div>
   `;
@@ -565,7 +615,7 @@ async function applyDefaultCluster(): Promise<void> {
   }
   if (typeof id !== "string" || !id) return;
   const map = await findDefaultClusterMap(id);
-  if (!map?.available) return;
+  if (!map) return;
   activeTab = map.id;
   refresh();
 }
