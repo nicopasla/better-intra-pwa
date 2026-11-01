@@ -58,16 +58,32 @@ import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
 import BELL_SLASH_SVG from "../assets/bell-slash.svg?raw";
 import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
+import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
+import PALETTE_SVG from "../assets/palette.svg?raw";
+import PLUS_SVG from "../assets/plus.svg?raw";
 import PR_SVG from "../assets/pr.svg?raw";
+import SETTINGS_GEAR_SVG from "../assets/settings_gear.svg?raw";
 import STAR_SVG from "../assets/star.svg?raw";
+import USER_SVG from "../assets/user.svg?raw";
+import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
+import USERS_SVG from "../assets/users.svg?raw";
 import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 
 const REPO_URL = "https://github.com/nicopasla/better-intra";
 
 const svgIcon = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
+
+/** Decorative icon in front of a settings section title. */
+const sectionIcon = (raw: string) =>
+  unsafeHTML(
+    raw.replace(
+      "<svg",
+      '<svg width="18" height="18" class="shrink-0 opacity-60" aria-hidden="true"',
+    ),
+  );
 
 const QUICK_LINKS = [
   { href: REPO_URL, svg: GITHUB_SVG, label: "GitHub", color: "btn-primary" },
@@ -190,14 +206,14 @@ const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
 export function settingsView(): TemplateResult {
   const session = getSession();
   return html`
-    ${section("About", aboutSection())}
-    ${section("Notifications", notificationsSection())}
-    ${isStandalone() ? "" : section("Install", installSection())}
-    ${section("Theme", themeSection())}
-    ${section("Avatars", avatarsSection())}
-    ${section("Calendar", calendarSection())}
-    ${section("Account", accountSection(session?.login ?? ""))}
-    ${section("Community", communitySection())}
+    ${card(aboutSection())}
+    ${section("Notifications", BELL_SVG, notificationsSection())}
+    ${isStandalone() ? "" : section("Install", PLUS_SVG, installSection())}
+    ${section("Theme", PALETTE_SVG, themeSection())}
+    ${section("Avatars", USER_GROUP_SVG, avatarsSection())}
+    ${section("Calendar", CALENDAR_SVG, calendarSection())}
+    ${section("Account", USER_SVG, accountSection(session?.login ?? ""))}
+    ${section("Community", USERS_SVG, communitySection())}
     ${debugSection()}
     ${logmeError
       ? html`<p class="text-xs text-error text-center">${logmeError}</p>`
@@ -229,15 +245,19 @@ async function onInstall() {
   if (accepted) refresh();
 }
 
-function section(title: string, content: unknown) {
+function card(content: unknown) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body gap-3">
-        <h2 class="card-title text-base">${title}</h2>
-        ${content}
-      </div>
+      <div class="card-body gap-3">${content}</div>
     </div>
   `;
+}
+
+function section(title: string, icon: string, content: unknown) {
+  return card(
+    html`<h2 class="card-title text-base">${sectionIcon(icon)}${title}</h2>
+      ${content}`,
+  );
 }
 
 function avatarsSection() {
@@ -696,7 +716,11 @@ function debugSection(): TemplateResult {
     <details
       class="collapse collapse-arrow bg-base-100 border border-base-300 shadow-xl mb-4"
     >
-      <summary class="collapse-title text-base font-semibold">Debug</summary>
+      <summary class="collapse-title text-base font-semibold">
+        <span class="inline-flex items-center gap-2"
+          >${sectionIcon(SETTINGS_GEAR_SVG)}<span>Debug</span></span
+        >
+      </summary>
       <div class="collapse-content flex flex-col gap-3">
         ${diagGroup(
           "Connection",
