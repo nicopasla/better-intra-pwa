@@ -133,6 +133,16 @@ export function currentThemeLabel(): string {
   return `${presetLabel(resolved.preset)} · ${resolved.mode}`;
 }
 
+/**
+ * The theme configured in the extension, independent of the mode selected on
+ * this device. Null until the cloud settings blob has been loaded (or when the
+ * cached value belongs to another mode).
+ */
+export function extensionTheme(): ResolvedTheme | null {
+  if (cloudSettings) return resolveExtensionTheme(cloudSettings);
+  return getThemePreference() === "extension" ? readResolvedCache() : null;
+}
+
 function themeColor(): string {
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue("--color-base-200")

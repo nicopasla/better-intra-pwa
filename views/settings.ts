@@ -47,8 +47,8 @@ import {
 } from "../lib/push-state.ts";
 import {
   applyThemeSettings,
-  currentResolvedTheme,
   currentThemeLabel,
+  extensionTheme,
   getThemePreference,
   setThemePreference,
   ThemeMode,
@@ -298,8 +298,9 @@ function avatarsSection() {
 }
 
 function themeSection() {
-  const resolved = currentResolvedTheme();
-  const preset = presetLabel(resolved.preset);
+  // Report the extension's own theme, whatever mode this device is using.
+  const extension = extensionTheme();
+  const preset = extension ? presetLabel(extension.preset) : "";
   return html`
     <div class="grid grid-cols-2 gap-2">
       ${THEME_OPTIONS.map((o) => {
@@ -319,7 +320,7 @@ function themeSection() {
           >
             <span class="flex flex-col items-center gap-0.5 leading-tight">
               <span class="text-sm font-semibold">${o.label}</span>
-              ${o.id === "extension"
+              ${o.id === "extension" && preset
                 ? html`<span class="text-xs opacity-60">${preset}</span>`
                 : ""}
             </span>
