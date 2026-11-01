@@ -212,19 +212,11 @@ function storageLabel(): string {
     : formatBytes(storageUsed);
 }
 
-const THEME_OPTIONS: { id: ThemeMode; label: string; desc: string }[] = [
-  {
-    id: "system",
-    label: "System",
-    desc: "Follows your device appearance",
-  },
-  { id: "light", label: "Light", desc: "Always light" },
-  { id: "dark", label: "Dark", desc: "Always dark" },
-  {
-    id: "extension",
-    label: "Extension",
-    desc: "Mirror the theme from your extension",
-  },
+const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
+  { id: "system", label: "System" },
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+  { id: "extension", label: "Extension" },
 ];
 
 export function settingsView(): TemplateResult {
@@ -316,7 +308,7 @@ function themeSection() {
         return html`
           <button
             type="button"
-            class="flex items-center gap-2 rounded-box border p-3 text-left ${selected
+            class="flex items-center justify-between gap-2 rounded-box border p-3 text-left ${selected
               ? "border-primary bg-primary/10"
               : "border-base-300 bg-base-100"}"
             aria-pressed=${selected}
@@ -326,10 +318,7 @@ function themeSection() {
               refresh();
             }}
           >
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="text-sm font-semibold">${title}</span>
-              <span class="text-xs opacity-60">${o.desc}</span>
-            </span>
+            <span class="text-sm font-semibold">${title}</span>
             ${selected
               ? html`<span
                   class="size-5 shrink-0 flex items-center justify-center text-primary"
