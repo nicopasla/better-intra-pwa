@@ -36,6 +36,7 @@ import {
 } from "./views/profile.ts";
 import {
   friendsBottomBar,
+  friendsListEmpty,
   friendsView,
   loadFriends,
 } from "./views/friends.ts";
@@ -394,6 +395,7 @@ function setViewportLock(locked: boolean): void {
 }
 
 function renderBody(): void {
+  document.documentElement.classList.remove("ft-friends-empty");
   const profileLogin = userLoginFromHash();
   if (profileLogin) {
     setViewportLock(false);
@@ -424,6 +426,10 @@ function renderBody(): void {
     case "friends":
       body = friendsView();
       bottomBar = friendsBottomBar();
+      document.documentElement.classList.toggle(
+        "ft-friends-empty",
+        friendsListEmpty(),
+      );
       break;
     case "students":
       body = studentsView();

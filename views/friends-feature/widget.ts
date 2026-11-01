@@ -1129,6 +1129,17 @@ export function refreshFriends(): void {
   void _state?.onRefresh();
 }
 
+/** True when the list shows only the fixed empty state (nothing to scroll). */
+export function friendsListEmpty(): boolean {
+  if (!_state) return false;
+  if (_state.loadError || _state.notConnected || _state.needsReconnect)
+    return false;
+  const visible = _state.onlineOnly
+    ? _state.friends.filter((f) => f.isOnline)
+    : _state.friends;
+  return visible.length === 0;
+}
+
 function renderWidgetUI(): void {
   if (!_state) return;
   pendingView = renderWidget(_state);

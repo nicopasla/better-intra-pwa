@@ -297,6 +297,14 @@ html.ft-fixed-view body {
   overscroll-behavior: none;
 }
 
+/* Friends with no rows: the empty state is fixed, so lock the document like the
+   cluster map does and never show a scrollbar. */
+html.ft-friends-empty,
+html.ft-friends-empty body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* Four short tabs (SHI, FU, MI, Active) in the clusters dock bar. */
 .clusters-tabs .tab-btn {
   display: inline-flex;

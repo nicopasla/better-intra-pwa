@@ -1,4 +1,5 @@
 import {
+  friendsListEmpty,
   getFriendsView,
   getFriendsBottomBar,
   initFriendsFeature,
@@ -6,6 +7,8 @@ import {
 } from "./friends-feature/widget.ts";
 import { refresh } from "../refresh.ts";
 import { rowSkeleton } from "../lib/skeletons.ts";
+
+export { friendsListEmpty };
 
 let started = false;
 
