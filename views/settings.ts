@@ -336,7 +336,7 @@ function calendarSection() {
         keeps the events up to date.
       </p>
       <a
-        class="btn btn-primary btn-sm self-start gap-1.5"
+        class="btn btn-primary btn-sm self-center gap-1.5"
         href=${calendarWebcalUrl(calendarToken)}
       >
         <span class="size-4 flex items-center justify-center fill-current">
@@ -354,7 +354,7 @@ function calendarSection() {
     </p>
     <button
       type="button"
-      class="btn btn-primary btn-sm self-start gap-1.5 ${calendarBusy
+      class="btn btn-primary btn-sm self-center gap-1.5 ${calendarBusy
         ? "loading"
         : ""}"
       ?disabled=${calendarBusy}
