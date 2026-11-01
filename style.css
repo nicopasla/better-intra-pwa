@@ -41,6 +41,17 @@
     "status"];
 }
 
+/* Every badge shares one corner radius: the active theme's field radius (the
+   profile's level / pool / eval badges). Unlayered so it overrides daisyUI's
+   `--radius-selector` default. */
+:root {
+  --badge-radius: var(--radius-field);
+}
+
+.badge {
+  border-radius: var(--badge-radius);
+}
+
 /* Presets that are not shipped by daisyUI; copied from the extension's
    src/assets/themes.css so both apps resolve the same theme ids. */
 @plugin "daisyui/theme" {
@@ -353,7 +364,7 @@ html.ft-fixed-view body {
   justify-content: center;
   flex-shrink: 0;
   /* Same shape as the identity badges (level, pool, date, …). */
-  border-radius: var(--radius-field);
+  border-radius: var(--badge-radius);
   height: 1.8rem;
   padding: 0 0.6rem;
   font-size: 0.8rem;
@@ -404,7 +415,7 @@ html.ft-fixed-view body {
   font-family: var(--font-sans);
   color: var(--color-base-content);
   background: var(--color-base-200);
-  border-radius: var(--radius-field);
+  border-radius: var(--badge-radius);
   padding: 0 0.6rem;
   white-space: nowrap;
   flex-shrink: 0;
@@ -741,7 +752,7 @@ html.ft-fixed-view body {
   background: none;
   color: inherit;
   cursor: pointer;
-  border-radius: var(--radius-field);
+  border-radius: var(--badge-radius);
 }
 
 .ft-badge-toggle:focus-visible {

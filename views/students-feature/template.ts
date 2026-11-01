@@ -755,7 +755,7 @@ export function renderStudentsDialogTemplate(
         gap: 0.15rem;
       }
       .piscine-cal-head .badge {
-        border-radius: 0.75rem;
+        border-radius: var(--badge-radius);
       }
       .piscine-card__month {
         font-size: 0.9rem;
@@ -778,7 +778,7 @@ export function renderStudentsDialogTemplate(
         font-weight: 700;
         font-family: var(--font-sans);
         padding: 0.4rem 0.75rem;
-        border-radius: var(--radius-field);
+        border-radius: var(--badge-radius);
         background: var(--color-accent);
         color: var(--color-accent-content);
         white-space: nowrap;

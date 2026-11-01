@@ -61,7 +61,7 @@ export function headerBadge(
   return html`
     <span
       class="badge ${opts.class ?? "badge-primary"} font-bold font-mono"
-      style="${border}border-radius:var(--radius-field);height:2.5rem;padding-block:0;font-weight:600;min-width:2.5rem;justify-content:center;"
+      style="${border}border-radius:var(--badge-radius);height:2.5rem;padding-block:0;font-weight:600;min-width:2.5rem;justify-content:center;"
       data-tip="${opts.tip ?? ""}"
       >${content}</span
     >

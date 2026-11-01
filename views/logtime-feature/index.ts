@@ -107,7 +107,7 @@ export function activeLabelBadge(
   // Same chip size as the friends' seat badge.
   const badgeCls =
     "badge badge-success badge-md gap-1 px-2 font-bold font-mono tracking-tight lt-active-badge";
-  const badgeShape = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
+  const badgeShape = "border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;";
   if (!seat) {
     return html`<span class="${badgeCls}" style="${badgeShape}"
       >${label}</span

@@ -100,7 +100,7 @@ function renderFriendRow(
     : undefined;
 
   /** Same solid badge shape and colours as the students/profile cards. */
-  const badgeShape = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
+  const badgeShape = "border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;";
 
   return html`
     <!-- Avatar -->
@@ -184,7 +184,7 @@ function renderFriendRow(
     <div
       class="badge badge-md badge-primary gap-1 px-2 ${medalClass}"
       data-ft-level-badge
-      style="border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;"
+      style="border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
     >
       <span class="text-sm font-bold font-mono"
         >${friend.level.toFixed(2)}</span
@@ -261,7 +261,7 @@ function renderFriendRow(
             ? html`<a
                 href="#/clusters?seat=${encodeURIComponent(friend.lastSeen)}"
                 class="badge badge-success badge-md gap-1 px-2 hover:brightness-110 transition-all cursor-pointer no-underline"
-                style="border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;"
+                style="border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
                 data-tip="Show ${friend.lastSeen} on the cluster map"
                 @click=${(event: Event) => {
                   event.preventDefault();
@@ -1032,7 +1032,7 @@ function renderWidget(state: WidgetState) {
                   ? html`<div class="friends-delete-bar">
                       <span
                         class="badge badge-error badge-md font-bold font-mono shrink-0"
-                        style="border:3px solid color-mix(in oklab, var(--color-error) 55%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;font-weight:600;"
+                        style="border:3px solid color-mix(in oklab, var(--color-error) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
                         >${state.selected.length} selected</span
                       >
                       <button

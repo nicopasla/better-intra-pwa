@@ -20,7 +20,7 @@ import { navigateToSeat, navigateToUser } from "../shell.ts";
 const DIALOG_ID = "ft-subscribers-dialog";
 
 /** Same solid seat chip as the friends list and logtime header. */
-const SEAT_STYLE = `border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:0.75rem;height:auto;padding-block:0.15rem;`;
+const SEAT_STYLE = `border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;`;
 
 function row(
   u: EventSubscriber,

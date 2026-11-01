@@ -16,7 +16,7 @@ import STAR_SVG from "../assets/star-lucide.svg?raw";
 import X_SVG from "../assets/x.svg?raw";
 
 /** Solid badge shape, identical to the cards and the profile. */
-const BADGE_SHAPE = "border-radius:0.75rem;height:auto;padding-block:0.15rem;";
+const BADGE_SHAPE = "border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;";
 
 const badgeCls = (tone: string) =>
   `badge ${tone} badge-lg gap-1 px-2 text-base font-semibold`;

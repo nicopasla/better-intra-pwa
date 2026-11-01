@@ -26,7 +26,7 @@ function formatDuration(start: Date, end: Date): string {
 }
 
 const badgeStyle = (color: string) =>
-  `border:2px solid color-mix(in oklab, ${color} 50%, transparent);background-color:color-mix(in oklab, ${color} 12%, transparent);color:${color};border-radius:var(--radius-selector);height:auto;`;
+  `border:2px solid color-mix(in oklab, ${color} 50%, transparent);background-color:color-mix(in oklab, ${color} 12%, transparent);color:${color};border-radius:var(--badge-radius);height:auto;`;
 
 const badgeContent = (svg: string, label: unknown) =>
   html`<span
