@@ -100,7 +100,7 @@ export function userProfileView(login: string): unknown {
           `
         : s.loading
           ? html`<div
-              class="fixed inset-0 z-10 flex items-center justify-center pointer-events-none"
+              class="flex min-h-[calc(100dvh-5rem)] items-center justify-center"
             >
               <span class="loading loading-spinner loading-lg"></span>
             </div>`
