@@ -3,20 +3,23 @@ import type { TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import {
   FriendData,
-  addFriend,
   clearFriendsCache,
   fetchFriendsData,
   getFriendsList,
-  isFriend,
   removeFriend,
 } from "./friends.ts";
 import { loginUrl, getSession } from "../../api.ts";
 import { saveData } from "../../lib/network.ts";
 import { relativeTime } from "../../lib/format.ts";
 import { nameTip } from "../../lib/names.ts";
-import { headerBadge, pageHeader } from "../../lib/page-header.ts";
-import { navigateToSeat } from "../../shell.ts";
+import {
+  clearLongPress,
+  consumeLongPressClick,
+  moveLongPress,
+  startLongPress,
+} from "../../lib/long-press.ts";
 import { refresh } from "../../refresh.ts";
+import { navigateToSeat } from "../../shell.ts";
 import { AVATARS_ENABLED, avatarLoaded } from "../../lib/avatar.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
@@ -30,8 +33,6 @@ import CLOCK_ARROW_DOWN_SVG from "../../assets/clock-arrow-down.svg?raw";
 import RANKING_SVG from "../../assets/ranking.svg?raw";
 import WALLET_SVG from "../../assets/wallet.svg?raw";
 import EVAL_SVG from "../../assets/eval.svg?raw";
-import TRASH_SVG from "../../assets/trash.svg?raw";
-import PLUS_SVG from "../../assets/plus.svg?raw";
 import ARROW_SHARE_SVG from "../../assets/arrow_share.svg?raw";
 
 const MEDALS = ["medal-glow-gold", "medal-glow-silver", "medal-glow-bronze"];
@@ -326,7 +327,7 @@ function renderEmpty() {
         >${unsafeHTML(GHOST_SVG)}</span
       >
       <p class="text-sm font-bold">No friends yet</p>
-      <p class="text-xs">Add one using the input below</p>
+      <p class="text-xs">Add friends from their profile</p>
     </div>
   `;
 }
@@ -426,10 +427,6 @@ interface WidgetState {
   sortBy: SortMode;
   sortDir: SortDir;
   onlineOnly: boolean;
-  addInput: string;
-  addLoading: boolean;
-  addError: string;
-  addOpen: boolean;
   lastFetch: number | null;
   theme: string;
   needsReconnect: boolean;
@@ -440,13 +437,10 @@ interface WidgetState {
   onToggleOnline: () => void;
   deleteMode: boolean;
   selected: string[];
-  onDeleteMode: () => void;
+  onLongPressDelete: (login: string) => void;
   onToggleSelect: (login: string) => void;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
-  onInputChange: (val: string) => void;
-  onAdd: () => void;
-  onToggleAdd: () => void;
   onConnect: () => void;
 }
 
@@ -482,8 +476,8 @@ function renderSortControl(
         (m) => html`
           <button
             type="button"
-            class="btn btn-md join-item px-0 w-11"
-            style="height:2.5rem;${current === m
+            class="btn btn-sm join-item px-0 w-9"
+            style="height:2rem;${current === m
               ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
               : ""}"
             data-tip="${SORT_LABELS[m]}${current === m
@@ -514,6 +508,102 @@ function renderSortControl(
   `;
 }
 
+/** Online filter + sort, rendered as the Friends tab's bottom sub-tabs. */
+function renderFriendsBottomBar(state: WidgetState) {
+  const onlineCount = state.friends.filter((f) => f.isOnline).length;
+  const primaryColor = "var(--color-primary)";
+  const primaryContent = "var(--color-primary-content)";
+  return html`
+    <div class="ft-subtabs flex flex-col gap-2 px-4 pb-2">
+      ${state.deleteMode && !state.notConnected && !state.needsReconnect
+        ? html`<div
+            class="flex items-center gap-2 rounded-xl bg-base-100 p-1.5 shadow-lg"
+          >
+            <span
+              class="badge badge-error shrink-0 font-bold tabular-nums"
+              style="height:2rem;min-width:2rem;padding-inline:0.6rem;font-size:0.85rem;"
+              >${state.selected.length} selected</span
+            >
+            <button
+              type="button"
+              class="btn btn-sm btn-error flex-1 font-bold"
+              @click="${state.onConfirmDelete}"
+              ?disabled="${state.selected.length === 0}"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost"
+              @click="${state.onCancelDelete}"
+            >
+              Cancel
+            </button>
+          </div>`
+        : ""}
+      <div class="flex gap-2">
+        <div class="shrink-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
+        <div
+          class="rounded-lg bg-base-200 p-1"
+          style="border-radius:var(--radius-field)"
+        >
+          <span
+            class="badge badge-primary font-semibold tabular-nums"
+            style="height:2rem;min-width:2rem;padding-inline:0.6rem;font-size:0.85rem;"
+            title="${state.friends.length} friend${state.friends.length === 1
+              ? ""
+              : "s"}"
+            >${state.friends.length}</span
+          >
+        </div>
+      </div>
+      <span class="flex-1"></span>
+      <div class="min-w-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
+        <div class="segmented-tabs-host">
+          <div
+            class="flex min-w-0 items-center gap-1 rounded-lg bg-base-200 p-1"
+            style="border-radius:var(--radius-field)"
+          >
+            <button
+              type="button"
+              class="btn btn-sm shrink-0 gap-1.5 ${state.onlineOnly
+                ? "btn-success"
+                : "btn-ghost"}"
+              data-tip="${state.onlineOnly
+                ? "Showing online users only (tap to show all)"
+                : "Show only online users"}"
+              aria-pressed="${state.onlineOnly}"
+              aria-label="Show only online friends"
+              @click="${state.onToggleOnline}"
+            >
+              ${onlineCount > 0
+                ? html`<span class="text-sm font-bold tabular-nums"
+                    >${onlineCount}</span
+                  >`
+                : ""}
+              <span
+                class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
+              >
+            </button>
+            <span class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"></span>
+            <div class="no-scrollbar flex min-w-0 overflow-x-auto">
+              ${renderSortControl(
+                state.sortBy,
+                state.sortDir,
+                primaryColor,
+                primaryContent,
+                state.onSortChange,
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderWidget(state: WidgetState) {
   const onlineCount = state.friends.filter((f) => f.isOnline).length;
   const visible = state.onlineOnly
@@ -527,6 +617,8 @@ function renderWidget(state: WidgetState) {
     <style>
       .friends-feature {
         display: block;
+        /* Same gap as the Profile tab's evaluations card above the sub-tabs. */
+        padding-bottom: 0.75rem;
       }
 
       @keyframes rainbow-shift {
@@ -836,7 +928,7 @@ function renderWidget(state: WidgetState) {
     </style>
 
     <div
-      class="friends-feature flex flex-col min-h-[calc(100dvh-7rem)] pb-[calc(5rem+env(safe-area-inset-bottom))]"
+      class="friends-feature flex flex-col"
     >
       <div style="display:none">
         <div class="indicator">
@@ -887,53 +979,6 @@ function renderWidget(state: WidgetState) {
         class="flex-1 flex flex-col bg-base-100 rounded-b-xl"
         style="position:static;transform:none;inset:auto;width:100%;max-width:none;margin:0;"
       >
-        <!-- Header -->
-        ${pageHeader({
-          leading:
-            state.friends.length > 0 ? headerBadge(state.friends.length) : "",
-          trailing:
-            state.friends.length > 0
-              ? html`
-                  <button
-                    type="button"
-                    class="btn btn-md px-2 shrink-0 gap-1.5 ${state.onlineOnly
-                      ? ""
-                      : "btn-success"}"
-                    style="height:2.5rem;${state.onlineOnly
-                      ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
-                      : ""}"
-                    data-tip="${state.onlineOnly
-                      ? "Showing online users only (click to show all)"
-                      : "Show only online users"}"
-                    @click="${state.onToggleOnline}"
-                    aria-pressed="${state.onlineOnly}"
-                  >
-                    ${onlineCount > 0
-                      ? html`<span class="text-sm font-bold tabular-nums"
-                          >${onlineCount}</span
-                        >`
-                      : ""}
-                    <span
-                      class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                      >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
-                    >
-                  </button>
-                  <div
-                    class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"
-                  ></div>
-                  <div class="overflow-x-auto no-scrollbar shrink-0">
-                    ${renderSortControl(
-                      state.sortBy,
-                      state.sortDir,
-                      primaryColor,
-                      primaryContent,
-                      state.onSortChange,
-                    )}
-                  </div>
-                `
-              : "",
-        })}
-
         <!-- Friend list + floating actions -->
         <div class="friends-list-wrap">
           <div class="friends-list">
@@ -1006,11 +1051,25 @@ function renderWidget(state: WidgetState) {
                             ${sorted.map(
                               (f, i) =>
                                 html`<li
-                                  class="list-row group ${state.selected.includes(
+                                  class="list-row group ft-long-press-row ${state.selected.includes(
                                     f.login,
                                   )
                                     ? "bg-base-200/50"
                                     : ""}"
+                                  @pointerdown=${(ev: PointerEvent) =>
+                                    startLongPress(
+                                      ev,
+                                      () => state.onLongPressDelete(f.login),
+                                      1000,
+                                    )}
+                                  @pointermove=${moveLongPress}
+                                  @pointerup=${clearLongPress}
+                                  @pointercancel=${clearLongPress}
+                                  @pointerleave=${clearLongPress}
+                                  @contextmenu=${(ev: Event) =>
+                                    ev.preventDefault()}
+                                  @click=${(ev: Event) =>
+                                    consumeLongPressClick(ev)}
                                 >
                                   ${renderFriendRow(
                                     f,
@@ -1028,113 +1087,8 @@ function renderWidget(state: WidgetState) {
                           </ul>`}
           </div>
 
-          <!-- Floating actions (add / delete, only when connected) -->
-          ${!state.notConnected && !state.needsReconnect
-            ? html`<div class="friends-actions">
-                ${state.deleteMode
-                  ? html`<div class="friends-delete-bar">
-                      <span
-                        class="badge badge-error badge-md font-bold tabular-nums shrink-0"
-                        style="border:3px solid color-mix(in oklab, var(--color-error) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
-                        >${state.selected.length} selected</span
-                      >
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-error flex-1 font-bold"
-                        @click="${state.onConfirmDelete}"
-                        ?disabled="${state.selected.length === 0}"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-ghost"
-                        @click="${state.onCancelDelete}"
-                      >
-                        Cancel
-                      </button>
-                    </div>`
-                  : html`<div class="flex flex-col items-end gap-2">
-                      ${state.addError
-                        ? html`<p class="text-error text-sm px-0.5">
-                            ${state.addError}
-                          </p>`
-                        : ""}
-                      <div
-                        class="friends-add-expand ${state.addOpen
-                          ? ""
-                          : "closed"}"
-                      >
-                        ${state.addOpen
-                          ? html`<button
-                              type="button"
-                              class="btn btn-circle btn-md btn-error"
-                              data-tip="Delete friend"
-                              @click="${state.onDeleteMode}"
-                              ?disabled="${state.friends.length === 0}"
-                              aria-label="Delete friends"
-                            >
-                              <span
-                                class="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
-                                >${unsafeHTML(svgIcon(TRASH_SVG))}</span
-                              >
-                            </button>`
-                          : ""}
-                        ${state.addOpen
-                          ? html`<input
-                              type="text"
-                              class="input input-primary input-sm"
-                              placeholder="Login..."
-                              .value="${state.addInput}"
-                              @input="${(e: Event) =>
-                                state.onInputChange(
-                                  (e.target as HTMLInputElement).value,
-                                )}"
-                              @keydown="${(e: KeyboardEvent) => {
-                                if (e.key === "Enter") state.onAdd();
-                                if (e.key === "Escape") state.onToggleAdd();
-                              }}"
-                              ?disabled="${state.addLoading}"
-                            />`
-                          : ""}
-                        ${state.addOpen
-                          ? html`<button
-                              type="button"
-                              class="btn btn-sm btn-primary font-bold ${state.addLoading
-                                ? "loading"
-                                : ""}"
-                              @click="${state.onAdd}"
-                              ?disabled="${state.addLoading ||
-                              !state.addInput.trim()}"
-                            >
-                              ${state.addLoading ? "" : "Add"}
-                            </button>`
-                          : html`<button
-                              type="button"
-                              class="btn btn-circle btn-md btn-primary"
-                              data-tip="Add / delete friend"
-                              @click="${state.onToggleAdd}"
-                              aria-label="Add friend"
-                            >
-                              <span
-                                class="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
-                                >${unsafeHTML(svgIcon(PLUS_SVG))}</span
-                              >
-                            </button>`}
-                        ${state.addOpen
-                          ? html`<button
-                              type="button"
-                              class="btn btn-circle btn-md btn-ghost"
-                              @click="${state.onToggleAdd}"
-                              aria-label="Close"
-                            >
-                              <span class="text-lg leading-none">✕</span>
-                            </button>`
-                          : ""}
-                      </div>
-                    </div>`}
-              </div>`
-            : ""}
+          <!-- Delete bar (entered by long-pressing a friend) is rendered in the
+               bottom sub-tab bar, above the tabs. -->
         </div>
       </div>
     </div>
@@ -1143,10 +1097,16 @@ function renderWidget(state: WidgetState) {
 
 let _state: WidgetState | null = null;
 let pendingView: TemplateResult | null = null;
+let pendingBottomBar: TemplateResult | null = null;
 let initialized = false;
 
 export function getFriendsView(): TemplateResult | null {
   return pendingView;
+}
+
+/** Bottom sub-tabs: online filter + sort. Rendered by the shell. */
+export function getFriendsBottomBar(): TemplateResult | null {
+  return pendingBottomBar;
 }
 
 /** Re-fetch friends (used by pull-to-refresh). */
@@ -1155,7 +1115,9 @@ export function refreshFriends(): void {
 }
 
 function renderWidgetUI(): void {
-  if (_state) pendingView = renderWidget(_state);
+  if (!_state) return;
+  pendingView = renderWidget(_state);
+  pendingBottomBar = renderFriendsBottomBar(_state);
 }
 
 /** Lift the floating actions above the on-screen keyboard (iOS visual viewport). */
@@ -1197,10 +1159,6 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
     sortBy,
     sortDir,
     onlineOnly: localStorage.getItem("FRIENDS_ONLINE_ONLY") === "true",
-    addInput: "",
-    addLoading: false,
-    addError: "",
-    addOpen: false,
     lastFetch: null,
     theme: "",
     needsReconnect: false,
@@ -1237,13 +1195,6 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
       localStorage.setItem("FRIENDS_ONLINE_ONLY", String(_state.onlineOnly));
       emit();
     },
-    onDeleteMode: () => {
-      if (!_state) return;
-      _state.deleteMode = !_state.deleteMode;
-      _state.selected = [];
-      _state.addOpen = false;
-      emit();
-    },
     onToggleSelect: (login) => {
       if (!_state) return;
       const idx = _state.selected.indexOf(login);
@@ -1276,67 +1227,15 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
       _state.selected = [];
       emit();
     },
-    onInputChange: (val) => {
+    onLongPressDelete: (login) => {
       if (!_state) return;
-      _state.addInput = val;
-      _state.addError = "";
-      emit();
-    },
-    onAdd: async () => {
-      if (!_state || _state.notConnected) return;
-      const login = _state.addInput.trim().toLowerCase();
-      if (!login) return;
-
-      _state.addLoading = true;
-      _state.addError = "";
-      emit();
-
-      if (await isFriend(login)) {
-        _state.addError = "Already in your list.";
-        _state.addLoading = false;
-        emit();
-        return;
-      }
-
-      await addFriend(login);
-
-      const fresh = await fetchFriendsData([login]);
-      if (fresh.length === 0) {
-        await removeFriend(login);
-        _state.addError = "User not found.";
-        _state.addLoading = false;
-        emit();
-        return;
-      }
-
-      _state.friends = [..._state.friends, ...fresh];
-      _state.lastFetch = Date.now();
-      _state.addInput = "";
-      _state.addLoading = false;
-      clearFriendsCache();
-      emit();
-      document
-        .querySelector<HTMLInputElement>('.friends-feature input[type="text"]')
-        ?.focus();
-    },
-    onToggleAdd: () => {
-      if (!_state) return;
-      _state.addOpen = !_state.addOpen;
-      if (_state.addOpen) {
-        _state.deleteMode = false;
-        _state.addError = "";
-      } else {
-        _state.addInput = "";
-        _state.addError = "";
+      if (!_state.deleteMode) {
+        _state.deleteMode = true;
+        _state.selected = [login];
+      } else if (!_state.selected.includes(login)) {
+        _state.selected.push(login);
       }
       emit();
-      if (_state.addOpen) {
-        document
-          .querySelector<HTMLInputElement>(
-            '.friends-feature input[type="text"]',
-          )
-          ?.focus();
-      }
     },
     onConnect: () => {
       window.location.href = loginUrl();

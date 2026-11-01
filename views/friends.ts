@@ -1,5 +1,6 @@
 import {
   getFriendsView,
+  getFriendsBottomBar,
   initFriendsFeature,
   refreshFriends,
 } from "./friends-feature/widget.ts";
@@ -12,6 +13,10 @@ export function friendsView(): unknown {
   const v = getFriendsView();
   if (v) return v;
   return rowSkeleton(7);
+}
+
+export function friendsBottomBar(): unknown {
+  return getFriendsBottomBar() ?? "";
 }
 
 export async function loadFriends(force = false): Promise<void> {

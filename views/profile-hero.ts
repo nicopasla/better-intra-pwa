@@ -23,6 +23,8 @@ import {
 import { contrastText } from "./logtime-feature/color.ts";
 import { badgeUrlFor } from "../lib/campus-badges.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import FRIEND_SVG from "../assets/user-check.svg?raw";
+import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 import PENCIL_SVG from "../assets/pencil.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
 import RELOAD_SVG from "../assets/reload.svg?raw";
@@ -59,6 +61,12 @@ export interface ProfileHeroOptions {
   onBadgeToggle?: (id: string) => void;
   /** Make campus role badges (PHOENIX, PEGASUS, …) open their app. */
   badgeLinks?: boolean;
+  /** Friend state for the profile owner (absent = not a user profile). */
+  friendState?: "none" | "friend";
+  /** Checking the friend list / saving a change: disable + spinner. */
+  friendBusy?: boolean;
+  /** Add or remove the profile owner from the friends list. */
+  onToggleFriend?: () => void;
   onToggleAvatar?: () => void;
   onAvatarError?: () => void;
 }
@@ -157,6 +165,28 @@ export function profileHero(
       class="profile-hero card bg-base-100 shadow-xl mb-4 overflow-hidden relative"
     >
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
+      ${opts.onToggleFriend
+        ? html`<button
+            type="button"
+            class="btn btn-circle absolute top-2 left-2 size-11 border-none shadow-md bg-base-100/90 hover:bg-base-100 ${opts.friendState ===
+            "friend"
+              ? "text-info"
+              : ""}"
+            aria-label=${opts.friendState === "friend"
+              ? "Remove from friends"
+              : "Add to friends"}
+            aria-pressed=${opts.friendState === "friend"}
+            title=${opts.friendState === "friend"
+              ? "Remove from friends"
+              : "Add to friends"}
+            ?disabled=${opts.friendBusy}
+            @click=${opts.onToggleFriend}
+          >
+            ${opts.friendBusy
+              ? html`<span class="loading loading-spinner loading-xs"></span>`
+              : svg18(opts.friendState === "friend" ? FRIEND_SVG : FOLLOW_SVG)}
+          </button>`
+        : ""}
       ${opts.onReset
         ? html`<button
             class="btn btn-circle fixed top-[env(safe-area-inset-top)] mt-6 left-6 z-40 size-11 bg-error text-white border border-error shadow-md"

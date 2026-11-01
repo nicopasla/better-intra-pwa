@@ -9,10 +9,17 @@ import {
   type UserRecentProject,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import { getSession } from "../api.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
+import {
+  addFriend,
+  clearFriendsCache,
+  isFriend,
+  removeFriend,
+} from "./friends-feature/friends.ts";
 import { accentFor, profileHero } from "./profile-hero.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
@@ -34,6 +41,8 @@ interface ProfileState {
   logtimeScrollKey: string | null;
   showOriginalAvatar: boolean;
   avatarFailed: boolean;
+  friend: boolean | null;
+  friendBusy: boolean;
 }
 
 let state: ProfileState | null = null;
@@ -72,10 +81,14 @@ export function userProfileView(login: string): unknown {
       logtimeScrollKey: null,
       showOriginalAvatar: false,
       avatarFailed: false,
+      friend: null,
+      friendBusy: false,
     };
+    void syncFriendState(target);
     if (!fresh) void loadUserProfile(target, true);
   }
   const s = state;
+  const isSelf = getSession()?.login?.trim().toLowerCase() === s.login;
   return html`
     <div class="ft-user-profile flex flex-col">
       ${s.profile
@@ -84,6 +97,9 @@ export function userProfileView(login: string): unknown {
             ${profileHero(s.profile, {
               showOriginalAvatar: s.showOriginalAvatar,
               avatarFailed: s.avatarFailed,
+              friendState: s.friend ? "friend" : "none",
+              friendBusy: s.friend === null || s.friendBusy,
+              onToggleFriend: isSelf ? undefined : () => void toggleFriend(),
               onToggleAvatar: () => {
                 if (!state) return;
                 state.showOriginalAvatar = !state.showOriginalAvatar;
@@ -107,6 +123,41 @@ export function userProfileView(login: string): unknown {
           : errorCard(s.error)}
     </div>
   `;
+}
+
+/** Reads the local/cloud friends list for the profile owner. */
+async function syncFriendState(login: string): Promise<void> {
+  try {
+    const friend = await isFriend(login);
+    if (state?.login !== login) return;
+    state.friend = friend;
+    refresh();
+  } catch {
+    if (state?.login === login) {
+      state.friend = false;
+      refresh();
+    }
+  }
+}
+
+/** Adds or removes the profile owner, with an optimistic flip. */
+async function toggleFriend(): Promise<void> {
+  const s = state;
+  if (!s || s.friend === null || s.friendBusy) return;
+  const next = !s.friend;
+  s.friend = next;
+  s.friendBusy = true;
+  refresh();
+  try {
+    if (next) await addFriend(s.login);
+    else await removeFriend(s.login);
+    await clearFriendsCache();
+  } catch {
+    s.friend = !next;
+  } finally {
+    s.friendBusy = false;
+    refresh();
+  }
 }
 
 export async function loadUserProfile(

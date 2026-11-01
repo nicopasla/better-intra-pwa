@@ -34,7 +34,11 @@ import {
   profileAttachObservers,
   profileBottomBar,
 } from "./views/profile.ts";
-import { friendsView, loadFriends } from "./views/friends.ts";
+import {
+  friendsBottomBar,
+  friendsView,
+  loadFriends,
+} from "./views/friends.ts";
 import {
   studentsView,
   loadStudents,
@@ -419,6 +423,7 @@ function renderBody(): void {
       break;
     case "friends":
       body = friendsView();
+      bottomBar = friendsBottomBar();
       break;
     case "students":
       body = studentsView();
