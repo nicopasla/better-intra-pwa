@@ -102,16 +102,13 @@ function renderFriendRow(
     : undefined;
 
   /** Same solid badge shape and colours as the students/profile cards. */
-  const badgeShape = "border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;";
+  const badgeShape =
+    "border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;";
 
   return html`
     <!-- Avatar -->
     <div class="shrink-0 flex items-center" data-ft-avatar-col>
-      <a
-        href="#/u/${friend.login}"
-        class="flex"
-        @click="${(e: Event) => e.stopPropagation()}"
-      >
+      <div class="flex">
         ${currentSrc
           ? html`<div class="avatar ${friend.isOnline ? "avatar-online" : ""}">
               ${showCustom
@@ -179,7 +176,7 @@ function renderFriendRow(
                 >
               </div>
             </div>`}
-      </a>
+      </div>
     </div>
 
     <!-- Level badge -->
@@ -194,12 +191,7 @@ function renderFriendRow(
     </div>
 
     <!-- Main info -->
-    <a
-      href="#/u/${friend.login}"
-      class="no-underline text-base-content"
-      data-ft-info
-      @click="${(e: Event) => e.stopPropagation()}"
-    >
+    <div class="text-base-content" data-ft-info>
       <!-- Login + display name -->
       <div
         class="flex items-center gap-1.5 flex-wrap min-w-0"
@@ -297,7 +289,7 @@ function renderFriendRow(
       >
         ${renderLevelBar(friend.level)}
       </div>
-    </a>
+    </div>
 
     ${deleteMode
       ? html`<label
@@ -320,7 +312,7 @@ function renderFriendRow(
 function renderEmpty() {
   return html`
     <div
-      class="flex flex-1 flex-col items-center justify-center gap-2 py-16 opacity-40"
+      class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem)] px-6 py-16 opacity-40"
     >
       <span
         class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
@@ -543,62 +535,62 @@ function renderFriendsBottomBar(state: WidgetState) {
         : ""}
       <div class="flex gap-2">
         <div class="shrink-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
-        <div
-          class="rounded-lg bg-base-200 p-1"
-          style="border-radius:var(--radius-field)"
-        >
-          <span
-            class="badge badge-primary font-semibold tabular-nums"
-            style="height:2rem;min-width:2rem;padding-inline:0.6rem;font-size:0.85rem;"
-            title="${state.friends.length} friend${state.friends.length === 1
-              ? ""
-              : "s"}"
-            >${state.friends.length}</span
-          >
-        </div>
-      </div>
-      <span class="flex-1"></span>
-      <div class="min-w-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
-        <div class="segmented-tabs-host">
           <div
-            class="flex min-w-0 items-center gap-1 rounded-lg bg-base-200 p-1"
+            class="rounded-lg bg-base-200 p-1"
             style="border-radius:var(--radius-field)"
           >
-            <button
-              type="button"
-              class="btn btn-sm shrink-0 gap-1.5 ${state.onlineOnly
-                ? "btn-success"
-                : "btn-ghost"}"
-              data-tip="${state.onlineOnly
-                ? "Showing online users only (tap to show all)"
-                : "Show only online users"}"
-              aria-pressed="${state.onlineOnly}"
-              aria-label="Show only online friends"
-              @click="${state.onToggleOnline}"
+            <span
+              class="badge badge-primary font-semibold tabular-nums"
+              style="height:2rem;min-width:2rem;padding-inline:0.6rem;font-size:0.85rem;"
+              title="${state.friends.length} friend${state.friends.length === 1
+                ? ""
+                : "s"}"
+              >${state.friends.length}</span
             >
-              ${onlineCount > 0
-                ? html`<span class="text-sm font-bold tabular-nums"
-                    >${onlineCount}</span
-                  >`
-                : ""}
-              <span
-                class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
+          </div>
+        </div>
+        <span class="flex-1"></span>
+        <div class="min-w-0 rounded-xl bg-base-100 p-1.5 shadow-lg">
+          <div class="segmented-tabs-host">
+            <div
+              class="flex min-w-0 items-center gap-1 rounded-lg bg-base-200 p-1"
+              style="border-radius:var(--radius-field)"
+            >
+              <button
+                type="button"
+                class="btn btn-sm shrink-0 gap-1.5 ${state.onlineOnly
+                  ? "btn-success"
+                  : "btn-ghost"}"
+                data-tip="${state.onlineOnly
+                  ? "Showing online users only (tap to show all)"
+                  : "Show only online users"}"
+                aria-pressed="${state.onlineOnly}"
+                aria-label="Show only online friends"
+                @click="${state.onToggleOnline}"
               >
-            </button>
-            <span class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"></span>
-            <div class="no-scrollbar flex min-w-0 overflow-x-auto">
-              ${renderSortControl(
-                state.sortBy,
-                state.sortDir,
-                primaryColor,
-                primaryContent,
-                state.onSortChange,
-              )}
+                ${onlineCount > 0
+                  ? html`<span class="text-sm font-bold tabular-nums"
+                      >${onlineCount}</span
+                    >`
+                  : ""}
+                <span
+                  class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                  >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
+                >
+              </button>
+              <span class="mx-0.5 h-5 w-px bg-base-content/20 shrink-0"></span>
+              <div class="no-scrollbar flex min-w-0 overflow-x-auto">
+                ${renderSortControl(
+                  state.sortBy,
+                  state.sortDir,
+                  primaryColor,
+                  primaryContent,
+                  state.onSortChange,
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   `;
@@ -927,9 +919,7 @@ function renderWidget(state: WidgetState) {
       }
     </style>
 
-    <div
-      class="friends-feature flex flex-col"
-    >
+    <div class="friends-feature flex flex-col">
       <div style="display:none">
         <div class="indicator">
           ${onlineCount > 0 && !state.needsReconnect
@@ -976,7 +966,7 @@ function renderWidget(state: WidgetState) {
 
       <!-- Dropdown (always open, in-flow, sticky header) -->
       <div
-        class="flex-1 flex flex-col bg-base-100 rounded-b-xl"
+        class="flex-1 flex flex-col bg-base-100 rounded-xl"
         style="position:static;transform:none;inset:auto;width:100%;max-width:none;margin:0;"
       >
         <!-- Friend list + floating actions -->
@@ -1036,7 +1026,7 @@ function renderWidget(state: WidgetState) {
                       ? renderEmpty()
                       : sorted.length === 0
                         ? html`<div
-                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[60vh] py-16 opacity-40"
+                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem)] px-6 py-16 opacity-40"
                           >
                             <span
                               class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
@@ -1068,8 +1058,14 @@ function renderWidget(state: WidgetState) {
                                   @pointerleave=${clearLongPress}
                                   @contextmenu=${(ev: Event) =>
                                     ev.preventDefault()}
-                                  @click=${(ev: Event) =>
-                                    consumeLongPressClick(ev)}
+                                  @click=${(ev: Event) => {
+                                    if (consumeLongPressClick(ev)) return;
+                                    if (state.deleteMode) {
+                                      state.onToggleSelect(f.login);
+                                      return;
+                                    }
+                                    location.hash = `#/u/${f.login}`;
+                                  }}
                                 >
                                   ${renderFriendRow(
                                     f,

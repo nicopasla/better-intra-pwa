@@ -48,9 +48,10 @@ export function moveLongPress(ev: PointerEvent): void {
   }
 }
 
-/** Call from the row's click handler: prevents navigation after a long press. */
-export function consumeLongPressClick(ev: Event): void {
-  if (!fired) return;
+/** Call from the row's click handler: blocks navigation after a long press. */
+export function consumeLongPressClick(ev: Event): boolean {
+  if (!fired) return false;
   fired = false;
   ev.preventDefault();
+  return true;
 }
