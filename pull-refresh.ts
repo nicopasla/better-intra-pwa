@@ -1,5 +1,7 @@
 import { currentTab, userLoginFromHash } from "./shell.ts";
 import { html, render as renderTemplate } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
+import LOGO_MONO_SVG from "./assets/logo-mono.svg?raw";
 import { loadDashboard } from "./views/dashboard.ts";
 import { loadProfile } from "./views/profile.ts";
 import { loadFriends } from "./views/friends.ts";
@@ -7,6 +9,8 @@ import { loadSettings } from "./views/settings.ts";
 import { loadUserProfile } from "./views/user-profile.ts";
 
 const THRESHOLD = 90;
+/** How far the page stays pulled while a reload runs. */
+const SETTLED = 90;
 
 let startX = 0;
 let startY = 0;
@@ -45,12 +49,11 @@ function indicator(): HTMLDivElement | null {
   if (indicatorEl && indicatorEl.isConnected) return indicatorEl;
   const el = document.createElement("div");
   el.style.cssText =
-    "position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:flex-end;height:4rem;pointer-events:none;";
+    "position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:center;height:0;overflow:visible;pointer-events:none;";
   renderTemplate(
-    html`<span
-      class="loading loading-ring"
-      style="color:var(--color-accent)"
-    ></span>`,
+    html`<span class="ft-ptr-logo" aria-hidden="true"
+      >${unsafeHTML(LOGO_MONO_SVG)}</span
+    >`,
     el,
   );
   document.body.appendChild(el);
@@ -58,10 +61,18 @@ function indicator(): HTMLDivElement | null {
   return el;
 }
 
-/** Shows/hides the fixed indicator container entirely. */
-function setVisible(visible: boolean): void {
+/** Sizes the strip to the pull gap and keeps the mark centred inside it. */
+function showPulled(offset: number): void {
   const el = indicator();
-  if (el) el.style.transform = visible ? "translateY(0)" : "translateY(-150%)";
+  if (!el) return;
+  el.style.height = `${Math.max(offset, 36)}px`;
+  el.style.transform = "none";
+}
+
+/** Hides the indicator off the top edge. */
+function hideIndicator(): void {
+  const el = indicator();
+  if (el) el.style.transform = "translateY(-100%)";
 }
 
 /** Renders the pulled state: the whole screen slides down, revealing the ring. */
@@ -75,18 +86,17 @@ function render(value: number, armed: boolean, spinning: boolean): void {
   document.body.style.background = value > 0 ? "var(--color-base-100)" : "";
 
   if (el) {
-    setVisible(value > 0 || spinning);
-    const ring = el.firstElementChild as HTMLElement | null;
-    if (ring) {
-      ring.className = spinning
-        ? "loading loading-spinner loading-md"
-        : "loading loading-ring loading-md";
-      if (!spinning) {
-        ring.style.transform = `scale(${0.4 + 0.6 * progress})`;
-        ring.style.opacity = String(0.5 + 0.5 * progress);
+    if (value > 0 || spinning) showPulled(spinning ? SETTLED : offset);
+    else hideIndicator();
+    const logo = el.firstElementChild as HTMLElement | null;
+    if (logo) {
+      logo.classList.toggle("spinning", spinning);
+      if (spinning) {
+        logo.style.transform = "";
+        logo.style.opacity = "1";
       } else {
-        ring.style.transform = "";
-        ring.style.opacity = "1";
+        logo.style.transform = `scale(${0.65 + 0.35 * progress})`;
+        logo.style.opacity = String(0.4 + 0.6 * progress);
       }
     }
   }
@@ -180,12 +190,12 @@ export function initPullRefresh(): void {
       if (lastDy >= THRESHOLD) {
         reloading = true;
         render(THRESHOLD, true, true);
-        settle(90);
+        settle(SETTLED);
         reloadCurrent();
         window.setTimeout(() => {
           reloading = false;
           settle(0);
-          setVisible(false);
+          hideIndicator();
         }, 1100);
       } else {
         render(0, false, false);
