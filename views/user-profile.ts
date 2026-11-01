@@ -384,8 +384,8 @@ function projectsSection(p: UserProfile) {
     ${card(
       html`<h2 class="card-title text-base">Projects</h2>
         <div class="flex gap-2">
-          ${projectStat("Validated", projects.validated, accent)}
-          ${projectStat("In progress", projects.inProgress, accent)}
+          ${projectStat("Completed", projects.validated, accent)}
+          ${projectStat("Ongoing", projects.inProgress, accent)}
           ${projectStat("Total", projects.total, accent)}
         </div>`,
     )}

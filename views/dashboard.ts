@@ -452,8 +452,8 @@ function projectsCard() {
     <div class="card-body">
       <h2 class="card-title text-base">Projects</h2>
       <div class="flex gap-2">
-        ${projectStat("Validated", p.validated)}
-        ${projectStat("In progress", p.inProgress)}
+        ${projectStat("Completed", p.validated)}
+        ${projectStat("Ongoing", p.inProgress)}
         ${projectStat("Total", p.total)}
       </div>
     </div>
