@@ -256,6 +256,7 @@ function row(e: OccupancyEntry): unknown {
   const time = since.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
   const tooltip = e.begin_at
     ? `since ${time} · ${durationLabel(since.getTime())}`
@@ -444,7 +445,11 @@ function connectionRow(entry: OccupancyEntry): unknown {
   const since = new Date(entry.begin_at);
   const valid = Boolean(entry.begin_at) && !Number.isNaN(since.getTime());
   const time = valid
-    ? since.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? since.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
     : "—";
   const ago = valid ? formatTimeAgo(since.getTime()) : "—";
   const fallbackAvatar = initialAvatarDataUrl(entry.login);
