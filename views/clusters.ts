@@ -271,7 +271,7 @@ function row(e: OccupancyEntry): unknown {
       <div class="flex items-center gap-3 py-2">
         <a
           href="#/u/${e.login}"
-          class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
+          class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content ft-share-row"
           @pointerdown=${(ev: PointerEvent) => startRowPress(ev, e.host)}
           @pointermove=${moveRowPress}
           @pointerup=${clearRowPress}
@@ -305,16 +305,9 @@ function row(e: OccupancyEntry): unknown {
             <div class="text-xs text-base-content/80 truncate">${e.login}</div>
           </div>
         </a>
-        <span class="flex shrink-0 items-center gap-1.5">
-          <span class="badge badge-success badge-lg">${e.host}</span>
-          ${e.begin_at
-            ? html`<span
-                class="badge badge-success badge-lg tabular-nums"
-                title="${tooltip}"
-                >${time}</span
-              >`
-            : ""}
-        </span>
+        <span class="badge badge-success badge-lg shrink-0" title="${tooltip}"
+          >${e.host}</span
+        >
       </div>
     </li>
   `;
@@ -462,7 +455,7 @@ function connectionRow(entry: OccupancyEntry): unknown {
     <li>
       <a
         href="#/u/${entry.login}"
-        class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
+        class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline ft-share-row"
         title="${entry.host} · since ${time}"
         @pointerdown=${(ev: PointerEvent) => startRowPress(ev, entry.host)}
         @pointermove=${moveRowPress}

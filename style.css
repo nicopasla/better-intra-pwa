@@ -574,6 +574,14 @@ html.ft-fixed-view body {
   height: 1.1rem;
 }
 
+/* Rows with a long-press action: stop iOS offering Open Link / Copy. */
+.ft-share-row,
+.ft-share-row * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Cluster maps: the SVG is inlined, so scope its classes under .cluster-map. */
 .cluster-map {
   --zone-fill: #d5d5d5;
