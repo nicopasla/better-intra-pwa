@@ -312,7 +312,7 @@ function renderFriendRow(
 function renderEmpty() {
   return html`
     <div
-      class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem)] px-6 py-16 opacity-40"
+      class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem-env(safe-area-inset-bottom))] px-6 py-16 opacity-40"
     >
       <span
         class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
@@ -1026,7 +1026,7 @@ function renderWidget(state: WidgetState) {
                       ? renderEmpty()
                       : sorted.length === 0
                         ? html`<div
-                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem)] px-6 py-16 opacity-40"
+                            class="flex flex-1 flex-col items-center justify-center gap-2 min-h-[calc(100dvh-10.5rem-env(safe-area-inset-bottom))] px-6 py-16 opacity-40"
                           >
                             <span
                               class="w-16 h-16 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current"
