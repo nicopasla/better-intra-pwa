@@ -349,6 +349,21 @@ html.ft-fixed-view body {
       transparent);
 }
 
+/* Respect the OS "reduce motion" setting: no shimmer, spinners or map
+   transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .loading,
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  .cluster-map,
+  .cluster-map * {
+    transition: none !important;
+  }
+}
+
 /* Cross-document view transitions: smooths full page loads (e.g. returning
    from the OAuth redirect). Ignored by browsers without support. */
 @view-transition {

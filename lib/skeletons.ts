@@ -34,6 +34,66 @@ export function rowSkeleton(
   `;
 }
 
+/** Home dashboard hero placeholder, matching `profileHero()`. */
+export function heroSkeleton(): unknown {
+  return html`
+    <div
+      class="card bg-base-100 shadow-xl mb-4 overflow-hidden"
+      role="status"
+      aria-label="Loading your dashboard"
+    >
+      <div class="skeleton h-28 w-full" aria-hidden="true"></div>
+      <div class="card-body pt-0 gap-3" aria-hidden="true">
+        <div class="flex items-start gap-3">
+          <div class="-mt-8 shrink-0">
+            <span class="skeleton size-24 rounded-full shadow-lg"></span>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+            <span class="skeleton h-6 w-32 max-w-full"></span>
+            <span class="skeleton h-4 w-24"></span>
+          </div>
+        </div>
+        <div class="flex w-full gap-1.5">
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+          <span class="skeleton h-9 flex-1 rounded-full"></span>
+        </div>
+        <div class="flex justify-center gap-1.5">
+          <span class="skeleton h-7 w-20 rounded-full"></span>
+          <span class="skeleton h-7 w-20 rounded-full"></span>
+          <span class="skeleton h-7 w-16 rounded-full"></span>
+        </div>
+        <div class="flex justify-center gap-2">
+          <span class="skeleton h-8 w-24 rounded-full"></span>
+          <span class="skeleton h-8 w-20 rounded-full"></span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** Hero + card placeholders shown while the dashboard loads. */
+export function dashboardSkeleton(): unknown {
+  return html`
+    ${heroSkeleton()}
+    <div class="flex flex-col gap-3" role="status" aria-label="Loading cards">
+      ${Array.from(
+        { length: 3 },
+        (_, i) => html`
+          <div class="card bg-base-100 shadow-xl" aria-hidden="true">
+            <div class="card-body gap-3">
+              <span class="skeleton h-4 ${i === 1 ? "w-28" : "w-20"}"></span>
+              <span class="skeleton h-3 w-full"></span>
+              <span class="skeleton h-3 w-4/5"></span>
+              <span class="skeleton h-3 w-2/3"></span>
+            </div>
+          </div>
+        `,
+      )}
+    </div>
+  `;
+}
+
 /** Mirrors the Profile tab's fixed evaluations + roulette cards. */
 export function profileTabSkeleton(label = "Loading your profile"): unknown {
   return html`

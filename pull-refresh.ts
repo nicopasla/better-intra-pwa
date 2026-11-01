@@ -1,4 +1,5 @@
 import { currentTab, userLoginFromHash } from "./shell.ts";
+import { html, render as renderTemplate } from "lit-html";
 import { loadDashboard } from "./views/dashboard.ts";
 import { loadProfile } from "./views/profile.ts";
 import { loadFriends } from "./views/friends.ts";
@@ -45,8 +46,13 @@ function indicator(): HTMLDivElement | null {
   const el = document.createElement("div");
   el.style.cssText =
     "position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:60;display:flex;justify-content:center;align-items:flex-end;height:4rem;pointer-events:none;";
-  el.innerHTML =
-    '<span class="loading loading-ring" style="color:var(--color-accent);"></span>';
+  renderTemplate(
+    html`<span
+      class="loading loading-ring"
+      style="color:var(--color-accent)"
+    ></span>`,
+    el,
+  );
   document.body.appendChild(el);
   indicatorEl = el;
   return el;

@@ -1,13 +1,54 @@
 {
+  "id": "/",
+  "lang": "en",
   "name": "Better Intra",
   "short_name": "Better Intra",
   "description": "Mobile dashboard for 42 Intra, from Better Intra.",
+  "categories": ["education"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1d232a",
   "theme_color": "#1d232a",
+  "shortcuts": [
+    {
+      "name": "Clusters",
+      "short_name": "Clusters",
+      "url": "/#/clusters",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "short_name": "Students",
+      "url": "/#/students",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "url": "/#/profile",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/favicon.ico",

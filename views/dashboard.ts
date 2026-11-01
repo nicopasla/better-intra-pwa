@@ -27,6 +27,7 @@ import {
   pushSupported,
 } from "../push.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
+import { dashboardSkeleton, heroSkeleton } from "../lib/skeletons.ts";
 import { dateTimeShort, evalCountdown } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
@@ -111,12 +112,7 @@ const svg18 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="18" height="18"'));
 
 export function dashboardView(): unknown {
-  if (loading)
-    return card(
-      html`<div class="flex justify-center py-10">
-        <span class="loading loading-spinner loading-lg"></span>
-      </div>`,
-    );
+  if (loading) return dashboardSkeleton();
   if (error) {
     return html`
       <div class="card bg-base-100 shadow-xl">
@@ -441,30 +437,6 @@ function heroCard() {
       refresh();
     },
   });
-}
-
-function heroSkeleton() {
-  return html`<div
-    class="card bg-base-100 shadow-xl mb-4 overflow-hidden relative"
-  >
-    <div class="h-28 w-full bg-base-200 animate-pulse"></div>
-    <div class="card-body pt-0 gap-3">
-      <div class="flex items-end gap-3 -mt-12">
-        <div
-          class="w-24 h-24 rounded-full ring-4 ring-base-100 bg-base-300 flex-none"
-        ></div>
-        <div class="min-w-0 pb-1 flex-1 flex flex-col gap-2">
-          <div class="h-4 w-32 rounded bg-base-300"></div>
-          <div class="h-3 w-20 rounded bg-base-300"></div>
-        </div>
-      </div>
-      <div class="flex justify-center gap-1.5">
-        <div class="h-6 w-16 rounded-full bg-base-200"></div>
-        <div class="h-6 w-16 rounded-full bg-base-200"></div>
-        <div class="h-6 w-16 rounded-full bg-base-200"></div>
-      </div>
-    </div>
-  </div>`;
 }
 
 function projectsCard() {

@@ -1,4 +1,3 @@
-import { html } from "lit-html";
 import {
   getStudentsBottomBar,
   getStudentsView,
@@ -6,15 +5,14 @@ import {
   studentsSync,
 } from "./students-feature/controller.ts";
 import { refresh } from "../refresh.ts";
+import { rowSkeleton } from "../lib/skeletons.ts";
 
 let started = false;
 
 export function studentsView(): unknown {
   const v = getStudentsView();
   if (v) return v;
-  return html`<div class="flex justify-center py-10">
-    <span class="loading loading-spinner loading-lg"></span>
-  </div>`;
+  return rowSkeleton(7);
 }
 
 export function studentsBottomBar(): unknown {
