@@ -12,6 +12,7 @@ import { refresh } from "../refresh.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { dateTime } from "../lib/format.ts";
+import { profileSkeleton } from "../lib/skeletons.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { accentFor, profileHero } from "./profile-hero.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
@@ -99,9 +100,7 @@ export function userProfileView(login: string): unknown {
             ${evaluationsSection(s.stats)}
           `
         : s.loading
-          ? html`<div class="flex justify-center py-16">
-              <span class="loading loading-spinner loading-lg"></span>
-            </div>`
+          ? profileSkeleton("Loading profile")
           : errorCard(s.error)}
     </div>
   `;

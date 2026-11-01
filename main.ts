@@ -124,8 +124,23 @@ async function checkCampusAccess(attempt = 0): Promise<void> {
 
 function loadingScreen() {
   return html`
-    <div class="flex-1 flex items-center justify-center">
-      <span class="loading loading-spinner loading-lg"></span>
+    <div
+      class="flex flex-col gap-4"
+      role="status"
+      aria-label="Loading Better Intra"
+    >
+      <div class="flex items-center gap-3" aria-hidden="true">
+        <span class="skeleton size-14 shrink-0 rounded-full"></span>
+        <div class="flex min-w-0 flex-1 flex-col gap-2">
+          <span class="skeleton h-4 w-2/5"></span>
+          <span class="skeleton h-3 w-1/4"></span>
+        </div>
+      </div>
+      <div class="flex flex-col gap-3" aria-hidden="true">
+        <span class="skeleton h-28 w-full rounded-box"></span>
+        <span class="skeleton h-20 w-full rounded-box"></span>
+        <span class="skeleton h-20 w-full rounded-box"></span>
+      </div>
     </div>
   `;
 }
@@ -453,7 +468,7 @@ function hydrateCaches(): void {
 }
 
 async function boot(): Promise<void> {
-  render(loadingScreen(), app());
+  render(html`<div class="p-4">${loadingScreen()}</div>`, app());
   void registerServiceWorker();
   initTheme();
   initCampusBadges();

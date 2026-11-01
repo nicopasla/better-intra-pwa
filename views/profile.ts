@@ -7,6 +7,7 @@ import { readScopedCache, writeCache } from "../lib/cache.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { observeTabsOverflow, segmentedTabs } from "../lib/segmented-tabs.ts";
 import { dateTime } from "../lib/format.ts";
+import { profileSkeleton } from "../lib/skeletons.ts";
 
 type SubTab = "evaluations" | "projects" | "achievements";
 
@@ -39,11 +40,7 @@ export function switchSubTab(tab: SubTab): void {
 }
 
 export function profileView(): unknown {
-  if (loading && !meData) {
-    return html`<div class="flex justify-center py-10">
-      <span class="loading loading-spinner loading-lg"></span>
-    </div>`;
-  }
+  if (loading && !meData) return profileSkeleton("Loading your profile");
   if (!meData) {
     return html`<div class="card bg-base-100 shadow-xl">
       <div class="card-body items-center gap-3">
