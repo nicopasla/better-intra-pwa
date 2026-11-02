@@ -476,13 +476,13 @@ function statusChip(label: string, state: "on" | "off" | "unknown") {
   const text = state === "on" ? "On" : state === "off" ? "Off" : "Checking…";
   const tone = state === "on" ? "badge-success" : "badge-error";
   return html`<span
-    class="badge ${tone} badge-soft badge-sm gap-1.5"
+    class="badge ${tone} badge-sm gap-1.5"
     title="${label}: ${text}"
   >
     ${state === "unknown"
       ? html`<span class="loading loading-spinner loading-xs"></span>`
       : ""}
-    <span class="opacity-70">${label}</span>
+    <span>${label}</span>
     <span class="font-semibold">${text}</span>
   </span>`;
 }
