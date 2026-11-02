@@ -882,7 +882,7 @@ export function renderStudentsDialogTemplate(
           <div class="flex items-center gap-2 w-full basis-full">
             <div class="flex items-center gap-2 shrink-0 mr-auto">
               <span
-                class="badge badge-accent shrink-0 gap-1 font-bold tabular-nums"
+                class="badge badge-info shrink-0 gap-1 font-bold tabular-nums"
                 style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
                 data-tip="${cursusLabel} — ${dateLabel}"
               >

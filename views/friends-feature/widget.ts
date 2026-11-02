@@ -21,6 +21,7 @@ import {
 import { refresh } from "../../refresh.ts";
 import { navigateToSeat } from "../../shell.ts";
 import { AVATARS_ENABLED, avatarLoaded } from "../../lib/avatar.ts";
+import { rowSkeleton } from "../../lib/skeletons.ts";
 import FRIENDS_SVG from "../../assets/friends.svg?raw";
 import GHOST_SVG from "../../assets/ghost.svg?raw";
 import WARNING_SVG from "../../assets/triangle-exclamation.svg?raw";
@@ -548,7 +549,7 @@ function renderFriendsBottomBar(state: WidgetState) {
             style="border-radius:var(--radius-field)"
           >
             <span
-              class="badge badge-primary font-semibold tabular-nums"
+              class="badge badge-info font-semibold tabular-nums"
               style="height:2rem;min-width:2rem;padding-inline:0.6rem;font-size:0.85rem;"
               title="${state.friends.length} friend${state.friends.length === 1
                 ? ""
@@ -611,6 +612,7 @@ function renderWidget(state: WidgetState) {
     : state.friends;
   const sorted = sortFriends(visible, state.sortBy, state.sortDir);
   const emptyState =
+    !state.loading &&
     !state.loadError &&
     !state.notConnected &&
     !state.needsReconnect &&
@@ -1042,11 +1044,7 @@ function renderWidget(state: WidgetState) {
                     </button>
                   </div>`
                 : state.loading && state.friends.length === 0
-                  ? html`<div
-                      class="flex flex-1 items-center justify-center py-12"
-                    >
-                      <span class="loading loading-spinner loading-md"></span>
-                    </div>`
+                  ? rowSkeleton(6)
                   : state.loadError && state.friends.length === 0
                     ? renderLoadError(state.onRefresh)
                     : state.friends.length === 0
@@ -1134,6 +1132,7 @@ export function friendsListEmpty(): boolean {
   if (!_state) return false;
   if (_state.loadError || _state.notConnected || _state.needsReconnect)
     return false;
+  if (_state.loading && _state.friends.length === 0) return false;
   const visible = _state.onlineOnly
     ? _state.friends.filter((f) => f.isOnline)
     : _state.friends;
