@@ -321,39 +321,19 @@ html.ft-friends-empty body {
   flex-shrink: 0;
 }
 
-/* Refresh countdown inside the clusters tab bar: a fixed-width, non-clickable
-   cell after a hairline divider. */
-.clusters-tabs .clusters-tab-sep {
-  width: 1px;
-  align-self: stretch;
-  margin: 0.2rem 0.1rem;
-  background: color-mix(in oklab, var(--color-base-content) 15%, transparent);
-}
-
-.clusters-tabs .clusters-tab-time {
-  flex: 0 0 2.2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.68rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.6;
-  pointer-events: none;
-  user-select: none;
-  cursor: default;
-}
-
-/* Taken/seats counter next to a cluster tab's label. Solid info so it stays
-   readable on low-contrast themes. */
+/* Cluster name: bold text only, no chip. */
 .clusters-tabs .tab-count {
-  margin-left: 0.15em;
-  padding: 0 0.3em;
-  border-radius: 0.35em;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--color-info-content);
-  background: var(--color-info);
+  color: inherit;
+}
+
+/* Seats taken, now plain next to the cluster name. */
+.clusters-tabs .tab-total {
+  margin-left: 0.3em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
 }
 
 /* Respect the OS "reduce motion" setting: no shimmer, spinners or map

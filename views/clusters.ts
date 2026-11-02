@@ -90,9 +90,7 @@ let entries: OccupancyEntry[] = [];
 let loading = true;
 let error = "";
 let started = false;
-let lastUpdated = 0;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
-let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * The selected bottom tab: a cluster map id, or "active" for the online list.
@@ -149,31 +147,15 @@ function onActiveTab(): void {
   switchTab("active");
 }
 
-function refreshLabel(): void {
-  const el = document.getElementById("ft-clusters-countdown");
-  if (!el) return;
-  if (!lastUpdated) {
-    el.textContent = "…";
-    return;
-  }
-  const secs = Math.max(
-    0,
-    Math.ceil((POLL_INTERVAL - (Date.now() - lastUpdated)) / 1000),
-  );
-  el.textContent = `${secs}s`;
-}
-
 async function loadOccupancy(): Promise<void> {
   try {
     entries = [...(await fetchOccupancy()).values()];
-    lastUpdated = Date.now();
     error = "";
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   } finally {
     loading = false;
   }
-  refreshLabel();
   refresh();
 }
 
@@ -183,10 +165,6 @@ function startTimers(): void {
     if (document.hidden || currentTab() !== "clusters") return;
     void loadOccupancy();
   }, POLL_INTERVAL);
-  if (countdownTimer) clearInterval(countdownTimer);
-  countdownTimer = setInterval(() => {
-    if (!document.hidden && currentTab() === "clusters") refreshLabel();
-  }, 1000);
 }
 
 /** True when the fixed cluster-map view (not the Active list) is on screen. */
@@ -729,9 +707,9 @@ export function clustersBottomBar(): unknown {
                     : m.label}
                   @click=${() => switchTab(m.id)}
                 >
-                  ${m.label}
+                  ${html`<span class="tab-count">${m.label}</span>`}
                   ${seated > 0
-                    ? html`<span class="tab-count">${seated}/${seats}</span>`
+                    ? html`<span class="tab-total">${seated}/${seats}</span>`
                     : ""}
                 </button>
               `;
@@ -744,21 +722,15 @@ export function clustersBottomBar(): unknown {
               aria-label=${activeTitle}
               @click=${onActiveTab}
             >
-              <span class="tab-icon"
+              <span class="tab-count tab-count-icon"
                 >${unsafeHTML(
                   activeIcon.replace("<svg", '<svg width="14" height="14"'),
                 )}</span
               >
               ${online > 0
-                ? html`<span class="tab-count">${online}</span>`
+                ? html`<span class="tab-total">${online}</span>`
                 : ""}
             </button>
-            <span class="clusters-tab-sep" aria-hidden="true"></span>
-            <span
-              id="ft-clusters-countdown"
-              class="clusters-tab-time"
-              title="Auto-refreshes every minute"
-            ></span>
           </div>
         </div>
       </div>
@@ -922,7 +894,6 @@ function applyMapOccupancy(): void {
 
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
-  refreshLabel();
   applyMapOccupancy();
   const seat = seatFromHash();
   const mapEl = document.getElementById("ft-cluster-map");
