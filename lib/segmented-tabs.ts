@@ -43,7 +43,7 @@ export function segmentedTabs<T extends string>(
         ? html`
             <details class="dropdown dropdown-start dropdown-top">
               <summary
-                class="btn btn-sm btn-ghost gap-1.5 list-none"
+                class="btn btn-sm btn-outline border-base-content/20 gap-1.5 list-none"
                 data-tip="Select tab"
                 data-tip-size="14px"
               >
@@ -61,8 +61,8 @@ export function segmentedTabs<T extends string>(
                 </span>
               </summary>
               <ul
-                class="menu menu-sm dropdown-content z-40 mb-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
-                style="width:max-content;min-width:12rem;"
+                class="menu menu-md dropdown-content z-40 mb-2 max-h-72 overflow-auto rounded-box bg-base-100 p-2 shadow-xl"
+                style="width:max-content;min-width:14rem;max-width:calc(100vw - 2rem);"
               >
                 ${tabs.map(
                   (t) => html`
@@ -71,7 +71,7 @@ export function segmentedTabs<T extends string>(
                         type="button"
                         class="${t.id === active
                           ? "menu-active"
-                          : ""} whitespace-nowrap"
+                          : ""} whitespace-nowrap py-2 text-sm"
                         @click="${() => onSwitch(t.id)}"
                       >
                         ${t.label}

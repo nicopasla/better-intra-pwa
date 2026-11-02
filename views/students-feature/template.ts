@@ -964,11 +964,9 @@ export function renderStudentsBottomBar(
     <div class="ft-subtabs px-4 pb-2">
       <div class="rounded-2xl bg-base-100 p-1.5 shadow-lg">
         <div
-          class="relative mb-1.5 flex items-center justify-start border-b border-base-300 pb-1.5"
+          class="mb-1.5 flex items-center justify-between gap-2 border-b border-base-300 pb-1.5"
         >
-          <div
-            class="flex flex-wrap items-center justify-start gap-2 pr-10"
-          >
+          <div class="flex min-w-0 flex-wrap items-center justify-start gap-2">
             <span
               class="badge badge-info shrink-0 gap-1 font-bold tabular-nums"
               style="white-space:nowrap;border-radius:var(--radius-field);height:2rem;font-size:0.8rem"
@@ -989,19 +987,23 @@ export function renderStudentsBottomBar(
               : ""}
           </div>
           ${showPoolFilter
-            ? html`<div class="absolute right-0 top-1/2 -translate-y-1/2">
+            ? html`<div class="shrink-0">
                 <details class="dropdown dropdown-top dropdown-end">
                   <summary
-                    class="btn btn-sm btn-square list-none ${hasActiveFilters
+                    class="btn btn-sm list-none gap-1.5 px-2.5 ${hasActiveFilters
                       ? "btn-primary"
                       : "btn-outline border-base-content/20"}"
                     style="height:2rem"
                     data-tip="Filters"
                   >
+                    <span
+                      class="text-xs font-semibold uppercase tracking-wide"
+                      >Filters</span
+                    >
                     ${unsafeHTML(
                       FILTER_SVG.replace(
                         "<svg",
-                        '<svg width="16" height="16"',
+                        '<svg width="14" height="14"',
                       ),
                     )}
                   </summary>
@@ -1047,9 +1049,9 @@ export function renderStudentsBottomBar(
           ${showRosterControls
             ? html`<div class="flex shrink-0 items-center gap-1">
                 <button
-                  class="btn btn-sm join-item px-0 w-9 ${sortField === "name"
+                  class="btn btn-sm px-0 w-9 ${sortField === "name"
                     ? "btn-primary"
-                    : "btn-ghost"}"
+                    : "btn-outline border-base-content/20"}"
                   style="height:2rem"
                   data-tip="${nameDir === "asc"
                     ? "Name A → Z (click to invert)"
@@ -1066,10 +1068,10 @@ export function renderStudentsBottomBar(
                 </button>
                 ${tab !== "pisciners"
                   ? html`<button
-                      class="btn btn-sm join-item px-0 w-9 ${sortField ===
+                      class="btn btn-sm px-0 w-9 ${sortField ===
                       "date"
                         ? "btn-primary"
-                        : "btn-ghost"}"
+                        : "btn-outline border-base-content/20"}"
                       style="height:2rem"
                       data-tip="${dateDir === "desc"
                         ? "Date (newest first)"
