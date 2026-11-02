@@ -343,23 +343,16 @@ html.ft-friends-empty body {
   cursor: default;
 }
 
-/* Taken/seats counter next to a cluster tab's label. */
+/* Taken/seats counter next to a cluster tab's label. Solid info so it stays
+   readable on low-contrast themes. */
 .clusters-tabs .tab-count {
   margin-left: 0.15em;
   padding: 0 0.3em;
   border-radius: 0.35em;
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-info);
-  background: color-mix(in oklab, var(--color-info) 14%, transparent);
-}
-
-/* On the selected tab the pill sits on the primary fill: keep it legible. */
-.clusters-tabs .tab-btn.active .tab-count {
-  color: var(--color-primary-content);
-  background: color-mix(in oklab,
-      var(--color-primary-content) 18%,
-      transparent);
+  color: var(--color-info-content);
+  background: var(--color-info);
 }
 
 /* Respect the OS "reduce motion" setting: no shimmer, spinners or map

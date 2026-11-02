@@ -676,6 +676,8 @@ export const mock = {
   ],
   blob: {
     settings: {
+      BETTER_INTRA_THEME: "light",
+      PROFILE_THEME_PRESET: "lemonade",
       FRIENDS_LIST: ["amelie", "bdurand", "cpetit", "dleroy", "vmoreau"],
       SHOW_CUSTOM_AVATARS_IN_FRIENDS: true,
       PROFILE_USE_CUSTOM_COLOR: true,

@@ -563,17 +563,17 @@ function pushTestRow() {
 
 function pushInstallNotice() {
   return html`
-    <div class="alert alert-info alert-soft">
+    <div class="alert alert-info">
       <div class="flex flex-col gap-1">
-        <span class="font-medium">Install the app to get notifications</span>
-        <span class="text-sm opacity-80">
+        <span class="font-semibold">Install the app to get notifications</span>
+        <span class="text-sm">
           iOS and Android deliver push most reliably to installed web apps. Open
           your browser menu → Share → Add to Home Screen, then reopen the app
           and enable notifications here.
         </span>
         ${canInstall()
           ? html`<button
-              class="btn btn-primary btn-sm self-start mt-1"
+              class="btn btn-sm self-start mt-1 bg-base-100 text-base-content border-none"
               @click=${onInstall}
             >
               Install app
