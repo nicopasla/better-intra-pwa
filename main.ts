@@ -9,7 +9,7 @@ import {
   setSessionExpiredHandler,
 } from "./api.ts";
 import { initTheme, syncThemeFromCloud } from "./theme.ts";
-import { initCampusBadges } from "./lib/campus-badges.ts";
+import { badgeUrlFor, initCampusBadges, waitForCampusBadges } from "./lib/campus-badges.ts";
 import {
   currentTab,
   redirectToDashboard,
@@ -478,6 +478,21 @@ function hydrateCaches(): void {
   hydrateUserProfileCache();
 }
 
+/**
+ * Destination of the app-icon "Slots" shortcut. The URL lives in the campus
+ * file (`badges.SLOTS` under `badgeBaseUrl`), never hardcoded here; a short
+ * wait covers the very first launch before that file is cached.
+ */
+async function slotsShortcutUrl(): Promise<string | null> {
+  const cached = badgeUrlFor("SLOTS");
+  if (cached) return cached;
+  await Promise.race([
+    waitForCampusBadges(),
+    new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+  ]);
+  return badgeUrlFor("SLOTS");
+}
+
 async function boot(): Promise<void> {
   render(html`<div class="p-4">${loadingScreen()}</div>`, app());
   void registerServiceWorker();
@@ -488,6 +503,17 @@ async function boot(): Promise<void> {
   onInstallAvailability(refreshPreApp);
   onPushSubscriptionChange(() => void syncPushSubscription());
   initAppListeners();
+
+  // App-icon "Slots" shortcut: the destination comes from the campus file.
+  if (location.hash === "#/slots") {
+    const slotsUrl = await slotsShortcutUrl();
+    if (slotsUrl) {
+      location.replace(slotsUrl);
+      return;
+    }
+    // No campus app defined (non-Belgium / offline first run): boot normally.
+    history.replaceState(null, "", location.pathname + location.search);
+  }
 
   // Mock mode: skip auth entirely and render the app with fake data.
   if (mockMode) {

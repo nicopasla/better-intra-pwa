@@ -13,6 +13,16 @@ export interface CampusBadges {
 let config: CampusBadges | null = null;
 let started = false;
 let loading = false;
+/** Resolves once the campus file has been loaded from cache or the network. */
+let readyResolve: (() => void) | null = null;
+const ready = new Promise<void>((resolve) => {
+  readyResolve = resolve;
+});
+
+function markReady(): void {
+  readyResolve?.();
+  readyResolve = null;
+}
 
 function readCache(): CampusBadges | null {
   try {
@@ -63,6 +73,7 @@ async function fetchBadges(): Promise<void> {
     /* offline: keep the cached config */
   } finally {
     loading = false;
+    markReady();
   }
 }
 
@@ -72,6 +83,12 @@ export function initCampusBadges(): void {
   started = true;
   config = readCache();
   void fetchBadges();
+}
+
+/** Waits for the campus file (cache first, then the network). */
+export function waitForCampusBadges(): Promise<void> {
+  initCampusBadges();
+  return ready;
 }
 
 /** URL of the campus app a role badge opens, if the campus defines one. */

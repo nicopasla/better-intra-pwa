@@ -17,6 +17,45 @@
   "theme_color": "#1d232a",
   "shortcuts": [
     {
+      "name": "Slots",
+      "short_name": "Slots",
+      "description": "Open the campus slots app",
+      "url": "/#/slots",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Friends",
+      "short_name": "Friends",
+      "description": "See who is online right now",
+      "url": "/#/friends",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Notifications, theme and account settings",
+      "url": "/#/settings",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Clusters",
       "short_name": "Clusters",
       "url": "/#/clusters",
