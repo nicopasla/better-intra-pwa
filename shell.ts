@@ -5,6 +5,13 @@ import USER_SVG from "./assets/user.svg?raw";
 import USERS_SVG from "./assets/users.svg?raw";
 import GEAR_SVG from "./assets/settings_gear.svg?raw";
 import CLUSTERS_SVG from "./assets/clusters.svg?raw";
+import {
+  clearLongPress,
+  consumeLongPressClick,
+  moveLongPress,
+  startLongPress,
+} from "./lib/long-press.ts";
+import { openShortcutSheet } from "./views/shortcut-sheet.ts";
 
 export type Tab =
   | "dashboard"
@@ -104,6 +111,27 @@ const icon24 = (raw: string) =>
 
 const app = () => document.getElementById("app")!;
 
+/** Home dock button: tap opens Home, hold opens the shortcut sheet. */
+function homeTabButton(t: TabDef, active: Tab | null): unknown {
+  return html`<button
+    class="${active === t.id ? "dock-active" : ""} ft-long-press"
+    @pointerdown=${(ev: PointerEvent) =>
+      startLongPress(ev, () => openShortcutSheet())}
+    @pointermove=${moveLongPress}
+    @pointerup=${clearLongPress}
+    @pointercancel=${clearLongPress}
+    @pointerleave=${clearLongPress}
+    @contextmenu=${(ev: Event) => ev.preventDefault()}
+    @click=${(ev: Event) => {
+      if (consumeLongPressClick(ev)) return;
+      navigate(t.id);
+    }}
+  >
+    ${icon24(t.icon)}
+    <span class="dock-label text-xs font-medium">${t.label}</span>
+  </button>`;
+}
+
 export function renderShell(
   active: Tab | null,
   body: unknown,
@@ -128,16 +156,20 @@ export function renderShell(
             class="dock dock-md bg-base-100 border-t border-base-300"
             style="padding-bottom: env(safe-area-inset-bottom);"
           >
-            ${TABS.filter((t) => !hidden.has(t.id)).map(
-              (t) => html`
-                <button
-                  class="${active === t.id ? "dock-active" : ""}"
-                  @click=${() => navigate(t.id)}
-                >
-                  ${icon24(t.icon)}
-                  <span class="dock-label text-xs font-medium">${t.label}</span>
-                </button>
-              `,
+            ${TABS.filter((t) => !hidden.has(t.id)).map((t) =>
+              t.id === "dashboard"
+                ? homeTabButton(t, active)
+                : html`
+                    <button
+                      class="${active === t.id ? "dock-active" : ""}"
+                      @click=${() => navigate(t.id)}
+                    >
+                      ${icon24(t.icon)}
+                      <span class="dock-label text-xs font-medium"
+                        >${t.label}</span
+                      >
+                    </button>
+                  `,
             )}
           </nav>
         </div>
