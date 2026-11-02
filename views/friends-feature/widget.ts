@@ -569,6 +569,7 @@ function renderFriendsBottomBar(state: WidgetState) {
                 <span class="text-xs font-semibold tabular-nums opacity-60"
                   >/${state.friends.length}</span
                 >
+                <span class="text-xs font-semibold">online</span>
                 <span
                   class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                   >${unsafeHTML(svgIcon(GLOBE_SVG))}</span
