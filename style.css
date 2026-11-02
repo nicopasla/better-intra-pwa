@@ -561,9 +561,43 @@ html.ft-friends-empty body {
   height: 1.1rem;
 }
 
-/* Rows with a long-press action: stop iOS offering Open Link / Copy. */
+/* Rows and avatars with a long-press action: stop iOS offering its menu. */
 .ft-long-press-row,
-.ft-long-press-row * {
+.ft-long-press-row *,
+.ft-long-press,
+.ft-long-press * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Long-press avatar viewer: a big picture, but never edge to edge. */
+.ft-image-viewer {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.ft-image-viewer::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.ft-image-viewer-img {
+  display: block;
+  width: min(78vw, 68vh, 22rem);
+  height: auto;
+  max-height: 68vh;
+  object-fit: contain;
+  border-radius: 1rem;
+  background: var(--color-base-100, #fff);
+  box-shadow: 0 1.25rem 3rem rgb(0 0 0 / 0.35);
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;

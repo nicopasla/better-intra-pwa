@@ -1,4 +1,4 @@
-import { html, type TemplateResult } from "lit-html";
+import { html, nothing, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import type { UserProfile, UserVisuals } from "../data.ts";
 import { mockMode } from "../mock.ts";
@@ -9,6 +9,13 @@ import {
 } from "../lib/avatar.ts";
 import { saveData } from "../lib/network.ts";
 import { nameTip } from "../lib/names.ts";
+import {
+  clearLongPress,
+  consumeLongPressClick,
+  moveLongPress,
+  startLongPress,
+} from "../lib/long-press.ts";
+import { openImageViewer, type ViewerImage } from "../lib/image-viewer.ts";
 import {
   alumniBadge,
   blackholeBadge,
@@ -96,8 +103,7 @@ export function profileHero(
     return {
       name,
       color,
-      url:
-        opts.badgeLinks && !opts.editActive ? badgeUrlFor(name) : null,
+      url: opts.badgeLinks && !opts.editActive ? badgeUrlFor(name) : null,
     };
   });
   /** Admin-granted badges from D1, rendered with the role badges. */
@@ -321,6 +327,20 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
   const toggleable = hasCustom && !saveData;
   const toggle = () => opts.onToggleAvatar?.();
   const failAvatar = () => opts.onAvatarError?.();
+  const originalSrc = opts.avatarFailed ? null : src;
+  /** Pictures for the long-press viewer: the one on screen first, then the other. */
+  const viewerImages: ViewerImage[] = [];
+  if (!saveData) {
+    const custom = customSrc ? { src: customSrc, label: "Custom" } : null;
+    const original = originalSrc
+      ? { src: originalSrc, label: "Original" }
+      : null;
+    const current = showCustom ? custom : original;
+    const other = showCustom ? original : custom;
+    if (current) viewerImages.push(current);
+    if (other) viewerImages.push(other);
+  }
+  const canEnlarge = viewerImages.length > 0;
 
   const inner = (() => {
     if (saveData)
@@ -347,17 +367,44 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
     />`;
   })();
 
-  if (!toggleable) return inner;
-  return html`<div
-    class="flex-none cursor-pointer rounded-full"
-    style="border-radius:${v.avatarShape === "square" ? "0" : "9999px"}"
-    role="button"
-    tabindex="0"
-    title="${opts.showOriginalAvatar
+  if (!toggleable && !canEnlarge) return inner;
+
+  const enlarge = () => {
+    if (canEnlarge) openImageViewer({ images: viewerImages, alt: p.login });
+  };
+  const title = !canEnlarge
+    ? opts.showOriginalAvatar
       ? "Show custom avatar"
-      : "Show original avatar"}"
-    @click=${toggle}
+      : "Show original avatar"
+    : toggleable
+      ? `Tap to show ${
+          opts.showOriginalAvatar ? "the custom" : "the original"
+        } avatar, hold to enlarge`
+      : "Hold to enlarge";
+  return html`<div
+    class="flex-none ${toggleable ? "cursor-pointer" : ""} ${canEnlarge
+      ? "ft-long-press"
+      : ""}"
+    style="border-radius:${v.avatarShape === "square" ? "0" : "9999px"}"
+    role=${toggleable ? "button" : nothing}
+    tabindex=${toggleable ? "0" : nothing}
+    title="${title}"
+    @pointerdown=${(ev: PointerEvent) => {
+      if (canEnlarge) startLongPress(ev, enlarge);
+    }}
+    @pointermove=${moveLongPress}
+    @pointerup=${clearLongPress}
+    @pointercancel=${clearLongPress}
+    @pointerleave=${clearLongPress}
+    @contextmenu=${(ev: Event) => {
+      if (canEnlarge) ev.preventDefault();
+    }}
+    @click=${(ev: Event) => {
+      if (consumeLongPressClick(ev)) return;
+      if (toggleable) toggle();
+    }}
     @keydown=${(e: KeyboardEvent) => {
+      if (!toggleable) return;
       if (e.key === "Enter" || e.key === " ") toggle();
     }}
   >
