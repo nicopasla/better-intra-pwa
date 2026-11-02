@@ -1,9 +1,7 @@
-import { html, render } from "lit-html";
+import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
-import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
-import SHARE_SVG from "../assets/share.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import { currentTab } from "../shell.ts";
@@ -46,45 +44,6 @@ import type { ClusterMapDef } from "./clusters-feature/maps.ts";
 import type { OccupancyEntry } from "./clusters-feature/types.ts";
 
 const POLL_INTERVAL = 60_000;
-
-/** Long-press state for connection rows (opens the seat sheet). */
-let rowPressTimer: ReturnType<typeof setTimeout> | null = null;
-let rowPressStart: { x: number; y: number } | null = null;
-let suppressRowClick = false;
-
-function clearRowPress(): void {
-  if (rowPressTimer != null) {
-    clearTimeout(rowPressTimer);
-    rowPressTimer = null;
-  }
-  rowPressStart = null;
-}
-
-function startRowPress(ev: PointerEvent, host: string): void {
-  if (ev.pointerType === "mouse" && ev.button !== 0) return;
-  clearRowPress();
-  rowPressStart = { x: ev.clientX, y: ev.clientY };
-  rowPressTimer = setTimeout(() => {
-    rowPressTimer = null;
-    rowPressStart = null;
-    suppressRowClick = true;
-    // If no click follows (e.g. the sheet took over), don't swallow the next one.
-    window.setTimeout(() => {
-      suppressRowClick = false;
-    }, 800);
-    navigator.vibrate?.(12);
-    openSeatSheet(host);
-  }, 450);
-}
-
-function moveRowPress(ev: PointerEvent): void {
-  if (!rowPressStart || rowPressTimer == null) return;
-  if (
-    Math.hypot(ev.clientX - rowPressStart.x, ev.clientY - rowPressStart.y) > 8
-  ) {
-    clearRowPress();
-  }
-}
 
 let entries: OccupancyEntry[] = [];
 let loading = true;
@@ -250,18 +209,7 @@ function row(e: OccupancyEntry): unknown {
       <div class="flex items-center gap-3 py-2">
         <a
           href="#/u/${e.login}"
-          class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content ft-share-row"
-          @pointerdown=${(ev: PointerEvent) => startRowPress(ev, e.host)}
-          @pointermove=${moveRowPress}
-          @pointerup=${clearRowPress}
-          @pointercancel=${clearRowPress}
-          @pointerleave=${clearRowPress}
-          @contextmenu=${(ev: Event) => ev.preventDefault()}
-          @click=${(ev: Event) => {
-            if (!suppressRowClick) return;
-            suppressRowClick = false;
-            ev.preventDefault();
-          }}
+          class="flex items-center gap-3 flex-1 min-w-0 no-underline text-base-content"
         >
           <img
             class="size-10 rounded-full object-cover shrink-0 bg-base-200 skeleton"
@@ -314,102 +262,6 @@ async function loadFriendLogins(): Promise<void> {
   }
 }
 
-/** Bottom sheet opened by long-pressing a seat on the map. */
-function openSeatSheet(seat: string): void {
-  document.getElementById("ft-seat-sheet")?.remove();
-
-  const entry = entries.find(
-    (e) => (e.host || "").trim().toLowerCase() === seat.trim().toLowerCase(),
-  );
-  const avatar = entry
-    ? ((showCustomAvatars() ? customAvatarUrl(entry.custom_avatar) : null) ??
-      entry.avatar_url ??
-      (mockMode ? entry.cdn_uri : null) ??
-      initialAvatarDataUrl(entry.login))
-    : null;
-  const dialog = document.createElement("dialog");
-  dialog.id = "ft-seat-sheet";
-  dialog.className = "modal modal-bottom";
-
-  render(
-    html`
-      <div class="modal-box">
-        <div class="flex items-center gap-3">
-          ${avatar
-            ? html`<img
-                class="size-11 shrink-0 rounded-full bg-base-200 object-cover"
-                src="${avatar}"
-                alt=""
-                referrerpolicy="no-referrer"
-              />`
-            : html`<span
-                class="flex size-11 shrink-0 items-center justify-center rounded-full bg-base-200 opacity-60"
-                aria-hidden="true"
-                >${unsafeHTML(
-                  MAP_PIN_SVG.replace("<svg", '<svg width="20" height="20"'),
-                )}</span
-              >`}
-          <h3 class="min-w-0 flex-1 truncate font-semibold">
-            ${entry ? entry.name || entry.login : "Empty seat"}
-          </h3>
-          <span
-            class="badge badge-info badge-md shrink-0 font-semibold tabular-nums"
-            >${seat}</span
-          >
-        </div>
-
-        <div class="modal-action mt-4 flex-nowrap gap-2">
-          <form method="dialog" class="flex-[1]">
-            <button class="btn btn-error w-full">Close</button>
-          </form>
-          <button
-            type="button"
-            class="btn btn-primary flex-[2] gap-1.5"
-            @click=${() => {
-              void shareSeat(seat).finally(() => dialog.close());
-            }}
-          >
-            ${unsafeHTML(
-              SHARE_SVG.replace("<svg", '<svg width="18" height="18"'),
-            )}
-            Share
-          </button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-      </form>
-    `,
-    dialog,
-  );
-  document.body.appendChild(dialog);
-  dialog.addEventListener("close", () => dialog.remove());
-  dialog.showModal();
-}
-
-async function shareSeat(host: string): Promise<void> {
-  const url = seatLink(host);
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: `${host} on the cluster map`, url });
-      return;
-    } catch {
-      return;
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-  } catch {
-    /* clipboard unavailable */
-  }
-}
-
-function seatLink(host: string): string {
-  return `https://mobile.betterintra.com/#/clusters?seat=${encodeURIComponent(
-    host,
-  )}`;
-}
-
 /** Entries ordered by connection time, newest first. */
 function connectionList(seated: OccupancyEntry[]): OccupancyEntry[] {
   return seated.slice().sort((a, b) => {
@@ -440,19 +292,8 @@ function connectionRow(entry: OccupancyEntry): unknown {
     <li>
       <a
         href="#/u/${entry.login}"
-        class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline ft-share-row"
+        class="flex items-center gap-2.5 py-1.5 min-w-0 text-base-content no-underline"
         title="${entry.host} · since ${time}"
-        @pointerdown=${(ev: PointerEvent) => startRowPress(ev, entry.host)}
-        @pointermove=${moveRowPress}
-        @pointerup=${clearRowPress}
-        @pointercancel=${clearRowPress}
-        @pointerleave=${clearRowPress}
-        @contextmenu=${(ev: Event) => ev.preventDefault()}
-        @click=${(ev: Event) => {
-          if (!suppressRowClick) return;
-          suppressRowClick = false;
-          ev.preventDefault();
-        }}
       >
         <img
           class="size-8 rounded-full object-cover shrink-0 bg-base-200 skeleton"

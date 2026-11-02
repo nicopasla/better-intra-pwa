@@ -562,8 +562,6 @@ html.ft-friends-empty body {
 }
 
 /* Rows with a long-press action: stop iOS offering Open Link / Copy. */
-.ft-share-row,
-.ft-share-row *,
 .ft-long-press-row,
 .ft-long-press-row * {
   -webkit-touch-callout: none;
