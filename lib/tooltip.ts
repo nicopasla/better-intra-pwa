@@ -72,6 +72,8 @@ function place(target: HTMLElement): void {
 function show(target: HTMLElement, keep = false): void {
   const text = target.dataset.tip?.trim();
   if (!text) return;
+  // Never draw a bubble over an open dropdown menu.
+  if (target.closest("details[open]")) return;
 
   const el = element();
   const host = container();
@@ -118,6 +120,11 @@ export function initTooltips(): void {
     const target = targetOf(e.target);
     if (e.pointerType === "touch") {
       if (target) {
+        // A return <details> opens its own menu; don't stack a bubble on it.
+        if (target.closest("summary")) {
+          hide();
+          return;
+        }
         // Tap: open, or close when tapping the same element again.
         if (target === active) hide();
         else show(target, true);
@@ -129,6 +136,15 @@ export function initTooltips(): void {
     // Mouse/trackpad: a click elsewhere closes a tapped-open bubble.
     if (!target && sticky) hide();
   });
+
+  // Any dropdown opening dismisses a tooltip that is still on screen.
+  document.addEventListener(
+    "toggle",
+    (e) => {
+      if (e.target instanceof HTMLDetailsElement && e.target.open) hide();
+    },
+    true,
+  );
 
   document.addEventListener("focusin", (e) => {
     const target = targetOf(e.target);

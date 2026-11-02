@@ -17,8 +17,8 @@ import EVAL_SVG from "../../assets/eval.svg?raw";
 import CHECK_SVG from "../../assets/check.svg?raw";
 import FORTY_TWO_SVG from "../../assets/42_Logo.svg?raw";
 import { segmentedTabs } from "../../lib/segmented-tabs.ts";
-import { pageHeader } from "../../lib/page-header.ts";
 import { nameTip } from "../../lib/names.ts";
+import { rowSkeleton } from "../../lib/skeletons.ts";
 import {
   avatarErrorFallback,
   avatarLoaded,
@@ -91,11 +91,17 @@ export const STUDENTS_TAB_LABELS: Record<StudentsTab, string> = {
   pisciners: "Pisciners",
 };
 
+/** Collapsed summary labels (the dropdown menu keeps the full ones). */
+const STUDENTS_TAB_SHORT: Record<StudentsTab, string> = {
+  students: "Students",
+  new: "Future",
+  pisciners: "Pisciners",
+};
+
 const STUDENTS_TAB_ORDER: StudentsTab[] = ["students", "new", "pisciners"];
 
 export interface StudentsTemplateHandlers {
   onSwitchTab: (tab: StudentsTab) => void;
-  onSetView: (view: StudentsView) => void;
   onSetSort: (field: SortField) => void;
   onToggleFilter: (key: FilterKey) => void;
   onClose: () => void;
@@ -409,7 +415,7 @@ export function renderStudentsDialogTemplate(
   const activeBadge = isPaged ? activeCount : localActiveCount;
   const statusBadge = filter !== "none" ? STATUS_BADGE[filter] : null;
   const activeBadgeValue = statusBadge ? filteredTotal : activeBadge;
-  const activeBadgeLabel = statusBadge ? statusBadge.label : "active";
+  const activeBadgeLabel = statusBadge ? statusBadge.label : "actives";
   const activeBadgeClass = statusBadge
     ? statusBadge.badgeClass
     : "badge-success";
@@ -423,10 +429,12 @@ export function renderStudentsDialogTemplate(
         ? "Future students"
         : "42 Cursus";
   const countValue = showPiscineGrid
-    ? piscineCount
+    ? `${piscineCount} ${piscineCount === 1 ? "piscine" : "piscines"}`
     : isPaged
-      ? baseTotal
-      : intakeFiltered.length;
+      ? `${baseTotal} ${baseTotal === 1 ? "student" : "students"}`
+      : `${intakeFiltered.length} ${
+          intakeFiltered.length === 1 ? "student" : "students"
+        }`;
   const emptyBase = isPaged ? baseTotal === 0 : entries.length === 0;
   const dateLabel =
     tab === "pisciners"
@@ -812,157 +820,42 @@ export function renderStudentsDialogTemplate(
       }
     </style>
     <div
-      class="students-feature flex flex-col bg-base-100 rounded-b-xl pb-4 mb-4"
+      class="students-feature flex flex-col bg-base-100 rounded-2xl overflow-hidden mb-4"
     >
-      ${pageHeader({
-        stack: true,
-        leading: html`
-          ${showPiscineGrid
-            ? ""
-            : html`<div class="flex items-center gap-2 w-full basis-full">
-                <input
-                  class="input input-sm flex-1 min-w-0"
-                  style="height:2.5rem"
-                  type="search"
-                  placeholder="Search..."
-                  .value="${query}"
-                  @input="${(e: Event) =>
-                    handlers.onSearchInput(
-                      (e.target as HTMLInputElement).value,
-                    )}"
-                />
-                ${showPoolFilter
-                  ? html`<div class="indicator shrink-0">
-                      ${hasActiveFilters
-                        ? html`<span
-                            class="indicator-item badge badge-xs ${filter ===
-                            "blackhole"
-                              ? "badge-error"
-                              : filter === "alumni"
-                                ? "badge-secondary"
-                                : filter === "freeze"
-                                  ? "badge-info"
-                                  : "badge-error"}"
-                            style="border-radius:var(--radius-field)"
-                          ></span>`
-                        : ""}
-                      <details class="dropdown">
-                        <summary
-                          class="btn btn-md list-none ${hasActiveFilters
-                            ? "btn-primary"
-                            : "btn-outline border-base-content/20"}"
-                          style="height:2.5rem"
-                          data-tip="Filters"
-                        >
-                          ${unsafeHTML(
-                            FILTER_SVG.replace(
-                              "<svg",
-                              '<svg width="16" height="16"',
-                            ),
-                          )}
-                        </summary>
-                        ${renderFilterMenu(
-                          state,
-                          handlers,
-                          tab === "new" ? intakeFiltered : entries,
-                        )}
-                      </details>
-                    </div>`
-                  : ""}
-                ${tab === "pisciners" && selectedPiscine
-                  ? html`<button
-                      class="btn btn-md btn-outline shrink-0"
-                      style="height:2.5rem"
-                      @click="${handlers.onBackToPiscines}"
-                    >
-                      ← Piscines
-                    </button>`
-                  : ""}
-              </div>`}
-          <div class="flex items-center gap-2 w-full basis-full">
-            <div class="flex items-center gap-2 shrink-0 mr-auto">
-              <span
-                class="badge badge-info shrink-0 gap-1 font-bold tabular-nums"
-                style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
-                data-tip="${cursusLabel} — ${dateLabel}"
-              >
-                <span
-                  class="size-3.5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                  >${unsafeHTML(showPiscineGrid ? POOL_SVG : USER_SVG)}</span
-                >${countValue}</span
-              >
-              ${tab === "students"
-                ? html`<span
-                    class="badge ${activeBadgeClass} shrink-0 font-bold tabular-nums"
-                    style="white-space:nowrap;border-radius:var(--radius-field);height:2.5rem"
-                    data-tip="${activeBadgeTip}"
-                    >${activeBadgeValue} ${activeBadgeLabel}</span
-                  >`
-                : ""}
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              ${showRosterControls
-                ? html`<div class="join shrink-0">
-                    <button
-                      class="btn btn-md join-item ${sortField === "name"
-                        ? "btn-primary"
-                        : "btn-outline border-base-content/20"}"
-                      style="height:2.5rem"
-                      data-tip="${nameDir === "asc"
-                        ? "Name A → Z (click to invert)"
-                        : "Name Z → A (click to invert)"}"
-                      @click="${() => handlers.onSetSort("name")}"
-                    >
-                      ${unsafeHTML(
-                        (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
-                          "<svg",
-                          '<svg width="16" height="16"',
-                        ),
-                      )}
-                    </button>
-                    ${tab !== "pisciners"
-                      ? html`<button
-                          class="btn btn-md join-item ${sortField === "date"
-                            ? "btn-primary"
-                            : "btn-outline border-base-content/20"}"
-                          style="height:2.5rem"
-                          data-tip="${dateDir === "desc"
-                            ? "Date (newest first)"
-                            : "Date (oldest first)"}"
-                          @click="${() => handlers.onSetSort("date")}"
-                        >
-                          ${unsafeHTML(
-                            (dateDir === "desc"
-                              ? CAL_DOWN_SVG
-                              : CAL_UP_SVG
-                            ).replace("<svg", '<svg width="16" height="16"'),
-                          )}
-                        </button>`
-                      : ""}
-                  </div>`
-                : ""}
-            </div>
-          </div>
-        `,
-      })}
       <div class="scroll-area flex-1 min-h-0 overflow-y-auto p-3">
         ${showPiscineGrid
           ? piscineListLoading
-            ? html`<div class="flex items-center justify-center p-8">
-                <span class="loading loading-spinner loading-lg"></span>
-              </div>`
+            ? rowSkeleton(4)
             : authError
               ? renderConnectBanner(handlers.onConnect)
               : renderPiscineCalendar(state, handlers)
           : loading
-            ? html`<div class="flex items-center justify-center p-8">
-                <span class="loading loading-spinner loading-lg"></span>
-              </div>`
+            ? rowSkeleton(6)
             : authError
               ? renderConnectBanner(handlers.onConnect)
               : filtered.length === 0
-                ? html`<div class="text-center p-6 text-base-content/50">
-                    ${emptyBase ? "No data" : "No results"}
+                ? html`<div
+                    class="flex flex-col items-center justify-center gap-2 p-8 text-center opacity-60"
+                  >
+                    <span class="w-12 h-12"
+                      >${unsafeHTML(
+                        USER_SVG.replace(
+                          "<svg",
+                          '<svg width="48" height="48"',
+                        ),
+                      )}</span
+                    >
+                    <p class="text-sm font-semibold">
+                      ${emptyBase ? "No data" : "No results"}
+                    </p>
+                    ${!emptyBase && (hasActiveFilters || query.trim())
+                      ? html`<button
+                          class="btn btn-sm btn-outline mt-1"
+                          @click="${handlers.onClearFilters}"
+                        >
+                          Clear filters
+                        </button>`
+                      : ""}
                   </div>`
                 : html`${tab === "new"
                     ? html`<div class="flex flex-col gap-5">
@@ -1010,23 +903,191 @@ export function renderStudentsDialogTemplate(
   `;
 }
 
-/** The students sub-tab bar, rendered by the shell above the dock. */
+/** The students bottom bar: search + filters, then tabs + sort. */
 export function renderStudentsBottomBar(
   state: StudentsTemplateState,
   handlers: StudentsTemplateHandlers,
 ): TemplateResult {
+  const { tab, selectedPiscine, entries, query, filter, poolIntake, poolYear } =
+    state;
+  const openPiscine = tab === "pisciners" && selectedPiscine != null;
+  const showPiscineGrid = tab === "pisciners" && selectedPiscine == null;
+  const showRosterControls = tab !== "pisciners" || openPiscine;
+  const showPoolFilter = tab === "students" || tab === "new";
+  const hasActiveFilters =
+    filter !== "none" || poolIntake != null || poolYear != null;
+  const { sortField, nameDir, dateDir } = state;
+  const isPaged = tab === "students";
+  const intakeFiltered =
+    tab === "new"
+      ? entries.filter(isFutureStudent)
+      : tab === "students"
+        ? entries.filter((e) => !isFutureStudent(e))
+        : entries;
+  const localActiveCount = intakeFiltered.filter(
+    (e) => e.active !== false,
+  ).length;
+  const statusBadge = filter !== "none" ? STATUS_BADGE[filter] : null;
+  const activeBadgeValue = statusBadge
+    ? state.filteredTotal
+    : isPaged
+      ? state.activeCount
+      : localActiveCount;
+  const activeBadgeLabel = statusBadge ? statusBadge.label : "actives";
+  const activeBadgeClass = statusBadge
+    ? statusBadge.badgeClass
+    : "badge-success";
+  const activeBadgeTip = statusBadge ? statusBadge.tip : "Active students";
+  const piscineCount = showPiscineGrid ? state.piscineList.length : 0;
+  const countValue = showPiscineGrid
+    ? `${piscineCount} ${piscineCount === 1 ? "piscine" : "piscines"}`
+    : isPaged
+      ? `${state.baseTotal} ${state.baseTotal === 1 ? "student" : "students"}`
+      : `${intakeFiltered.length} ${
+          intakeFiltered.length === 1 ? "student" : "students"
+        }`;
+  const cursusLabel =
+    tab === "pisciners"
+      ? "Piscine Brussels"
+      : tab === "new"
+        ? "Future students"
+        : "42 Cursus";
+  const dateLabel =
+    tab === "pisciners"
+      ? selectedPiscine
+        ? `${piscineMonthName(selectedPiscine.month)} ${selectedPiscine.year}`
+        : "all piscines"
+      : tab === "new"
+        ? "future students"
+        : "all students";
   return html`
     <div class="ft-subtabs px-4 pb-2">
-      <div class="rounded-xl bg-base-100 p-1.5 shadow-lg">
-        ${segmentedTabs({
-          tabs: STUDENTS_TAB_ORDER.map((t) => ({
-            id: t,
-            label: STUDENTS_TAB_LABELS[t],
-          })),
-          active: state.tab,
-          overflowing: state.tabsOverflowing,
-          onSwitch: handlers.onSwitchTab,
-        })}
+      <div class="rounded-2xl bg-base-100 p-1.5 shadow-lg">
+        <div
+          class="relative mb-1.5 flex items-center justify-start border-b border-base-300 pb-1.5"
+        >
+          <div
+            class="flex flex-wrap items-center justify-start gap-2 pr-10"
+          >
+            <span
+              class="badge badge-info shrink-0 gap-1 font-bold tabular-nums"
+              style="white-space:nowrap;border-radius:var(--radius-field);height:2rem;font-size:0.8rem"
+              data-tip="${cursusLabel} — ${dateLabel}"
+            >
+              <span
+                class="size-3 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                >${unsafeHTML(showPiscineGrid ? POOL_SVG : USER_SVG)}</span
+              >${countValue}</span
+            >
+            ${tab === "students"
+              ? html`<span
+                  class="badge ${activeBadgeClass} shrink-0 font-bold tabular-nums"
+                  style="white-space:nowrap;border-radius:var(--radius-field);height:2rem;font-size:0.8rem"
+                  data-tip="${activeBadgeTip}"
+                  >${activeBadgeValue} ${activeBadgeLabel}</span
+                >`
+              : ""}
+          </div>
+          ${showPoolFilter
+            ? html`<div class="absolute right-0 top-1/2 -translate-y-1/2">
+                <details class="dropdown dropdown-top dropdown-end">
+                  <summary
+                    class="btn btn-sm btn-square list-none ${hasActiveFilters
+                      ? "btn-primary"
+                      : "btn-outline border-base-content/20"}"
+                    style="height:2rem"
+                    data-tip="Filters"
+                  >
+                    ${unsafeHTML(
+                      FILTER_SVG.replace(
+                        "<svg",
+                        '<svg width="16" height="16"',
+                      ),
+                    )}
+                  </summary>
+                  ${renderFilterMenu(state, handlers, intakeFiltered)}
+                </details>
+              </div>`
+            : ""}
+        </div>
+        <div class="flex items-center gap-1">
+          ${segmentedTabs({
+            tabs: STUDENTS_TAB_ORDER.map((t) => ({
+              id: t,
+              label: STUDENTS_TAB_LABELS[t],
+              shortLabel: STUDENTS_TAB_SHORT[t],
+            })),
+            active: tab,
+            overflowing: state.tabsOverflowing,
+            asDropdown: true,
+            onSwitch: handlers.onSwitchTab,
+          })}
+          ${showPiscineGrid
+            ? ""
+            : html`<input
+                class="input input-sm min-w-0 flex-1"
+                style="height:2rem"
+                type="search"
+                placeholder="Search..."
+                .value="${query}"
+                @input="${(e: Event) =>
+                  handlers.onSearchInput((e.target as HTMLInputElement).value)}"
+              />`}
+          ${openPiscine
+            ? html`<button
+                class="btn btn-sm btn-square btn-outline shrink-0"
+                style="height:2rem"
+                aria-label="Back to piscines"
+                data-tip="Back to piscines"
+                @click="${handlers.onBackToPiscines}"
+              >
+                ←
+              </button>`
+            : ""}
+          ${showRosterControls
+            ? html`<div class="flex shrink-0 items-center gap-1">
+                <button
+                  class="btn btn-sm join-item px-0 w-9 ${sortField === "name"
+                    ? "btn-primary"
+                    : "btn-ghost"}"
+                  style="height:2rem"
+                  data-tip="${nameDir === "asc"
+                    ? "Name A → Z (click to invert)"
+                    : "Name Z → A (click to invert)"}"
+                  aria-pressed="${sortField === "name"}"
+                  @click="${() => handlers.onSetSort("name")}"
+                >
+                  ${unsafeHTML(
+                    (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
+                      "<svg",
+                      '<svg width="16" height="16"',
+                    ),
+                  )}
+                </button>
+                ${tab !== "pisciners"
+                  ? html`<button
+                      class="btn btn-sm join-item px-0 w-9 ${sortField ===
+                      "date"
+                        ? "btn-primary"
+                        : "btn-ghost"}"
+                      style="height:2rem"
+                      data-tip="${dateDir === "desc"
+                        ? "Date (newest first)"
+                        : "Date (oldest first)"}"
+                      aria-pressed="${sortField === "date"}"
+                      @click="${() => handlers.onSetSort("date")}"
+                    >
+                      ${unsafeHTML(
+                        (dateDir === "desc"
+                          ? CAL_DOWN_SVG
+                          : CAL_UP_SVG
+                        ).replace("<svg", '<svg width="16" height="16"'),
+                      )}
+                    </button>`
+                  : ""}
+              </div>`
+            : ""}
+        </div>
       </div>
     </div>
   `;

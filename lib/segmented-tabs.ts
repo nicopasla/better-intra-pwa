@@ -8,6 +8,8 @@ const OVERFLOW_TOLERANCE = 1;
 export interface SegmentedTab<T extends string> {
   id: T;
   label: string;
+  /** Shorter label used for the collapsed dropdown summary. */
+  shortLabel?: string;
 }
 
 export interface SegmentedTabsOptions<T extends string> {
@@ -15,6 +17,8 @@ export interface SegmentedTabsOptions<T extends string> {
   active: T;
   /** When true, render a dropdown menu instead of the pill (set by the observer). */
   overflowing: boolean;
+  /** Always render the dropdown, even when the labels would fit. */
+  asDropdown?: boolean;
   onSwitch: (tab: T) => void;
 }
 
@@ -26,13 +30,18 @@ export function segmentedTabs<T extends string>(
   opts: SegmentedTabsOptions<T>,
 ): TemplateResult {
   const { tabs, active, overflowing, onSwitch } = opts;
-  const activeLabel = tabs.find((t) => t.id === active)?.label ?? "";
+  const activeTab = tabs.find((t) => t.id === active);
+  const activeLabel = activeTab?.shortLabel ?? activeTab?.label ?? "";
+  const dropdown = overflowing || opts.asDropdown === true;
 
   return html`
-    <div class="segmented-tabs-host">
-      ${overflowing
+    <div
+      class="segmented-tabs-host"
+      style="${dropdown ? "flex:0 0 auto;min-width:0;" : ""}"
+    >
+      ${dropdown
         ? html`
-            <details class="dropdown dropdown-start">
+            <details class="dropdown dropdown-start dropdown-top">
               <summary
                 class="btn btn-sm btn-ghost gap-1.5 list-none"
                 data-tip="Select tab"
@@ -52,7 +61,7 @@ export function segmentedTabs<T extends string>(
                 </span>
               </summary>
               <ul
-                class="menu menu-sm dropdown-content z-40 mt-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
+                class="menu menu-sm dropdown-content z-40 mb-2 max-h-72 overflow-auto rounded-box bg-base-100 p-1 shadow-xl"
                 style="width:max-content;min-width:12rem;"
               >
                 ${tabs.map(

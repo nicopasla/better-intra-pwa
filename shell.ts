@@ -3,7 +3,6 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import HOME_SVG from "./assets/home.svg?raw";
 import USER_SVG from "./assets/user.svg?raw";
 import USERS_SVG from "./assets/users.svg?raw";
-import GRADUATION_SVG from "./assets/graduation-cap.svg?raw";
 import GEAR_SVG from "./assets/settings_gear.svg?raw";
 import CLUSTERS_SVG from "./assets/clusters.svg?raw";
 
@@ -24,9 +23,8 @@ interface TabDef {
 const TABS: TabDef[] = [
   { id: "dashboard", label: "Home", icon: HOME_SVG },
   { id: "profile", label: "Profile", icon: USER_SVG },
-  { id: "friends", label: "Friends", icon: USERS_SVG },
-  { id: "students", label: "Students", icon: GRADUATION_SVG },
   { id: "clusters", label: "Clusters", icon: CLUSTERS_SVG },
+  { id: "friends", label: "Friends", icon: USERS_SVG },
   { id: "settings", label: "Settings", icon: GEAR_SVG },
 ];
 
@@ -35,6 +33,10 @@ const hidden = new Set<Tab>();
 export function setTabHidden(tab: Tab, isHidden: boolean): void {
   if (isHidden) hidden.add(tab);
   else hidden.delete(tab);
+}
+
+export function isTabHidden(tab: Tab): boolean {
+  return hidden.has(tab);
 }
 
 export function currentTab(): Tab {
@@ -120,7 +122,7 @@ export function renderShell(
         <main class="flex-1 px-4 pt-4" style="padding-bottom:${padBottom}">
           ${body}
         </main>
-        <div class="fixed bottom-0 left-0 right-0 z-20">
+        <div id="ft-bottom" class="fixed bottom-0 left-0 right-0 z-20">
           ${bottomBar ?? ""}
           <nav
             class="dock dock-md bg-base-100 border-t border-base-300"
@@ -143,6 +145,15 @@ export function renderShell(
     `,
     app(),
   );
+
+  // Reserve exactly the height of whatever sits at the bottom (dock + optional
+  // sub-tab bar / delete bar), so the last card never hides behind it.
+  const bottom = document.getElementById("ft-bottom");
+  const main = app().querySelector<HTMLElement>("main");
+  if (bottom && main) {
+    const h = Math.ceil(bottom.getBoundingClientRect().height);
+    if (h > 0) main.style.paddingBottom = `${h}px`;
+  }
 }
 
 export function redirectToDashboard(): void {

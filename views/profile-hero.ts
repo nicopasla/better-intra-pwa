@@ -23,6 +23,7 @@ import {
 import { contrastText } from "./logtime-feature/color.ts";
 import { badgeUrlFor } from "../lib/campus-badges.ts";
 import ARROW_SHARE_SVG from "../assets/arrow_share.svg?raw";
+import SEARCH_SVG from "../assets/search.svg?raw";
 import FRIEND_SVG from "../assets/user-check.svg?raw";
 import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 import PENCIL_SVG from "../assets/pencil.svg?raw";
@@ -61,6 +62,8 @@ export interface ProfileHeroOptions {
   onBadgeToggle?: (id: string) => void;
   /** Make campus role badges (PHOENIX, PEGASUS, …) open their app. */
   badgeLinks?: boolean;
+  /** Shows a search button at the banner's top-left (student directory). */
+  onSearch?: () => void;
   /** Friend state for the profile owner (absent = not a user profile). */
   friendState?: "none" | "friend";
   /** Checking the friend list / saving a change: disable + spinner. */
@@ -165,6 +168,17 @@ export function profileHero(
       class="profile-hero card bg-base-100 shadow-xl mb-4 overflow-hidden relative"
     >
       <div class="h-28 w-full" style="${heroStyle(v, accent)}"></div>
+      ${opts.onSearch
+        ? html`<button
+            type="button"
+            class="btn btn-circle absolute top-2 left-2 size-11 border-none bg-base-100/90 shadow-md hover:bg-base-100"
+            aria-label="Search students"
+            title="Search students"
+            @click=${opts.onSearch}
+          >
+            ${svg18(SEARCH_SVG)}
+          </button>`
+        : ""}
       ${opts.onToggleFriend
         ? html`<button
             type="button"

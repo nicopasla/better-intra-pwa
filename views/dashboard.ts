@@ -15,7 +15,7 @@ import {
   type UserProfile,
 } from "../data.ts";
 import { refresh } from "../refresh.ts";
-import { currentTab, navigate } from "../shell.ts";
+import { currentTab, isTabHidden, navigate } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { readScopedCache, writeCache } from "../lib/cache.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
@@ -410,6 +410,10 @@ function heroCard() {
   return profileHero(myProfile, {
     showShare: false,
     badgeLinks: true,
+    onSearch:
+      editing || isTabHidden("students")
+        ? undefined
+        : () => navigate("students"),
     badges: {
       order: layout.badges.map((item) => item.id),
       hidden: layout.badges
