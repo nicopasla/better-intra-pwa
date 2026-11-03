@@ -800,6 +800,16 @@ html.ft-friends-empty body {
   pointer-events: none;
 }
 
+/* Reported-broken seats: red dashed border. */
+.cluster-map rect.seat-report-ring {
+  fill: none !important;
+  stroke: var(--color-error) !important;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 5 3;
+  pointer-events: none;
+}
+
 .cluster-map .sign path {
   fill: var(--exit-fill, #2e9e5b);
 }

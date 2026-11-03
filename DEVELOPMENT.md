@@ -146,6 +146,8 @@ Private (bearer + hashed login):
 | `GET /api/v1/private/events`                                   | 42 calendar events (ICS synced by the extension) + `syncedAt`          |
 | `GET /api/v1/private/custom-badges?target=`                    | admin-granted profile badges (D1 `custom_badges`)                       |
 | `GET /api/v1/private/event-subscribers?event=`                 | subscribers for an event                                              |
+| `GET/POST /api/v1/private/cluster/reports`                     | anonymous per-component computer reports (Belgium campus only)        |
+| `GET /api/v1/private/cluster/reports/history?host=`            | status-change history for one seat                                     |
 | `POST /api/v1/private/calendar/token`                          | registers the calendar subscription token (`/calendar/<t>.ics`)        |
 | `POST /api/v1/private/push/subscribe`, `/unsubscribe`, `/test` | push lifecycle                                                        |
 

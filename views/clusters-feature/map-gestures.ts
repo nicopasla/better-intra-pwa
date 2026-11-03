@@ -8,6 +8,11 @@ interface MapState {
   x: number;
   y: number;
   pointers: Map<number, Point>;
+  /** Called when a seat is long-pressed, tapped in report mode, or its ring is tapped. */
+  onSeatTap?: (seatId: string) => void;
+  /** True while the bug button is armed: seat taps skip the avatar profile. */
+  interceptSeatTap?: () => boolean;
+  longPressTimer: number | null;
   drag: {
     x: number;
     y: number;
@@ -15,6 +20,7 @@ interface MapState {
     ty: number;
     moved: boolean;
     pinch: boolean;
+    longPressFired: boolean;
     at: number;
     target: Element | null;
   } | null;
@@ -34,6 +40,7 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const TAP_SLOP = 6;
 const TAP_TIME = 500;
+const LONG_PRESS_MS = 500;
 
 const states = new WeakMap<HTMLElement, MapState>();
 /** Container size, kept fresh by the ResizeObserver (avoids layout reads). */
@@ -144,7 +151,6 @@ function zoomAt(
   apply(container, state);
 }
 
-/** Wires drag, pinch and wheel zoom on a map container. Safe to call repeatedly. */
 /** Back to the fitted view, dropping any seat focus ring. */
 export function resetMapZoom(container: HTMLElement): void {
   container.querySelectorAll(".seat-focus").forEach((el) => el.remove());
@@ -156,9 +162,22 @@ export function resetMapZoom(container: HTMLElement): void {
   apply(container, state);
 }
 
-export function attachMapGestures(container: HTMLElement): void {
+export interface MapGestureOptions {
+  onSeatTap?: (seatId: string) => void;
+  interceptSeatTap?: () => boolean;
+}
+
+/** Wires drag, pinch and wheel zoom on a map container. Safe to call repeatedly. */
+export function attachMapGestures(
+  container: HTMLElement,
+  options?: MapGestureOptions,
+): void {
   const existing = states.get(container);
   if (existing) {
+    if (options) {
+      existing.onSeatTap = options.onSeatTap;
+      existing.interceptSeatTap = options.interceptSeatTap;
+    }
     // The inline SVG can be swapped by a re-render; re-apply the transform.
     apply(container, existing);
     return;
@@ -169,13 +188,48 @@ export function attachMapGestures(container: HTMLElement): void {
     x: 0,
     y: 0,
     pointers: new Map(),
+    onSeatTap: options?.onSeatTap,
+    interceptSeatTap: options?.interceptSeatTap,
+    longPressTimer: null,
     drag: null,
     pinch: null,
   };
   states.set(container, state);
 
+  const cancelLongPress = () => {
+    if (state.longPressTimer !== null) {
+      window.clearTimeout(state.longPressTimer);
+      state.longPressTimer = null;
+    }
+  };
+
+  const seatIdAt = (
+    target: Element | null,
+    clientX: number,
+    clientY: number,
+  ): string => {
+    const svg = container.querySelector<SVGSVGElement>("svg");
+    const seats = svg ? mapSeatIndex(svg) : null;
+    const read = (element: Element | null | undefined): string => {
+      // Empty seats are <rect><image> siblings and the image only wins pointer
+      // events when it has an avatar, so accept both.
+      const node = element?.closest?.("image[id], rect[id]");
+      const id = node?.getAttribute("id")?.trim().toLowerCase() ?? "";
+      return id && (!seats || seats.has(id)) ? id : "";
+    };
+
+    const fromTarget = read(target);
+    if (fromTarget) return fromTarget;
+    for (const element of document.elementsFromPoint?.(clientX, clientY) ?? []) {
+      const id = read(element);
+      if (id) return id;
+    }
+    return "";
+  };
+
   const onDown = (ev: PointerEvent) => {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    cancelLongPress();
     ev.preventDefault();
     try {
       container.setPointerCapture(ev.pointerId);
@@ -186,18 +240,38 @@ export function attachMapGestures(container: HTMLElement): void {
     container.classList.add("is-panning");
 
     if (state.pointers.size === 1) {
-      state.drag = {
+      const drag = {
         x: ev.clientX,
         y: ev.clientY,
         tx: state.x,
         ty: state.y,
         moved: false,
         pinch: false,
+        longPressFired: false,
         at: performance.now(),
         target: ev.target instanceof Element ? ev.target : null,
       };
+      state.drag = drag;
       state.pinch = null;
+      state.longPressTimer = window.setTimeout(() => {
+        state.longPressTimer = null;
+        if (
+          state.drag !== drag ||
+          drag.moved ||
+          drag.pinch ||
+          drag.longPressFired
+        ) {
+          return;
+        }
+        if (!container.isConnected) return;
+        const seat = seatIdAt(drag.target, drag.x, drag.y);
+        if (!seat) return;
+        drag.longPressFired = true;
+        navigator.vibrate?.(10);
+        state.onSeatTap?.(seat);
+      }, LONG_PRESS_MS);
     } else if (state.pointers.size === 2) {
+      cancelLongPress();
       const [a, b] = [...state.pointers.values()];
       const rect = container.getBoundingClientRect();
       const midX = (a.x + b.x) / 2;
@@ -221,6 +295,7 @@ export function attachMapGestures(container: HTMLElement): void {
     state.pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
 
     if (state.pointers.size >= 2 && state.pinch) {
+      cancelLongPress();
       const [a, b] = [...state.pointers.values()];
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
       if (dist <= 0 || state.pinch.dist <= 0) return;
@@ -242,7 +317,10 @@ export function attachMapGestures(container: HTMLElement): void {
     } else if (state.pointers.size === 1 && state.drag && !state.drag.pinch) {
       const dx = ev.clientX - state.drag.x;
       const dy = ev.clientY - state.drag.y;
-      if (Math.hypot(dx, dy) > TAP_SLOP) state.drag.moved = true;
+      if (Math.hypot(dx, dy) > TAP_SLOP) {
+        cancelLongPress();
+        state.drag.moved = true;
+      }
       if (state.drag.moved) {
         state.x = state.drag.tx + dx;
         state.y = state.drag.ty + dy;
@@ -253,6 +331,7 @@ export function attachMapGestures(container: HTMLElement): void {
   };
 
   const finish = (ev: PointerEvent, cancelled: boolean) => {
+    cancelLongPress();
     const tracked = state.pointers.delete(ev.pointerId);
     try {
       container.releasePointerCapture(ev.pointerId);
@@ -270,6 +349,7 @@ export function attachMapGestures(container: HTMLElement): void {
         ty: state.y,
         moved: true,
         pinch: true,
+        longPressFired: true,
         at: performance.now(),
         target: null,
       };
@@ -284,8 +364,25 @@ export function attachMapGestures(container: HTMLElement): void {
     state.pointers.clear();
     container.classList.remove("is-panning");
 
-    if (cancelled || !tracked || !drag || drag.moved || drag.pinch) return;
+    if (
+      cancelled ||
+      !tracked ||
+      !drag ||
+      drag.moved ||
+      drag.pinch ||
+      drag.longPressFired
+    )
+      return;
     if (performance.now() - drag.at > TAP_TIME) return;
+
+    // Report mode: any seat tap opens the component sheet, avatars included.
+    if (state.interceptSeatTap?.()) {
+      const seat = seatIdAt(drag.target, ev.clientX, ev.clientY);
+      if (seat) {
+        state.onSeatTap?.(seat);
+        return;
+      }
+    }
 
     // A tap, not a drag: open the profile of the avatar under the finger.
     const direct = drag.target?.closest?.("image[data-login]");

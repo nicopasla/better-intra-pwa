@@ -4,6 +4,7 @@ import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
+import BUG_SVG from "../assets/bug.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { refresh } from "../refresh.ts";
@@ -35,6 +36,11 @@ import {
 } from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
+  getSeatSeverity,
+  loadSeatReports,
+} from "./clusters-feature/reports.ts";
+import { openSeatReportDialog } from "./seat-report-dialog.ts";
+import {
   activeSortIcon,
   activeSortLabel,
   cycleActiveSort,
@@ -59,6 +65,8 @@ let activeTab = "active";
 let initialTabResolved = false;
 /** Last seat focused from a location link; kept while the map is shown. */
 let focusSeat: string | null = null;
+/** The bug button arms the next seat tap for a report. */
+let reportMode = false;
 /** Logins of the user's friends, used to highlight their seats. */
 let friends: Set<string> = new Set();
 
@@ -90,6 +98,7 @@ function switchTab(id: string): void {
   const currentMap = document.getElementById("ft-cluster-map");
   if (currentMap) resetMapZoom(currentMap);
   focusSeat = null;
+  reportMode = false;
   mapExpanded = false;
   listExpanded = false;
   activeTab = id;
@@ -108,7 +117,8 @@ function onActiveTab(): void {
 
 async function loadOccupancy(): Promise<void> {
   try {
-    entries = [...(await fetchOccupancy()).values()];
+    const [occupancy] = await Promise.all([fetchOccupancy(), loadSeatReports()]);
+    entries = [...occupancy.values()];
     error = "";
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
@@ -351,6 +361,12 @@ function toggleListExpanded(): void {
   refresh();
 }
 
+/** Arms the map so the next seat tap (avatar or empty) opens the report sheet. */
+function toggleReportMode(): void {
+  reportMode = !reportMode;
+  refresh();
+}
+
 function mapView(map: ClusterMapDef): unknown {
   ensureMap(map);
   const seated = seatedEntries(map);
@@ -358,9 +374,6 @@ function mapView(map: ClusterMapDef): unknown {
   const taken = seated.length;
   const svg = map.svg;
   const usable = usableSeats(map);
-  const deadNote = map.crossed
-    ? `${map.crossed} seat${map.crossed === 1 ? "" : "s"} without a working computer`
-    : "occupied seats";
   return html`
     <div
       class="fixed left-0 right-0 z-10 flex flex-col gap-3 px-4"
@@ -392,6 +405,31 @@ function mapView(map: ClusterMapDef): unknown {
                 MAXIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
               )}
         </button>
+        <button
+          type="button"
+          class="btn btn-square btn-sm absolute bottom-2 left-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur ${reportMode
+            ? "btn-primary"
+            : ""}"
+          aria-label=${reportMode
+            ? "Cancel reporting"
+            : "Report a computer issue"}
+          title=${reportMode
+            ? "Tap a seat to report an issue"
+            : "Report a computer issue"}
+          aria-pressed=${reportMode}
+          @click=${toggleReportMode}
+        >
+          ${unsafeHTML(
+            BUG_SVG.replace("<svg", '<svg width="18" height="18"'),
+          )}
+        </button>
+        ${reportMode
+          ? html`<div
+              class="absolute bottom-12 left-2 z-10 rounded-lg bg-base-100/90 px-2 py-1 text-[11px] font-medium shadow backdrop-blur"
+            >
+              Tap a seat to report
+            </div>`
+          : ""}
         ${svg
           ? html`<div
               id="ft-cluster-map"
@@ -432,7 +470,7 @@ function mapView(map: ClusterMapDef): unknown {
                         ),
                       )}
                     </button>`}
-                <span class="badge badge-info tabular-nums" title="${deadNote}">
+                <span class="badge badge-info tabular-nums">
                   ${svg ? `${taken} / ${usable}` : "…"}
                 </span>
               </div>
@@ -510,7 +548,11 @@ function mapFailed(map: ClusterMapDef): unknown {
 
 /** Seats on the map that have a working computer. */
 function usableSeats(map: ClusterMapDef): number {
-  return Math.max(0, map.seatIds.size - map.crossed);
+  let reportedUnusable = 0;
+  for (const seat of map.seatIds) {
+    if (getSeatSeverity(seat) === "blocking") reportedUnusable++;
+  }
+  return Math.max(0, map.seatIds.size - map.crossed - reportedUnusable);
 }
 
 /** The Clusters bottom tab bar, rendered by the shell above the dock. */
@@ -630,6 +672,53 @@ const paintedSeats = new WeakMap<SVGSVGElement, Map<string, string>>();
 const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
 /** Green rings marking friends' seats, per SVG. */
 const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
+/** Red rings marking seats with any broken component, per SVG. */
+const brokenRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
+
+/** Red dashed border around seats with a reported broken component. */
+function applyBrokenSeats(svg: SVGSVGElement): void {
+  let rings = brokenRings.get(svg);
+  if (!rings) {
+    rings = new Map();
+    brokenRings.set(svg, rings);
+  }
+  for (const [id, img] of mapSeatIndex(svg)) {
+    const broken = getSeatSeverity(id) !== null;
+    const existing = rings.get(id);
+    if (!broken) {
+      if (existing) {
+        existing.remove();
+        rings.delete(id);
+      }
+      continue;
+    }
+    if (existing || !img.parentNode) continue;
+    const ring = document.createElementNS(SVG_NS, "rect");
+    ring.setAttribute("class", "seat-report-ring");
+    for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
+      const value = img.getAttribute(name);
+      if (value) ring.setAttribute(name, value);
+    }
+    img.parentNode.insertBefore(ring, img.nextSibling);
+    rings.set(id, ring);
+  }
+}
+
+/** Opens the component sheet for a seat long-pressed or armed by the bug button. */
+function openSeatReports(seat: string): void {
+  const map = findClusterMap(activeTab);
+  if (!map) return;
+  const entry = entries.find(
+    (item) => item.host?.trim().toLowerCase() === seat,
+  );
+  reportMode = false;
+  openSeatReportDialog({
+    seat,
+    cluster: map.id,
+    occupant: entry?.login ?? null,
+  });
+  refresh();
+}
 
 /** Fills each seat's empty <image> with the avatar of whoever is sitting there. */
 function applyMapOccupancy(): void {
@@ -730,7 +819,13 @@ function applyMapOccupancy(): void {
     }
   }
 
-  attachMapGestures(mapEl);
+  // Red rings for seats with a reported broken component.
+  applyBrokenSeats(svg);
+
+  attachMapGestures(mapEl, {
+    onSeatTap: openSeatReports,
+    interceptSeatTap: () => reportMode,
+  });
 }
 
 /** Called by the app after it re-renders the tab. */
