@@ -672,35 +672,68 @@ const paintedSeats = new WeakMap<SVGSVGElement, Map<string, string>>();
 const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
 /** Green rings marking friends' seats, per SVG. */
 const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
-/** Red rings marking seats with any broken component, per SVG. */
-const brokenRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
+/** Red crosses marking seats with any broken component, per SVG. */
+const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
 
-/** Red dashed border around seats with a reported broken component. */
+function seatBox(img: SVGImageElement): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
+  const read = (name: string) => Number(img.getAttribute(name));
+  const x = read("x");
+  const y = read("y");
+  const w = read("width");
+  const h = read("height");
+  if ([x, y, w, h].every(Number.isFinite) && w > 0 && h > 0) {
+    return { x, y, w, h };
+  }
+  const box = img.getBBox();
+  return { x: box.x, y: box.y, w: box.width, h: box.height };
+}
+
+/** Big red cross over seats with a reported broken component. */
 function applyBrokenSeats(svg: SVGSVGElement): void {
-  let rings = brokenRings.get(svg);
-  if (!rings) {
-    rings = new Map();
-    brokenRings.set(svg, rings);
+  let crosses = brokenCrosses.get(svg);
+  if (!crosses) {
+    crosses = new Map();
+    brokenCrosses.set(svg, crosses);
   }
   for (const [id, img] of mapSeatIndex(svg)) {
     const broken = getSeatSeverity(id) !== null;
-    const existing = rings.get(id);
+    const existing = crosses.get(id);
     if (!broken) {
       if (existing) {
         existing.remove();
-        rings.delete(id);
+        crosses.delete(id);
       }
       continue;
     }
     if (existing || !img.parentNode) continue;
-    const ring = document.createElementNS(SVG_NS, "rect");
-    ring.setAttribute("class", "seat-report-ring");
-    for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
-      const value = img.getAttribute(name);
-      if (value) ring.setAttribute(name, value);
-    }
-    img.parentNode.insertBefore(ring, img.nextSibling);
-    rings.set(id, ring);
+
+    const { x, y, w, h } = seatBox(img);
+    const group = document.createElementNS(SVG_NS, "g");
+    group.setAttribute("class", "seat-report-cross");
+    group.setAttribute("data-seat", id);
+    const transform = img.getAttribute("transform");
+    if (transform) group.setAttribute("transform", transform);
+
+    const first = document.createElementNS(SVG_NS, "line");
+    first.setAttribute("x1", String(x));
+    first.setAttribute("y1", String(y));
+    first.setAttribute("x2", String(x + w));
+    first.setAttribute("y2", String(y + h));
+
+    const second = document.createElementNS(SVG_NS, "line");
+    second.setAttribute("x1", String(x + w));
+    second.setAttribute("y1", String(y));
+    second.setAttribute("x2", String(x));
+    second.setAttribute("y2", String(y + h));
+
+    group.append(first, second);
+    img.parentNode.appendChild(group);
+    crosses.set(id, group);
   }
 }
 

@@ -800,14 +800,16 @@ html.ft-friends-empty body {
   pointer-events: none;
 }
 
-/* Reported-broken seats: red dashed border. */
-.cluster-map rect.seat-report-ring {
-  fill: none !important;
-  stroke: var(--color-error) !important;
-  stroke-width: 2.5;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 5 3;
+/* Reported-broken seats: big red cross over the seat. */
+.cluster-map .seat-report-cross {
   pointer-events: none;
+}
+
+.cluster-map .seat-report-cross line {
+  stroke: var(--color-error);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .cluster-map .sign path {
