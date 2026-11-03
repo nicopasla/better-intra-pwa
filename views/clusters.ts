@@ -693,7 +693,7 @@ function seatBox(img: SVGImageElement): {
   return { x: box.x, y: box.y, w: box.width, h: box.height };
 }
 
-/** Big red cross over seats with a reported broken component. */
+/** Big red cross over seats whose power/network is reported broken. */
 function applyBrokenSeats(svg: SVGSVGElement): void {
   let crosses = brokenCrosses.get(svg);
   if (!crosses) {
@@ -701,7 +701,9 @@ function applyBrokenSeats(svg: SVGSVGElement): void {
     brokenCrosses.set(svg, crosses);
   }
   for (const [id, img] of mapSeatIndex(svg)) {
-    const broken = getSeatSeverity(id) !== null;
+    // Only blocking components (power/network) cross out a seat; peripherals
+    // like a sticky scroll wheel leave the computer usable.
+    const broken = getSeatSeverity(id) === "blocking";
     const existing = crosses.get(id);
     if (!broken) {
       if (existing) {
