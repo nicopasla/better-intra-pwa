@@ -104,3 +104,54 @@ export function resetHomeLayout(): void {
     /* quota / private mode */
   }
 }
+
+const REMEMBER_TAB_KEY = "ft_remember_last_tab";
+const LAST_TAB_KEY = "ft_last_tab";
+
+/** Tabs worth restoring on launch. Settings is left out on purpose: closing the
+ *  app there reopens the previous main tab instead. */
+const RESTORABLE_TABS = new Set([
+  "dashboard",
+  "profile",
+  "friends",
+  "students",
+  "clusters",
+]);
+
+/** Per-device: reopen on the last main tab instead of Home. Defaults to on. */
+export function getRememberLastTab(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_TAB_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function setRememberLastTab(on: boolean): void {
+  try {
+    localStorage.setItem(REMEMBER_TAB_KEY, on ? "1" : "0");
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/** Last restorable tab visited on this device, or null when there is none. */
+export function getLastTab(): string | null {
+  try {
+    const tab = localStorage.getItem(LAST_TAB_KEY);
+    return tab && RESTORABLE_TABS.has(tab) ? tab : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Records the tab; Settings and user profiles are not restorable, so they
+ *  are ignored and the previous main tab stays remembered. */
+export function setLastTab(tab: string): void {
+  if (!RESTORABLE_TABS.has(tab)) return;
+  try {
+    localStorage.setItem(LAST_TAB_KEY, tab);
+  } catch {
+    /* quota / private mode */
+  }
+}

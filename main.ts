@@ -83,6 +83,11 @@ import { initPullRefresh } from "./pull-refresh.ts";
 import { myCampus } from "./data.ts";
 import { SHOW_CUSTOM_AVATARS_KEY } from "./lib/avatar.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
+import {
+  getLastTab,
+  getRememberLastTab,
+  setLastTab,
+} from "./lib/prefs.ts";
 
 const app = () => document.getElementById("app")!;
 
@@ -468,7 +473,11 @@ function closeOpenDialogs(): void {
 function renderRoute(): void {
   closeOpenDialogs();
   if (userLoginFromHash()) lastProfileLoadedAt = Date.now();
-  else triggerLoad(currentTab());
+  else {
+    // Remember where the user left off for the next cold start.
+    setLastTab(currentTab());
+    triggerLoad(currentTab());
+  }
   renderBody();
 }
 
@@ -491,6 +500,16 @@ async function slotsShortcutUrl(): Promise<string | null> {
     new Promise<void>((resolve) => setTimeout(resolve, 2500)),
   ]);
   return badgeUrlFor("SLOTS");
+}
+
+/**
+ * Cold start on `/` (the manifest's start_url) has no hash. Reopen the last
+ * main tab when the setting is on, otherwise Home. Explicit URLs win.
+ */
+function applyInitialHash(): void {
+  if (location.hash) return;
+  const last = getRememberLastTab() ? getLastTab() : null;
+  location.hash = `/${last ?? "dashboard"}`;
 }
 
 async function boot(): Promise<void> {
@@ -523,7 +542,7 @@ async function boot(): Promise<void> {
     initPullRefresh();
     gateCampusTabs();
     void syncThemeFromCloud();
-    if (!location.hash) location.hash = "/dashboard";
+    applyInitialHash();
     hydrateCaches();
     renderRoute();
     return;
@@ -567,7 +586,7 @@ async function boot(): Promise<void> {
   sessionStorage.removeItem("ft_pwa_expired");
 
   preAppScreen = null;
-  if (!location.hash) location.hash = "/dashboard";
+  applyInitialHash();
 
   // The worker rejecting our session (401) means it's no longer valid: drop it
   // and return to the sign-in screen rather than surfacing an error.
