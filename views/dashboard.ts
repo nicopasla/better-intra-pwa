@@ -228,6 +228,7 @@ function reorderBadgeRow(group: string[], rowIds: string[]): void {
 
 /** Wires the edit-mode drag & drop after every dashboard render. */
 export function dashboardAttachObservers(): void {
+  scheduleEvalRefresh();
   cardSortable?.destroy();
   cardSortable = null;
   for (const instance of badgeSortables) instance.destroy();
@@ -589,20 +590,49 @@ function scrollLogtimeToLatest(el: HTMLElement): void {
 
 let upcomingTab: "evaluator" | "corrected" | null = null;
 
+/** How long an unticked eval stays in the active list after it started. Once
+ *  that passes it is auto-archived to the "Past" section. */
+const EVAL_CHECK_GRACE_MS = 24 * 60 * 60 * 1000;
+
+let evalRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Repaints the dashboard when the next evaluation starts, so its "done" check
+ *  appears without a manual refresh. */
+function scheduleEvalRefresh(): void {
+  if (evalRefreshTimer !== null) {
+    clearTimeout(evalRefreshTimer);
+    evalRefreshTimer = null;
+  }
+  const done = new Set(getDoneEvals());
+  const now = Date.now();
+  let next = Infinity;
+  for (const e of upcoming.items) {
+    if (done.has(e.id)) continue;
+    const start = new Date(e.beginAt).getTime();
+    if (!Number.isFinite(start) || start <= now) continue;
+    if (start < next) next = start;
+  }
+  if (!Number.isFinite(next)) return;
+  const delay = Math.min(next - now + 1000, 2_147_483_647);
+  evalRefreshTimer = setTimeout(() => {
+    evalRefreshTimer = null;
+    if (currentTab() === "dashboard") refresh();
+  }, delay);
+}
+
 function upcomingCard() {
   const done = new Set(getDoneEvals());
   const now = Date.now();
-  const isPast = (e: UpcomingEval) => new Date(e.beginAt).getTime() <= now;
-  // Dismissed evals leave the active list, but never the history: they move to
-  // the collapsed "Past" section instead of disappearing.
+  const beginAt = (e: UpcomingEval) => new Date(e.beginAt).getTime();
+  // Ticked evals leave the active list right away. Unticked ones stay there
+  // for a day after they started, so the "done" check is only offered once the
+  // evaluation is actually over; after the grace window they auto-archive.
   const activeItems = upcoming.items.filter(
-    (e) => !done.has(e.id) && !isPast(e),
+    (e) => !done.has(e.id) && beginAt(e) > now - EVAL_CHECK_GRACE_MS,
   );
   const pastItems = upcoming.items
-    .filter((e) => done.has(e.id) || isPast(e))
-    .sort(
-      (a, b) => new Date(b.beginAt).getTime() - new Date(a.beginAt).getTime(),
-    );
+    .filter((e) => done.has(e.id) || beginAt(e) <= now - EVAL_CHECK_GRACE_MS)
+    .sort((a, b) => beginAt(b) - beginAt(a));
   const needsPush = pushSupported() && pushSubscribed !== true;
 
   if (activeItems.length === 0 && pastItems.length === 0) {
@@ -704,6 +734,9 @@ function evalRow(e: UpcomingEval, past = false) {
       : undefined;
   const label = person ?? (e.state === "revealed" ? "Revealed" : "Booked");
   const countdown = evalCountdown(e.beginAt);
+  // Only offer the "done" check once the evaluation has started; before that
+  // it would just archive a slot that hasn't happened yet.
+  const started = new Date(e.beginAt).getTime() <= Date.now();
   // History reads as a sentence; the active list keeps the time inline.
   const sub = past
     ? isCorrected
@@ -748,7 +781,7 @@ function evalRow(e: UpcomingEval, past = false) {
           ? dateTimeShort(e.beginAt)
           : countdown || dateTimeShort(e.beginAt)}</span
       >
-      ${past
+      ${past || !started
         ? ""
         : html`<button
             class="badge badge-lg badge-outline badge-success text-success cursor-pointer"
