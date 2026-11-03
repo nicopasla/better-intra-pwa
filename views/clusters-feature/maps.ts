@@ -12,8 +12,6 @@ export interface ClusterMapDef {
   svg?: string;
   /** Seat hostnames parsed from the map's avatar <image> elements. */
   seatIds: Set<string>;
-  /** Seats crossed out on the map: no computer, or it is out of order. */
-  crossed: number;
   /** When the current `svg` was fetched (0 = never). */
   loadedAt: number;
   /** Backoff after a failed refresh: no retry before this timestamp. */
@@ -38,6 +36,12 @@ export function isMapStale(map: ClusterMapDef): boolean {
 const stripStyle = (svg: string): string =>
   svg.replace(/<style[^>]*>[\s\S]*?<\/style>/i, "");
 
+/** Drop the builder's hand-maintained crossed seats; reports handle breakage. */
+const stripStaticCrosses = (svg: string): string =>
+  svg
+    .replace(/<g class="crosses">[\s\S]*?<\/g>/i, "")
+    .replace(/<path[^>]*class="cross"[^>]*\/>/gi, "");
+
 function seatIdsFromSvg(svg: string): Set<string> {
   const ids = new Set<string>();
   for (const match of svg.matchAll(/<image\b[^>]*\sid="([^"]+)"/g)) {
@@ -46,9 +50,6 @@ function seatIdsFromSvg(svg: string): Set<string> {
   }
   return ids;
 }
-
-const crossedFromSvg = (svg: string): number =>
-  (svg.match(/class="cross"/g) ?? []).length;
 
 /**
  * Cluster names come from campuses/belgium.json; these are the ones with a map
@@ -60,7 +61,6 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     label: "SHI",
     url: `${MAP_BASE}/shi.svg`,
     seatIds: new Set(),
-    crossed: 0,
     loadedAt: 0,
   },
   {
@@ -68,7 +68,6 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     label: "FU",
     url: `${MAP_BASE}/fu.svg`,
     seatIds: new Set(),
-    crossed: 0,
     loadedAt: 0,
   },
   {
@@ -76,7 +75,6 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
     label: "MI",
     url: `${MAP_BASE}/mi.svg`,
     seatIds: new Set(),
-    crossed: 0,
     loadedAt: 0,
   },
 ];
@@ -138,7 +136,6 @@ export function loadClusterMap(
   if (mockMode) {
     map.svg = mockMapSvg(map.id);
     map.seatIds = seatIdsFromSvg(map.svg);
-    map.crossed = 0;
     map.loadedAt = Date.now();
     map.retryAt = 0;
     return Promise.resolve();
@@ -152,9 +149,9 @@ export function loadClusterMap(
       const res = await fetchMapSvg(map.url);
       if (!res.ok) throw new Error(String(res.status));
       const raw = await res.text();
-      map.svg = stripStyle(raw);
-      map.seatIds = seatIdsFromSvg(raw);
-      map.crossed = crossedFromSvg(raw);
+      const cleaned = stripStaticCrosses(raw);
+      map.svg = stripStyle(cleaned);
+      map.seatIds = seatIdsFromSvg(cleaned);
       map.loadedAt = Date.now();
       map.retryAt = 0;
       map.failed = false;

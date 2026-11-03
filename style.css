@@ -800,17 +800,7 @@ html.ft-friends-empty body {
   pointer-events: none;
 }
 
-/* Reported-broken seats: big red cross over the seat. */
-.cluster-map .seat-report-cross {
-  pointer-events: none;
-}
-
-.cluster-map .seat-report-cross line {
-  stroke: var(--color-error);
-  stroke-width: 3;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
+/* Reported-broken seats reuse the map builder's .cross style. */
 
 .cluster-map .sign path {
   fill: var(--exit-fill, #2e9e5b);

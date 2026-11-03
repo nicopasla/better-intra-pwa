@@ -552,7 +552,7 @@ function usableSeats(map: ClusterMapDef): number {
   for (const seat of map.seatIds) {
     if (getSeatSeverity(seat) === "blocking") reportedUnusable++;
   }
-  return Math.max(0, map.seatIds.size - map.crossed - reportedUnusable);
+  return Math.max(0, map.seatIds.size - reportedUnusable);
 }
 
 /** The Clusters bottom tab bar, rendered by the shell above the dock. */
@@ -673,7 +673,7 @@ const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
 /** Green rings marking friends' seats, per SVG. */
 const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
 /** Red crosses marking seats with any broken component, per SVG. */
-const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
+const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGPathElement>>();
 
 function seatBox(img: SVGImageElement): {
   x: number;
@@ -713,27 +713,26 @@ function applyBrokenSeats(svg: SVGSVGElement): void {
     if (existing || !img.parentNode) continue;
 
     const { x, y, w, h } = seatBox(img);
-    const group = document.createElementNS(SVG_NS, "g");
-    group.setAttribute("class", "seat-report-cross");
-    group.setAttribute("data-seat", id);
+    // Same inset and stroke as the builder's static `.cross` paths.
+    const inset = Math.min(w, h) * 0.18;
+    const x1 = x + inset;
+    const y1 = y + inset;
+    const x2 = x + w - inset;
+    const y2 = y + h - inset;
+
+    const cross = document.createElementNS(SVG_NS, "path");
+    cross.setAttribute("class", "cross seat-report-cross");
+    cross.setAttribute("data-seat", id);
+    cross.setAttribute("stroke-width", "2.2");
+    cross.setAttribute(
+      "d",
+      `M ${x1} ${y1} L ${x2} ${y2} M ${x2} ${y1} L ${x1} ${y2}`,
+    );
     const transform = img.getAttribute("transform");
-    if (transform) group.setAttribute("transform", transform);
+    if (transform) cross.setAttribute("transform", transform);
 
-    const first = document.createElementNS(SVG_NS, "line");
-    first.setAttribute("x1", String(x));
-    first.setAttribute("y1", String(y));
-    first.setAttribute("x2", String(x + w));
-    first.setAttribute("y2", String(y + h));
-
-    const second = document.createElementNS(SVG_NS, "line");
-    second.setAttribute("x1", String(x + w));
-    second.setAttribute("y1", String(y));
-    second.setAttribute("x2", String(x));
-    second.setAttribute("y2", String(y + h));
-
-    group.append(first, second);
-    img.parentNode.appendChild(group);
-    crosses.set(id, group);
+    img.parentNode.appendChild(cross);
+    crosses.set(id, cross);
   }
 }
 
