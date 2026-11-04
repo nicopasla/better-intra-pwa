@@ -179,12 +179,23 @@ const NOTIFY_GROUPS: {
       },
     ],
   },
+  {
+    title: "Projects",
+    rows: [
+      {
+        key: "SUBJECT_NOTIFY_UPDATED",
+        label: "Subject updated",
+        hint: "An ongoing project's subject has a new version (detected by the extension).",
+      },
+    ],
+  },
 ];
 const DEFAULT_NOTIFY_TYPES: Record<string, boolean> = {
   EVAL_NOTIFY_EVALUATOR_BOOKED: true,
   EVAL_NOTIFY_EVALUATOR_REVEALED: true,
   EVAL_NOTIFY_CORRECTED_REVEALED: true,
   EVENT_NOTIFY_SOON: true,
+  SUBJECT_NOTIFY_UPDATED: true,
 };
 let notifyTypes: Record<string, boolean> = {
   ...DEFAULT_NOTIFY_TYPES,
@@ -470,7 +481,7 @@ function pushMasterRow() {
       <span class="flex flex-col">
         <span class="font-medium">Push notifications</span>
         <span class="text-xs opacity-60"
-          >Evaluations and 42 events on this device.</span
+          >Evaluations, 42 events and project subjects on this device.</span
         >
       </span>
       <input
@@ -1124,6 +1135,7 @@ export async function loadSettings(force = false): Promise<void> {
       EVAL_NOTIFY_CORRECTED_REVEALED:
         bs.EVAL_NOTIFY_CORRECTED_REVEALED !== false,
       EVENT_NOTIFY_SOON: bs.EVENT_NOTIFY_SOON !== false,
+      SUBJECT_NOTIFY_UPDATED: bs.SUBJECT_NOTIFY_UPDATED !== false,
     };
     writeNotifyTypes(notifyTypes);
     themeMode = getThemePreference();

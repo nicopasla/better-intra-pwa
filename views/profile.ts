@@ -31,7 +31,34 @@ const storedSub = (): SubTab => {
   return SUB_TABS.some((t) => t.id === v) ? (v as SubTab) : "evaluations";
 };
 const PROFILE_SUB_TAB_KEY = "PROFILE_SUB_TAB";
+const isSubTab = (value: string | null): value is SubTab =>
+  SUB_TABS.some((t) => t.id === value);
+
+let appliedTabQuery = "";
+
+/** Deep link from a push: `#/profile?tab=projects`. */
+function applyTabFromHash(): boolean {
+  const query = location.hash.split("?")[1] ?? "";
+  if (!query) {
+    appliedTabQuery = "";
+    return false;
+  }
+  if (query === appliedTabQuery) return false;
+  appliedTabQuery = query;
+
+  const tab = new URLSearchParams(query).get("tab");
+  if (!isSubTab(tab) || tab === subTab) return false;
+
+  subTab = tab;
+  localStorage.setItem(PROFILE_SUB_TAB_KEY, tab);
+  return true;
+}
+
 let subTab: SubTab = storedSub();
+applyTabFromHash();
+window.addEventListener("hashchange", () => {
+  if (applyTabFromHash()) refresh();
+});
 
 export function switchSubTab(tab: SubTab): void {
   subTab = tab;
@@ -40,6 +67,7 @@ export function switchSubTab(tab: SubTab): void {
 }
 
 export function profileView(): unknown {
+  applyTabFromHash();
   if (loading && !meData) return profileTabSkeleton("Loading your profile");
   if (!meData) {
     return html`<div class="card bg-base-100 shadow-xl">
