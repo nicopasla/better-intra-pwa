@@ -1,4 +1,4 @@
-import { workerFetch } from "../../api.ts";
+import { getSession, workerFetch } from "../../api.ts";
 import { mockMode } from "../../mock.ts";
 import type {
   SeatComponentKey,
@@ -31,6 +31,7 @@ const MOCK_REPORTS: SeatReport[] = [
         status: "broken",
         updatedAt: Date.now() - 5 * 60_000,
         confirmations: 2,
+        reporter: "mock.user",
       },
     ],
   },
@@ -43,12 +44,14 @@ const MOCK_REPORTS: SeatReport[] = [
         status: "broken",
         updatedAt: Date.now() - 20 * 60_000,
         confirmations: 1,
+        reporter: "mock.user",
       },
       {
         component: "audio",
         status: "works",
         updatedAt: Date.now() - 20 * 60_000,
         confirmations: 1,
+        reporter: null,
       },
     ],
   },
@@ -67,6 +70,7 @@ let mockHistory: MockHistoryEvent[] = MOCK_REPORTS.flatMap((seat) =>
     component: component.component,
     status: component.status,
     createdAt: component.updatedAt,
+    reporter: component.reporter,
   })),
 );
 
@@ -102,7 +106,7 @@ export function getSeatReport(host: string): SeatReport | undefined {
   return byHost.get(normalizeHost(host));
 }
 
-/** Anonymous status-change history for a seat, newest first. */
+/** Status-change history for a seat, newest first. */
 export async function loadSeatHistory(
   host: string,
 ): Promise<SeatReportEvent[]> {
@@ -130,6 +134,9 @@ export function getSeatSeverity(host: string): SeatSeverity | null {
   for (const component of report.components) {
     if (component.status !== "broken") continue;
     const def = SEAT_COMPONENT_MAP.get(component.component);
+    // A missing USB-C port is not a defect: presence answers never mark the
+    // seat as broken.
+    if (def?.kind === "presence") continue;
     if (def?.severity === "blocking") return "blocking";
     severity = "minor";
   }
@@ -168,6 +175,7 @@ function applyLocally(
         existing?.status === entry.status
           ? (existing.confirmations ?? 1) + 1
           : 1,
+      reporter: getSession()?.login ?? null,
     });
   }
   const seat: SeatReport = {
@@ -204,6 +212,7 @@ export async function submitSeatReports(
         component: entry.component,
         status: entry.status,
         createdAt: now,
+        reporter: getSession()?.login ?? null,
       })),
     );
     return;

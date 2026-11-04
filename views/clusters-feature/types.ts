@@ -18,6 +18,8 @@ export interface SeatComponentReport {
   status: SeatComponentStatus;
   updatedAt: number;
   confirmations: number;
+  /** 42 login of the last reporter (absent on pre-tracking reports). */
+  reporter: string | null;
 }
 
 export interface SeatReport {
@@ -35,6 +37,8 @@ export interface SeatReportEvent {
   component: SeatComponentKey;
   status: SeatComponentStatus;
   createdAt: number;
+  /** 42 login of the reporter (absent on pre-tracking events). */
+  reporter: string | null;
 }
 
 export interface SeatHistoryResponse {

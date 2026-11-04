@@ -12,6 +12,13 @@ export type SeatComponentKey =
 
 export type SeatSeverity = "blocking" | "minor";
 
+/**
+ * `defect` components are reported as working/broken and count towards the
+ * seat's issue severity. `presence` components answer a yes/no question (does
+ * this seat have the thing?) and never mark the seat as broken.
+ */
+export type SeatComponentKind = "defect" | "presence";
+
 export interface SeatComponentDef {
   key: SeatComponentKey;
   label: string;
@@ -19,6 +26,9 @@ export interface SeatComponentDef {
   group: "usability" | "peripherals";
   /** Shown as working before anyone reports it (defaults to true). */
   assumeWorking?: boolean;
+  kind?: SeatComponentKind;
+  /** Labels for the two states; defaults to Working/Broken. */
+  labels?: { on: string; off: string };
 }
 
 export const SEAT_COMPONENTS: SeatComponentDef[] = [
@@ -43,6 +53,8 @@ export const SEAT_COMPONENTS: SeatComponentDef[] = [
     severity: "minor",
     group: "peripherals",
     assumeWorking: false,
+    kind: "presence",
+    labels: { on: "Yes", off: "No" },
   },
 ];
 

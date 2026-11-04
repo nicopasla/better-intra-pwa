@@ -42,6 +42,40 @@ function componentCell(
   disabled: boolean,
   onSelect: (component: SeatComponentKey, status: SeatComponentStatus) => void,
 ) {
+  // Presence components answer "does this seat have it?" (USB-C) instead of
+  // "is it working?", so they get explicit Yes/No buttons.
+  if (def.kind === "presence") {
+    const labels = def.labels ?? { on: "Yes", off: "No" };
+    const yes = status === "works";
+    const no = status === "broken";
+    const button = (value: SeatComponentStatus, label: string, on: boolean) => {
+      const tone = on
+        ? value === "works"
+          ? "btn-success"
+          : "btn-neutral"
+        : "btn-ghost";
+      return html`<button
+        type="button"
+        class="btn btn-sm join-item h-10 min-h-0 flex-1 px-1 text-xs disabled:pointer-events-none disabled:opacity-50 ${tone}"
+        aria-pressed=${on ? "true" : "false"}
+        ?disabled=${disabled}
+        @click=${() => onSelect(def.key, value)}
+      >
+        ${label}
+      </button>`;
+    };
+    return html`<div
+      class="flex flex-col items-center gap-1 rounded-lg bg-base-200/60 p-1"
+    >
+      <span class="text-center text-xs font-semibold leading-tight"
+        >${def.label}</span
+      >
+      <div class="join w-full">
+        ${button("works", labels.on, yes)} ${button("broken", labels.off, no)}
+      </div>
+    </div>`;
+  }
+
   const icons = SEAT_COMPONENT_ICONS[def.key];
   const broken = status === "broken";
   const next: SeatComponentStatus = broken ? "works" : status === "works" ? "broken" : "works";
@@ -74,7 +108,7 @@ function componentCell(
   </div>`;
 }
 
-/** Opens the anonymous component-status sheet for a cluster seat. */
+/** Opens the component-status sheet for a cluster seat. */
 export function openSeatReportDialog(options: SeatReportDialogOptions): void {
   document.getElementById(DIALOG_ID)?.remove();
   const { seat, cluster, occupant } = options;
@@ -167,11 +201,14 @@ export function openSeatReportDialog(options: SeatReportDialogOptions): void {
   const onEverythingWorks = async () => {
     if (saving) return;
     draft.clear();
+    // Presence components (USB-C) are not implied by "everything works".
     await submitEntries(
-      SEAT_COMPONENTS.map((component) => ({
-        component: component.key,
-        status: "works" as const,
-      })),
+      SEAT_COMPONENTS.filter((component) => component.kind !== "presence").map(
+        (component) => ({
+          component: component.key,
+          status: "works" as const,
+        }),
+      ),
     );
   };
 
@@ -216,24 +253,34 @@ export function openSeatReportDialog(options: SeatReportDialogOptions): void {
         const def = SEAT_COMPONENT_MAP.get(event.component)!;
         const icons = SEAT_COMPONENT_ICONS[event.component];
         const works = event.status === "works";
+        const presence = def.kind === "presence";
+        const onLabel = def.labels?.on ?? "Working";
+        const offLabel = def.labels?.off ?? "Broken";
+        const tone = works
+          ? "badge-success"
+          : presence
+            ? "badge-neutral"
+            : "badge-error";
         return html`<div
           class="flex items-center justify-between gap-2 rounded-lg bg-base-200/60 px-2 py-1.5"
         >
-          <span class="flex min-w-0 items-center gap-1.5 text-xs font-medium">
-            <span class="flex size-4 shrink-0 items-center justify-center opacity-70"
+          <span class="flex min-w-0 items-center gap-1.5">
+            <span
+              class="flex size-4 shrink-0 items-center justify-center opacity-70"
               >${icon(works ? icons.on : icons.off, 14)}</span
             >
-            <span class="truncate">${def.label}</span>
+            <span class="flex min-w-0 flex-col">
+              <span class="truncate text-xs font-medium">${def.label}</span>
+              <span class="truncate text-[10px] opacity-60"
+                >${event.reporter ? `by ${event.reporter} · ` : ""}${relativeTime(
+                  event.createdAt,
+                )}</span
+              >
+            </span>
           </span>
-          <span class="flex shrink-0 items-center gap-2">
-            <span class="text-[11px] opacity-60"
-              >${relativeTime(event.createdAt)}</span
-            >
-            <span
-              class="badge badge-sm ${works ? "badge-success" : "badge-error"}"
-              >${works ? "Working" : "Broken"}</span
-            >
-          </span>
+          <span class="badge badge-sm shrink-0 ${tone}"
+            >${works ? onLabel : offLabel}</span
+          >
         </div>`;
       })}
     </div>`;
@@ -275,7 +322,9 @@ export function openSeatReportDialog(options: SeatReportDialogOptions): void {
       <summary class="collapse-title text-sm font-medium">History</summary>
       <div class="collapse-content">${historyList()}</div>
     </details>
-    <p class="text-center text-xs opacity-60">Reports are anonymous</p>
+    <p class="text-center text-xs opacity-60">
+      Your login is attached to every report.
+    </p>
   `;
 
   const draw = () => {
