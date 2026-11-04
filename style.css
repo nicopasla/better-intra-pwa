@@ -389,6 +389,7 @@ html.ft-friends-empty body {
 }
 
 @keyframes ft-ptr-pulse {
+
   0%,
   100% {
     transform: scale(1);
@@ -755,6 +756,16 @@ html.ft-friends-empty body {
   fill: none;
   stroke: var(--seat-dead, #d9453f);
   stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Report mode: dashed target over every seat that can be pressed. */
+.cluster-map rect.seat-report-target {
+  fill: none !important;
+  stroke: var(--color-primary) !important;
+  stroke-width: 2.5;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
 

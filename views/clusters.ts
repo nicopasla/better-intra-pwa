@@ -119,7 +119,10 @@ function onActiveTab(): void {
 
 async function loadOccupancy(): Promise<void> {
   try {
-    const [occupancy] = await Promise.all([fetchOccupancy(), loadSeatReports()]);
+    const [occupancy] = await Promise.all([
+      fetchOccupancy(),
+      loadSeatReports(),
+    ]);
     entries = [...occupancy.values()];
     error = "";
   } catch (e) {
@@ -421,9 +424,7 @@ function mapView(map: ClusterMapDef): unknown {
           aria-pressed=${reportMode}
           @click=${toggleReportMode}
         >
-          ${unsafeHTML(
-            BUG_SVG.replace("<svg", '<svg width="18" height="18"'),
-          )}
+          ${unsafeHTML(BUG_SVG.replace("<svg", '<svg width="18" height="18"'))}
         </button>
         ${reportMode
           ? html`<div
@@ -678,6 +679,11 @@ const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
 const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGPathElement>>();
 /** USB-C glyphs on empty seats that reported a port, per SVG. */
 const usbcBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
+/** Dashed report-mode targets over every seat, per SVG. */
+const reportModeTargets = new WeakMap<
+  SVGSVGElement,
+  Map<string, SVGRectElement>
+>();
 
 function seatBox(img: SVGImageElement): {
   x: number;
@@ -750,7 +756,10 @@ function usbcGlyph(size: number): SVGSVGElement {
     USBC_SVG,
     "image/svg+xml",
   ).documentElement;
-  const glyph = document.importNode(usbcTemplate, true) as unknown as SVGSVGElement;
+  const glyph = document.importNode(
+    usbcTemplate,
+    true,
+  ) as unknown as SVGSVGElement;
   glyph.setAttribute("width", String(size));
   glyph.setAttribute("height", String(size / 2));
   return glyph;
@@ -796,6 +805,51 @@ function applyUsbcSeats(
 
     img.parentNode.insertBefore(badge, img.nextSibling);
     badges.set(id, badge);
+  }
+}
+
+/** Dashed outline over every seat while the bug button is armed. */
+function applyReportModeTargets(svg: SVGSVGElement): void {
+  let targets = reportModeTargets.get(svg);
+  if (!targets) {
+    targets = new Map();
+    reportModeTargets.set(svg, targets);
+  }
+  if (!reportMode) {
+    for (const target of targets.values()) target.remove();
+    targets.clear();
+    return;
+  }
+
+  const seats = mapSeatIndex(svg);
+  for (const [id, img] of seats) {
+    if (targets.has(id) || !img.parentNode) continue;
+    const { x, y, w, h } = seatBox(img);
+    const target = document.createElementNS(SVG_NS, "rect");
+    target.setAttribute("class", "seat-report-target");
+    target.setAttribute("data-seat", id);
+    target.setAttribute("x", String(x));
+    target.setAttribute("y", String(y));
+    target.setAttribute("width", String(w));
+    target.setAttribute("height", String(h));
+
+    const rx = img.getAttribute("rx");
+    if (rx) {
+      target.setAttribute("rx", rx);
+    } else if ((img.getAttribute("clip-path") || "").includes("circle")) {
+      target.setAttribute("rx", String(Math.min(w, h) / 2));
+    }
+    const transform = img.getAttribute("transform");
+    if (transform) target.setAttribute("transform", transform);
+
+    img.parentNode.insertBefore(target, img.nextSibling);
+    targets.set(id, target);
+  }
+
+  for (const [id, target] of [...targets]) {
+    if (seats.has(id)) continue;
+    target.remove();
+    targets.delete(id);
   }
 }
 
@@ -919,6 +973,9 @@ function applyMapOccupancy(): void {
 
   // Red rings for seats with a reported broken component.
   applyBrokenSeats(svg);
+
+  // Dashed targets over every seat while report mode is armed.
+  applyReportModeTargets(svg);
 
   attachMapGestures(mapEl, {
     onSeatTap: openSeatReports,
