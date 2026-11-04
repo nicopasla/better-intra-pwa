@@ -59,10 +59,10 @@ export const SEAT_COMPONENT_ICONS: Record<
   },
   usbc: {
     on: svg(
-      `<path d="M6 12h12"/><rect x="2" y="8" width="20" height="8" rx="4"/>`,
+      `<rect x="2" y="7" width="20" height="10" rx="5"/><rect x="6" y="11" width="12" height="2" rx="1" fill="currentColor" stroke="none"/>`,
     ),
     off: slashed(
-      `<path d="M6 12h12"/><rect x="2" y="8" width="20" height="8" rx="4"/>`,
+      `<rect x="2" y="7" width="20" height="10" rx="5"/><rect x="6" y="11" width="12" height="2" rx="1" fill="currentColor" stroke="none"/>`,
     ),
   },
 };

@@ -5,6 +5,7 @@ import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import BUG_SVG from "../assets/bug.svg?raw";
+import USBC_SVG from "../assets/usbc.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { refresh } from "../refresh.ts";
@@ -36,6 +37,7 @@ import {
 } from "./clusters-feature/maps.ts";
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
+  getComponentStatus,
   getSeatSeverity,
   loadSeatReports,
 } from "./clusters-feature/reports.ts";
@@ -674,6 +676,8 @@ const newerSeats = new WeakMap<SVGSVGElement, Set<string>>();
 const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
 /** Red crosses marking seats with any broken component, per SVG. */
 const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGPathElement>>();
+/** USB-C glyphs on empty seats that reported a port, per SVG. */
+const usbcBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
 
 function seatBox(img: SVGImageElement): {
   x: number;
@@ -735,6 +739,63 @@ function applyBrokenSeats(svg: SVGSVGElement): void {
 
     img.parentNode.appendChild(cross);
     crosses.set(id, cross);
+  }
+}
+
+let usbcTemplate: Element | null = null;
+
+/** One shared parse of the USB-C asset, cloned per seat. */
+function usbcGlyph(size: number): SVGSVGElement {
+  usbcTemplate ??= new DOMParser().parseFromString(
+    USBC_SVG,
+    "image/svg+xml",
+  ).documentElement;
+  const glyph = document.importNode(usbcTemplate, true) as unknown as SVGSVGElement;
+  glyph.setAttribute("width", String(size));
+  glyph.setAttribute("height", String(size / 2));
+  return glyph;
+}
+
+/** Little USB-C glyph on empty seats reported to have a port. */
+function applyUsbcSeats(
+  svg: SVGSVGElement,
+  occupied: Map<string, OccupancyEntry>,
+): void {
+  let badges = usbcBadges.get(svg);
+  if (!badges) {
+    badges = new Map();
+    usbcBadges.set(svg, badges);
+  }
+  for (const [id, img] of mapSeatIndex(svg)) {
+    const show =
+      !occupied.has(id) && getComponentStatus(id, "usbc")?.status === "works";
+    const existing = badges.get(id);
+    if (!show) {
+      if (existing) {
+        existing.remove();
+        badges.delete(id);
+      }
+      continue;
+    }
+    if (existing || !img.parentNode) continue;
+
+    const { x, y, w, h } = seatBox(img);
+    const size = Math.max(12, Math.min(20, Math.min(w, h) * 0.45));
+    const inset = Math.max(1, Math.min(w, h) * 0.1);
+
+    const badge = document.createElementNS(SVG_NS, "g");
+    badge.setAttribute("class", "seat-usbc-badge");
+    const imageTransform = img.getAttribute("transform");
+    badge.setAttribute(
+      "transform",
+      `${imageTransform ? `${imageTransform} ` : ""}translate(${
+        x + w - size - inset
+      } ${y + h - size / 2 - inset})`,
+    );
+    badge.appendChild(usbcGlyph(size));
+
+    img.parentNode.insertBefore(badge, img.nextSibling);
+    badges.set(id, badge);
   }
 }
 
@@ -852,6 +913,9 @@ function applyMapOccupancy(): void {
       rings.delete(id);
     }
   }
+
+  // USB-C glyph on empty seats that reported a port.
+  applyUsbcSeats(svg, byHost);
 
   // Red rings for seats with a reported broken component.
   applyBrokenSeats(svg);

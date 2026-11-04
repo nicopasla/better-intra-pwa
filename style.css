@@ -809,6 +809,27 @@ html.ft-friends-empty body {
   pointer-events: none;
 }
 
+/* Empty seat with a reported USB-C port: a small info-coloured glyph in the
+   seat's bottom-right corner. */
+.cluster-map .seat-usbc-badge {
+  /* Lemonade's success token is very pale (oklch 86% .047), which reads as
+     translucent on the light seat fill. Use the map's solid exit green. */
+  color: var(--exit-fill, #2e9e5b);
+  pointer-events: none;
+}
+
+/* The maps fill every `rect` inside .posts, which would tint the inner bar
+   with the seat colour. Pin both parts to the badge colour. */
+.cluster-map .seat-usbc-badge .usbc-frame {
+  fill: none;
+  stroke: currentColor;
+}
+
+.cluster-map .seat-usbc-badge .usbc-bar {
+  fill: currentColor;
+  stroke: none;
+}
+
 /* Reported-broken seats reuse the map builder's .cross style. */
 
 .cluster-map .sign path {
