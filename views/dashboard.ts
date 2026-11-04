@@ -386,8 +386,9 @@ function editBlock(id: string, hidden: boolean) {
 }
 
 function staleBanner() {
+  if (!navigator.onLine) return "";
   return html`<div class="alert alert-warning alert-soft mb-4 py-2 text-sm">
-    <span class="flex-1">Couldn't refresh — showing saved data.</span>
+    <span class="flex-1">Couldn't refresh. Showing saved data.</span>
     <button class="btn btn-xs btn-outline" @click=${() => loadDashboard(true)}>
       Retry
     </button>

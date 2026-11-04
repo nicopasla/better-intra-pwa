@@ -1,31 +1,35 @@
 import { html, render } from "lit-html";
+import { refresh } from "../refresh.ts";
 
-/** A fixed banner shown while the app is offline, created once so it lives
- *  outside the route's View Transition DOM. Explicit colors (base-200 bg,
- *  base-content text) keep it readable on tinted themes like lemonade. */
+/** A fixed top banner shown while the app is offline, created once so it lives
+ *  outside the route's View Transition DOM. Explicit theme colors keep it
+ *  readable on tinted themes like lemonade. */
 export function initConnectivityIndicator(): void {
   if (typeof document === "undefined") return;
   const host = document.createElement("div");
   host.style.cssText =
-    "position:fixed;top:calc(env(safe-area-inset-top) + 0.5rem);left:0;right:0;z-index:70;display:flex;justify-content:center;padding:0 0.75rem;pointer-events:none;";
+    "position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:70;pointer-events:none;";
   document.body.appendChild(host);
 
   const update = () => {
     if (navigator.onLine) {
       render(html``, host);
-      return;
+    } else {
+      render(
+        html`<div
+          class="alert alert-warning justify-center gap-2 rounded-none border-0 py-1.5 text-xs font-medium shadow-sm"
+          role="status"
+          aria-label="Offline"
+        >
+          <span class="status status-error animate-pulse"></span>
+          <span>Offline. Showing cached data.</span>
+        </div>`,
+        host,
+      );
     }
-    render(
-      html`<div
-        class="alert border border-base-300 px-3 py-1.5 text-xs font-medium shadow-lg"
-        role="status"
-        aria-label="Offline"
-      >
-        <span class="status status-error animate-pulse"></span>
-        <span>Offline. Showing cached data.</span>
-      </div>`,
-      host,
-    );
+    // Per-view "showing saved data" warnings hide while offline (the banner
+    // above already says it), so repaint the active view on state changes.
+    refresh();
   };
 
   window.addEventListener("online", update);
