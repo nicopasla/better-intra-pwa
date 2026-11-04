@@ -1,5 +1,6 @@
 import generateRandomUsername from "generate-random-username";
 import { hashLogin } from "./lib/crypto.ts";
+import { noteNetworkError, noteWorkerResponse } from "./lib/health.ts";
 import { mockMode } from "./mock.ts";
 import { refresh } from "./refresh.ts";
 
@@ -106,7 +107,14 @@ export async function workerFetch(
     url += `${path.includes("?") ? "&" : "?"}login=${encodeURIComponent(hash)}`;
   }
 
-  const res = await fetch(url, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, headers });
+  } catch (e) {
+    noteNetworkError();
+    throw e;
+  }
+  noteWorkerResponse(path, res.status);
   if (withAuth && res.status === 401) onSessionExpired?.();
   return res;
 }

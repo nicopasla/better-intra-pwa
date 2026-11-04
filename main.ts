@@ -9,7 +9,11 @@ import {
   setSessionExpiredHandler,
 } from "./api.ts";
 import { initTheme, syncThemeFromCloud } from "./theme.ts";
-import { badgeUrlFor, initCampusBadges, waitForCampusBadges } from "./lib/campus-badges.ts";
+import {
+  badgeUrlFor,
+  initCampusBadges,
+  waitForCampusBadges,
+} from "./lib/campus-badges.ts";
 import {
   currentTab,
   redirectToDashboard,
@@ -20,7 +24,7 @@ import {
   setTabHidden,
   userLoginFromHash,
 } from "./shell.ts";
-import { setRefresh } from "./refresh.ts";
+import { refresh, setRefresh } from "./refresh.ts";
 import {
   dashboardAttachObservers,
   dashboardView,
@@ -78,18 +82,49 @@ import {
 } from "./lib/install.ts";
 import { initRouter } from "./lib/router.ts";
 import { initTooltips } from "./lib/tooltip.ts";
+import {
+  downStatus,
+  isWorkerDown,
+  onWorkerHealthChange,
+} from "./lib/health.ts";
+import { downView } from "./views/down.ts";
 import { mockMode } from "./mock.ts";
 import { initPullRefresh } from "./pull-refresh.ts";
 import { myCampus } from "./data.ts";
 import { SHOW_CUSTOM_AVATARS_KEY } from "./lib/avatar.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
-import {
-  getLastTab,
-  getRememberLastTab,
-  setLastTab,
-} from "./lib/prefs.ts";
+import { getLastTab, getRememberLastTab, setLastTab } from "./lib/prefs.ts";
 
 const app = () => document.getElementById("app")!;
+
+/** "Show cached data" on the down screen lasts for this tab session. */
+let downBypassed = sessionStorage.getItem("ft_pwa_down_bypass") === "1";
+/** `?down=1` (or `?down=502`) previews the screen without waiting for 42. */
+const downParam = new URLSearchParams(location.search).get("down");
+const downPreview = downParam !== null;
+const previewStatus = /^\d{3}$/.test(downParam ?? "") ? Number(downParam) : 503;
+
+/** Leaves `?down=1` and boots the app normally (QA only). */
+function leaveDownPreview(): void {
+  location.replace(location.pathname + location.hash);
+}
+
+function showDownScreen(forced: boolean): void {
+  closeOpenDialogs();
+  const retry = forced ? leaveDownPreview : () => location.reload();
+  const bypass = forced
+    ? leaveDownPreview
+    : () => {
+        downBypassed = true;
+        try {
+          sessionStorage.setItem("ft_pwa_down_bypass", "1");
+        } catch {
+          /* private mode */
+        }
+        refresh();
+      };
+  render(downView(forced ? previewStatus : downStatus(), retry, bypass), app());
+}
 
 const BELGIUM_CAMPUS = 12;
 const BELGIUM_TABS: Tab[] = ["students", "clusters"];
@@ -368,6 +403,7 @@ function onStorage(e: StorageEvent): void {
 function initAppListeners(): void {
   initTooltips();
   if (!mockMode) void requestPersistentStorage();
+  onWorkerHealthChange(() => refresh());
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       refreshActiveTab();
@@ -401,6 +437,11 @@ function setViewportLock(locked: boolean): void {
 
 function renderBody(): void {
   document.documentElement.classList.remove("ft-friends-empty");
+  if (!downBypassed && (downPreview || isWorkerDown())) {
+    setViewportLock(false);
+    showDownScreen(downPreview);
+    return;
+  }
   const profileLogin = userLoginFromHash();
   if (profileLogin) {
     setViewportLock(false);
@@ -522,6 +563,12 @@ async function boot(): Promise<void> {
   onInstallAvailability(refreshPreApp);
   onPushSubscriptionChange(() => void syncPushSubscription());
   initAppListeners();
+
+  // `?down=1`: preview the outage screen before 42 actually fails.
+  if (downPreview) {
+    showDownScreen(true);
+    return;
+  }
 
   // App-icon "Slots" shortcut: the destination comes from the campus file.
   if (location.hash === "#/slots") {
