@@ -52,6 +52,15 @@
   border-radius: var(--badge-radius);
 }
 
+/* USB-C Yes/No toggle in the seat report sheet: a joined control with the
+   same pill radius as the app's badges. */
+.seat-presence-toggle {
+  --join-ss: var(--badge-radius);
+  --join-se: var(--badge-radius);
+  --join-es: var(--badge-radius);
+  --join-ee: var(--badge-radius);
+}
+
 /* Presets that are not shipped by daisyUI; copied from the extension's
    src/assets/themes.css so both apps resolve the same theme ids. */
 @plugin "daisyui/theme" {

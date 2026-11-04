@@ -70,7 +70,7 @@ function componentCell(
       <span class="text-center text-xs font-semibold leading-tight"
         >${def.label}</span
       >
-      <div class="join w-full">
+      <div class="join seat-presence-toggle w-full">
         ${button("works", labels.on, yes)} ${button("broken", labels.off, no)}
       </div>
     </div>`;
@@ -288,7 +288,9 @@ export function openSeatReportDialog(options: SeatReportDialogOptions): void {
 
   const body = () => html`
     ${occupant
-      ? html`<div class="alert alert-info alert-soft py-2 text-xs">
+      ? html`<div
+          class="alert alert-info flex justify-center rounded-[var(--badge-radius)] py-2 text-center text-xs"
+        >
           <span>In use by <strong>${occupant}</strong> right now.</span>
         </div>`
       : ""}
