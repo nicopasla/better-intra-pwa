@@ -17,12 +17,18 @@ export function initConnectivityIndicator(): void {
     } else {
       render(
         html`<div
-          class="alert alert-warning justify-center gap-2 rounded-none border-0 py-1.5 text-xs font-medium shadow-sm"
+          class="alert alert-warning flex items-center justify-center gap-2 rounded-none border-0 py-2 text-sm font-semibold shadow-sm"
           role="status"
           aria-label="Offline"
         >
-          <span class="status status-error animate-pulse"></span>
+          <span class="status status-md status-error animate-pulse"></span>
           <span>Offline. Showing cached data.</span>
+          <button
+            class="btn btn-xs pointer-events-auto"
+            @click=${() => location.reload()}
+          >
+            Reload
+          </button>
         </div>`,
         host,
       );
