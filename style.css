@@ -328,8 +328,8 @@ html.ft-friends-empty body {
   overscroll-behavior: none;
 }
 
-/* Four short tabs (SHI, FU, MI, Active) in the clusters dock bar. */
-.clusters-tabs .tab-btn {
+/* Compact tabs whose label carries a live count (clusters, evaluations). */
+.count-tabs .tab-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -339,20 +339,26 @@ html.ft-friends-empty body {
   padding: 0.4rem 0.1rem;
 }
 
-.clusters-tabs .tab-icon {
+/* The evaluations card has room for larger labels than the clusters dock. */
+.count-tabs.eval-tabs .tab-btn {
+  font-size: 0.85rem;
+  padding-inline: 0.4rem;
+}
+
+.count-tabs .tab-icon {
   display: inline-flex;
   flex-shrink: 0;
 }
 
-/* Cluster name: bold text only, no chip. */
-.clusters-tabs .tab-count {
+/* Label: bold text only, no chip. */
+.count-tabs .tab-count {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: inherit;
 }
 
-/* Seats taken, now plain next to the cluster name. */
-.clusters-tabs .tab-total {
+/* Live count, plain next to the label. */
+.count-tabs .tab-total {
   margin-left: 0.3em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

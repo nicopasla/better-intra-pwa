@@ -695,22 +695,16 @@ function upcomingCard() {
   const tab = (id: "evaluator" | "corrected", label: string, count: number) =>
     html`<button
       type="button"
-      class="flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${active ===
-      id
-        ? "bg-primary text-primary-content"
-        : "text-base-content/70 hover:bg-base-300"}"
+      role="tab"
+      aria-selected=${active === id ? "true" : "false"}
+      class="tab-btn ${active === id ? "active" : ""}"
       @click=${() => {
         upcomingTab = id;
         refresh();
       }}
     >
-      <span>${label}</span>
-      <span
-        class="min-w-5 rounded-full px-1.5 text-xs font-bold ${active === id
-          ? "bg-primary-content/20"
-          : "bg-base-300"}"
-        >${count}</span
-      >
+      <span class="tab-count">${label}</span>
+      <span class="tab-total">${count}</span>
     </button>`;
 
   const activePart =
@@ -725,7 +719,12 @@ function upcomingCard() {
           ${needsPush ? enablePushBlock() : ""}`
       : html`
           ${showTabs
-            ? html`<div class="flex gap-1 rounded-lg bg-base-200 p-1 mb-2">
+            ? html`<div
+                class="count-tabs eval-tabs flex flex-1 gap-1 rounded-lg bg-base-200 p-1 mb-2"
+                style="border-radius:var(--radius-field)"
+                role="tablist"
+                aria-label="Evaluations"
+              >
                 ${tab("evaluator", "Evaluating", evaluating.length)}
                 ${tab("corrected", "Being evaluated", corrected.length)}
               </div>`

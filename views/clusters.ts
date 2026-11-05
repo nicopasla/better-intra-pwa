@@ -578,7 +578,7 @@ export function clustersBottomBar(): unknown {
       <div class="min-w-0 flex-1 rounded-xl bg-base-100 p-1.5 shadow-lg">
         <div class="segmented-tabs-host">
           <div
-            class="clusters-tabs flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
+            class="count-tabs flex flex-1 gap-1 rounded-lg bg-base-200 p-1"
             style="border-radius:var(--radius-field)"
             role="tablist"
             aria-label="Clusters"
