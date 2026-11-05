@@ -754,7 +754,12 @@ function upcomingCard() {
         </details>`
       : "";
 
-  return card(html`${activePart}${pastPart}`, "Evaluations");
+  // With both tabs on screen their labels already say what the list is, so the
+  // card heading would just repeat them.
+  return card(
+    html`${activePart}${pastPart}`,
+    showTabs ? undefined : "Evaluations",
+  );
 }
 
 function evalRow(e: UpcomingEval, past = false) {
