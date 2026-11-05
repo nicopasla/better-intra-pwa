@@ -8,6 +8,12 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
+  server: {
+    fs: {
+      // `?mock` imports the real cluster maps straight from ../campuses.
+      allow: [".."],
+    },
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

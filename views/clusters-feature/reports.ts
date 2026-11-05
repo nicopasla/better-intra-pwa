@@ -55,6 +55,46 @@ const MOCK_REPORTS: SeatReport[] = [
       },
     ],
   },
+  {
+    host: "fu-r4-p1",
+    cluster: "fu",
+    components: [
+      {
+        component: "network",
+        status: "broken",
+        updatedAt: Date.now() - 45 * 60_000,
+        confirmations: 1,
+        reporter: "arobion",
+      },
+    ],
+  },
+  {
+    host: "fu-r4-p5",
+    cluster: "fu",
+    components: [
+      {
+        component: "audio",
+        status: "broken",
+        updatedAt: Date.now() - 90 * 60_000,
+        confirmations: 3,
+        reporter: "clemarche",
+      },
+    ],
+  },
+  {
+    // Empty seat: shows the USB-C badge on the map.
+    host: "fu-r4-p6",
+    cluster: "fu",
+    components: [
+      {
+        component: "usbc",
+        status: "works",
+        updatedAt: Date.now() - 3 * 60 * 60_000,
+        confirmations: 1,
+        reporter: "mferreir",
+      },
+    ],
+  },
 ];
 
 let mockReports: SeatReport[] = MOCK_REPORTS.map((seat) => ({

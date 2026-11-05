@@ -79,38 +79,36 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
   },
 ];
 
-/** Self-contained map for `?mock`: mock occupancy hosts must exist offline. */
-function mockMapSvg(cluster: string): string {
-  const hosts =
-    cluster === "fu"
-      ? [
-          "fu-r1-p1",
-          "fu-r1-p2",
-          "fu-r2-p3",
-          "fu-r5-p5",
-          "fu-r10-p1",
-          "fu-c1-p1",
-          "fu-c2-p2",
-          "fu-c3-p1",
-          "fu-c4-p1",
-        ]
-      : ["r1-p1", "r1-p2", "r1-p3", "r2-p1", "r2-p2", "r2-p3"].map(
-          (seat) => `${cluster}-${seat}`,
-        );
-  const cells = hosts
-    .map((id, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const x = 40 + col * 70;
-      const y = 40 + row * 70;
-      const newer = i % 3 === 0 ? ' class="seat-newer"' : "";
-      return `<g class="posts"><rect id="${id}"${newer} x="${x}" y="${y}" width="56" height="56" rx="4"/><image id="${id}" x="${x}" y="${y}" width="56" height="56"/></g>`;
-    })
-    .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect class="zone" x="20" y="20" width="260" height="360" rx="8"/>${cells}</svg>`;
-}
+/**
+ * Real repo maps for `?mock`, imported lazily so only mock mode pays for them.
+ * Read straight from `campuses/maps/belgium`, the same files production serves.
+ */
+const MOCK_MAP_IMPORTS: Record<string, () => Promise<{ default: string }>> = {
+  fu: () => import("../../../campuses/maps/belgium/fu.svg?raw"),
+  mi: () => import("../../../campuses/maps/belgium/mi.svg?raw"),
+  shi: () => import("../../../campuses/maps/belgium/shi.svg?raw"),
+};
 
 const loads = new Map<string, Promise<void>>();
+
+/** Applies a freshly fetched map: cleaned markup, seat ids, and freshness. */
+function applyMapSvg(map: ClusterMapDef, raw: string): void {
+  const cleaned = stripStaticCrosses(raw);
+  map.svg = stripStyle(cleaned);
+  map.seatIds = seatIdsFromSvg(cleaned);
+  map.loadedAt = Date.now();
+  map.retryAt = 0;
+  map.failed = false;
+}
+
+/**
+ * `?mock` renders the real repo map from the bundle, so the demo works with no
+ * network at all.
+ */
+async function loadMockClusterMap(map: ClusterMapDef): Promise<void> {
+  const load = MOCK_MAP_IMPORTS[map.id] ?? MOCK_MAP_IMPORTS.fu;
+  applyMapSvg(map, (await load()).default);
+}
 
 /**
  * Revalidates against the network, falling back to the HTTP cache when offline
@@ -133,13 +131,7 @@ export function loadClusterMap(
   force = false,
 ): Promise<void> {
   if (!force && !isMapStale(map)) return Promise.resolve();
-  if (mockMode) {
-    map.svg = mockMapSvg(map.id);
-    map.seatIds = seatIdsFromSvg(map.svg);
-    map.loadedAt = Date.now();
-    map.retryAt = 0;
-    return Promise.resolve();
-  }
+  if (mockMode) return loadMockClusterMap(map);
   const running = loads.get(map.id);
   if (running) return running;
 
@@ -149,12 +141,7 @@ export function loadClusterMap(
       const res = await fetchMapSvg(map.url);
       if (!res.ok) throw new Error(String(res.status));
       const raw = await res.text();
-      const cleaned = stripStaticCrosses(raw);
-      map.svg = stripStyle(cleaned);
-      map.seatIds = seatIdsFromSvg(cleaned);
-      map.loadedAt = Date.now();
-      map.retryAt = 0;
-      map.failed = false;
+      applyMapSvg(map, raw);
     } catch {
       // Keep serving the last map (if any) and retry later, so a flaky network
       // never blanks the map or triggers a request storm.
