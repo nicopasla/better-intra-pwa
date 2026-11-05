@@ -43,7 +43,7 @@ import {
   getSeatSeverity,
   loadSeatReports,
 } from "./clusters-feature/reports.ts";
-import { SEAT_COMPONENT_MAP } from "./clusters-feature/components.ts";
+import { seatIssueTooltipHtml } from "./clusters-feature/seat-icons.ts";
 import { openSeatReportDialog } from "./seat-report-dialog.ts";
 import {
   activeSortIcon,
@@ -854,12 +854,11 @@ function applyWarningSeats(svg: SVGSVGElement): void {
       continue;
     }
 
-    const tip = `Broken: ${issues
-      .map((component) => SEAT_COMPONENT_MAP.get(component)?.label ?? component)
-      .join(" / ")}`;
+    const tip = seatIssueTooltipHtml(issues);
     if (existing) {
-      if (existing.getAttribute("data-tip") !== tip) {
-        existing.setAttribute("data-tip", tip);
+      if (existing.getAttribute("data-tip-html") !== tip) {
+        existing.removeAttribute("data-tip");
+        existing.setAttribute("data-tip-html", tip);
       }
       continue;
     }
@@ -873,7 +872,7 @@ function applyWarningSeats(svg: SVGSVGElement): void {
 
     const badge = document.createElementNS(SVG_NS, "g");
     badge.setAttribute("class", "seat-warning-badge");
-    badge.setAttribute("data-tip", tip);
+    badge.setAttribute("data-tip-html", tip);
     const imageTransform = img.getAttribute("transform");
     // The triangle asset has ~15% empty space below the glyph; drop it so its
     // visible bottom matches the USB-C badge's bottom.

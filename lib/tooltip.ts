@@ -7,6 +7,9 @@
  * also shows inside modals.
  */
 
+import { render } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
+
 const OFFSET = 8;
 
 let tip: HTMLDivElement | null = null;
@@ -51,7 +54,7 @@ function element(): HTMLDivElement {
 function targetOf(node: EventTarget | null): HTMLElement | null {
   const el = node as HTMLElement | null;
   if (!el || typeof el.closest !== "function") return null;
-  return el.closest<HTMLElement>("[data-tip]");
+  return el.closest<HTMLElement>("[data-tip], [data-tip-html]");
 }
 
 function place(target: HTMLElement): void {
@@ -70,8 +73,9 @@ function place(target: HTMLElement): void {
 }
 
 function show(target: HTMLElement, keep = false): void {
+  const html = target.dataset.tipHtml?.trim();
   const text = target.dataset.tip?.trim();
-  if (!text) return;
+  if (!html && !text) return;
   // Never draw a bubble over an open dropdown menu.
   if (target.closest("details[open]")) return;
 
@@ -79,7 +83,8 @@ function show(target: HTMLElement, keep = false): void {
   const host = container();
   if (el.parentElement !== host) host.appendChild(el);
 
-  el.textContent = text;
+  if (html) render(unsafeHTML(html), el);
+  else render(text ?? "", el);
   el.style.visibility = "hidden";
   el.style.opacity = "0";
   place(target);
