@@ -794,7 +794,9 @@ function applyUsbcSeats(
     if (existing || !img.parentNode) continue;
 
     const { x, y, w, h } = seatBox(img);
-    const size = Math.max(12, Math.min(20, Math.min(w, h) * 0.45));
+    // Both bottom badges (USB-C and warning) share the seat width: keep each
+    // glyph at 35% so 2 × size + 2 × inset stays under the seat.
+    const size = Math.max(8, Math.min(16, Math.min(w, h) * 0.35));
     const inset = Math.max(1, Math.min(w, h) * 0.1);
 
     const badge = document.createElementNS(SVG_NS, "g");
@@ -864,7 +866,9 @@ function applyWarningSeats(svg: SVGSVGElement): void {
     if (!img.parentNode) continue;
 
     const { x, y, w, h } = seatBox(img);
-    const size = Math.max(12, Math.min(20, Math.min(w, h) * 0.45));
+    // Both bottom badges (USB-C and warning) share the seat width: keep each
+    // glyph at 35% so 2 × size + 2 × inset stays under the seat.
+    const size = Math.max(8, Math.min(16, Math.min(w, h) * 0.35));
     const inset = Math.max(1, Math.min(w, h) * 0.1);
 
     const badge = document.createElementNS(SVG_NS, "g");
