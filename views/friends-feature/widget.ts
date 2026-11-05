@@ -551,9 +551,9 @@ function renderFriendsBottomBar(state: WidgetState) {
             >
               <button
                 type="button"
-                class="btn btn-sm shrink-0 gap-1.5 ${state.onlineOnly
+                class="btn btn-sm shrink-0 gap-1.5 border ${state.onlineOnly
                   ? "btn-success"
-                  : "btn-ghost"}"
+                  : "btn-ghost border-base-content/20"}"
                 data-tip="${onlineCount} of ${state.friends.length} friend${
                   state.friends.length === 1 ? "" : "s"
                 } online — ${state.onlineOnly
@@ -563,12 +563,13 @@ function renderFriendsBottomBar(state: WidgetState) {
                 aria-label="Show only online friends"
                 @click="${state.onToggleOnline}"
               >
-                <span class="text-sm font-bold tabular-nums"
-                  >${onlineCount}</span
-                >
-                <span class="text-xs font-semibold tabular-nums opacity-60"
-                  >/${state.friends.length}</span
-                >
+                <span class="inline-flex items-center gap-1 tabular-nums">
+                  <span class="text-sm font-bold">${onlineCount}</span>
+                  <span class="text-xs font-semibold opacity-60">/</span>
+                  <span class="text-xs font-semibold opacity-60"
+                    >${state.friends.length}</span
+                  >
+                </span>
                 <span class="text-xs font-semibold">online</span>
                 <span
                   class="w-4 h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
