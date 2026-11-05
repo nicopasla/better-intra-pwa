@@ -398,7 +398,7 @@ function mapView(map: ClusterMapDef): unknown {
       >
         <button
           type="button"
-          class="btn btn-square btn-sm absolute bottom-2 right-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur"
+          class="btn btn-circle size-9 absolute bottom-3 right-3 z-10 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
           aria-label=${mapExpanded
             ? "Exit full screen"
             : "Open the map full screen"}
@@ -415,9 +415,9 @@ function mapView(map: ClusterMapDef): unknown {
         </button>
         <button
           type="button"
-          class="btn btn-square btn-sm absolute bottom-2 left-2 z-10 border border-base-300 bg-base-100/80 backdrop-blur ${reportMode
-            ? "btn-primary"
-            : ""}"
+          class="btn btn-circle size-9 absolute bottom-3 left-3 z-10 ${reportMode
+            ? "border border-primary bg-primary text-primary-content shadow-lg shadow-primary/30"
+            : "border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"}"
           aria-label=${reportMode
             ? "Cancel reporting"
             : "Report a computer issue"}
@@ -431,7 +431,7 @@ function mapView(map: ClusterMapDef): unknown {
         </button>
         ${reportMode
           ? html`<div
-              class="absolute bottom-12 left-2 z-10 rounded-lg bg-base-100/90 px-2 py-1 text-[11px] font-medium shadow backdrop-blur"
+              class="absolute bottom-[3.25rem] left-3 z-10 rounded-full bg-base-100/90 px-2.5 py-1 text-[11px] font-medium shadow-md backdrop-blur-md"
             >
               Tap a seat to report
             </div>`
