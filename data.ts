@@ -333,6 +333,10 @@ export interface LogtimeHistory {
   days: Record<string, number>;
   /** Older months are still available: another call continues the sync. */
   partial?: boolean;
+  /** When the worker last wrote this history (ms since epoch). */
+  updatedAt?: number | null;
+  /** The refresh failed: `days` is the last stored snapshot, not fresh data. */
+  stale?: boolean;
 }
 
 /**

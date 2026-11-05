@@ -28,7 +28,7 @@ import {
 } from "../push.ts";
 import { clearAppBadge, setAppBadge } from "../lib/badge.ts";
 import { dashboardSkeleton, heroSkeleton } from "../lib/skeletons.ts";
-import { dateTimeShort, evalCountdown } from "../lib/format.ts";
+import { dateTimeShort, evalCountdown, relativeTime } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
@@ -95,6 +95,12 @@ let logtimePartial = false;
 let logtimeLoading = false;
 let logtimeError = "";
 let logtimeScrollKey: string | null = null;
+/** When the logtime shown was last synced by the worker. */
+let logtimeFetchedAt: number | null = null;
+/** The last refresh failed; `logtimeDays` is the stored snapshot. */
+let logtimeStale = false;
+/** Re-read the logtime when the card is reopened after this long. */
+const LOGTIME_REFRESH_MS = 60_000;
 
 const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -520,7 +526,10 @@ function logtimeCard() {
 
 function toggleLogtime(): void {
   logtimeOpen = !logtimeOpen;
-  if (logtimeOpen && !logtimeDays && !logtimeLoading && !logtimeError) {
+  const outOfDate =
+    logtimeFetchedAt === null ||
+    Date.now() - logtimeFetchedAt > LOGTIME_REFRESH_MS;
+  if (logtimeOpen && !logtimeLoading && !logtimeError && outOfDate) {
     void loadLogtime();
   }
   refresh();
@@ -550,7 +559,8 @@ function logtimeContent() {
       </p>
     </div>`;
   }
-  return logtimeSection({
+  return html`${logtimeFreshness()}
+  ${logtimeSection({
     days: logtimeDays,
     settings: logtimeSettings,
     partial: logtimePartial,
@@ -558,7 +568,22 @@ function logtimeContent() {
     showHeader: false,
     onSyncMore: () => void loadLogtime(),
     onSliderRendered: scrollLogtimeToLatest,
-  });
+  })}`;
+}
+
+/** "Updated 2 minutes ago", or a warning when the last refresh failed. */
+function logtimeFreshness() {
+  if (logtimeStale && logtimeFetchedAt !== null) {
+    return html`<p class="text-xs text-warning mb-1">
+      Couldn't refresh · showing data from ${relativeTime(logtimeFetchedAt)}
+    </p>`;
+  }
+  if (logtimeFetchedAt !== null) {
+    return html`<p class="text-xs opacity-60 mb-1">
+      Updated ${relativeTime(logtimeFetchedAt)}
+    </p>`;
+  }
+  return "";
 }
 
 async function loadLogtime(): Promise<void> {
@@ -567,13 +592,21 @@ async function loadLogtime(): Promise<void> {
   if (!session) return;
   logtimeLoading = true;
   logtimeError = "";
+  logtimeStale = false;
   refresh();
   try {
-    const { days, partial } = await logtimeHistory(session.login);
+    const { days, partial, updatedAt, stale } = await logtimeHistory(
+      session.login,
+    );
     logtimeDays = { ...(logtimeDays ?? {}), ...(days ?? {}) };
     logtimePartial = Boolean(partial);
+    logtimeFetchedAt = updatedAt ?? Date.now();
+    logtimeStale = Boolean(stale);
   } catch (e) {
-    logtimeError = friendlyError(e);
+    // Keep showing what we already have; only replace the card with an error
+    // when there is nothing to display.
+    if (logtimeDays) logtimeStale = true;
+    else logtimeError = friendlyError(e);
   } finally {
     logtimeLoading = false;
     refresh();

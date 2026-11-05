@@ -12,7 +12,7 @@ import { refresh } from "../refresh.ts";
 import { getSession } from "../api.ts";
 import { userLoginFromHash } from "../shell.ts";
 import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
-import { dateTime } from "../lib/format.ts";
+import { dateTime, relativeTime } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import {
   addFriend,
@@ -24,6 +24,8 @@ import { accentFor, profileHero } from "./profile-hero.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
 const CACHE_TTL = 5 * 60_000;
+/** Re-read the logtime when the card is reopened after this long. */
+const LOGTIME_REFRESH_MS = 60_000;
 
 interface ProfileState {
   login: string;
@@ -37,6 +39,10 @@ interface ProfileState {
   logtimeError: string;
   logtimePartial: boolean;
   logtimeOpen: boolean;
+  /** When the logtime shown was last synced by the worker. */
+  logtimeFetchedAt: number | null;
+  /** The last refresh failed; `days` is the stored snapshot. */
+  logtimeStale: boolean;
   /** Signature of the last layout we jumped to the most recent month for. */
   logtimeScrollKey: string | null;
   showOriginalAvatar: boolean;
@@ -78,6 +84,8 @@ export function userProfileView(login: string): unknown {
       logtimeError: "",
       logtimePartial: false,
       logtimeOpen: false,
+      logtimeFetchedAt: null,
+      logtimeStale: false,
       logtimeScrollKey: null,
       showOriginalAvatar: false,
       avatarFailed: false,
@@ -295,15 +303,21 @@ async function loadLogtime(): Promise<void> {
   const target = s.login;
   s.logtimeLoading = true;
   s.logtimeError = "";
+  s.logtimeStale = false;
   refresh();
   try {
-    const { days, partial } = await logtimeHistory(target);
+    const { days, partial, updatedAt, stale } = await logtimeHistory(target);
     if (!state || state.login !== target) return;
     state.days = { ...(state.days ?? {}), ...(days ?? {}) };
     state.logtimePartial = Boolean(partial);
+    state.logtimeFetchedAt = updatedAt ?? Date.now();
+    state.logtimeStale = Boolean(stale);
   } catch (e) {
     if (!state || state.login !== target) return;
-    state.logtimeError = friendlyError(e);
+    // Keep showing what we already have; only replace the card with an error
+    // when there is nothing to display.
+    if (state.days) state.logtimeStale = true;
+    else state.logtimeError = friendlyError(e);
   } finally {
     if (state && state.login === target) {
       state.logtimeLoading = false;
@@ -316,7 +330,10 @@ function toggleLogtime(): void {
   const s = state;
   if (!s) return;
   s.logtimeOpen = !s.logtimeOpen;
-  if (s.logtimeOpen && !s.days && !s.logtimeLoading && !s.logtimeError) {
+  const outOfDate =
+    s.logtimeFetchedAt === null ||
+    Date.now() - s.logtimeFetchedAt > LOGTIME_REFRESH_MS;
+  if (s.logtimeOpen && !s.logtimeLoading && !s.logtimeError && outOfDate) {
     void loadLogtime();
   }
   refresh();
@@ -386,7 +403,8 @@ function logtimeContent(p: UserProfile) {
       </p>
     </div>`;
   }
-  return logtimeSection({
+  return html`${logtimeFreshness(s.logtimeFetchedAt, s.logtimeStale)}
+  ${logtimeSection({
     days: s.days,
     settings: p.logtime,
     partial: s.logtimePartial,
@@ -394,7 +412,22 @@ function logtimeContent(p: UserProfile) {
     showHeader: false,
     onSyncMore: () => void loadLogtime(),
     onSliderRendered: scrollLogtimeToLatest,
-  });
+  })}`;
+}
+
+/** "Updated 2 minutes ago", or a warning when the last refresh failed. */
+function logtimeFreshness(fetchedAt: number | null, stale: boolean) {
+  if (stale && fetchedAt !== null) {
+    return html`<p class="text-xs text-warning mb-1">
+      Couldn't refresh · showing data from ${relativeTime(fetchedAt)}
+    </p>`;
+  }
+  if (fetchedAt !== null) {
+    return html`<p class="text-xs opacity-60 mb-1">
+      Updated ${relativeTime(fetchedAt)}
+    </p>`;
+  }
+  return "";
 }
 
 /** Jumps the calendar to the current month whenever its layout changes. */
