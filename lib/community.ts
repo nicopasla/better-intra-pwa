@@ -1,4 +1,4 @@
-import { WORKER_URL } from "../api.ts";
+import { workerUrl } from "../api.ts";
 
 export const PWA_REPO_URL = "https://github.com/nicopasla/better-intra-pwa";
 export const PROFILE_URL = "https://github.com/nicopasla";
@@ -46,7 +46,7 @@ let statsPromise: Promise<CommunityStats | null> | null = null;
 
 /** Public community stats (cached for the session). */
 export function fetchCommunityStats(): Promise<CommunityStats | null> {
-  return (statsPromise ??= fetch(`${WORKER_URL}/api/v1/public/stats`, {
+  return (statsPromise ??= fetch(workerUrl("/api/v1/public/stats"), {
     cache: "no-store",
   })
     .then((r) => (r.ok ? r.json() : null))

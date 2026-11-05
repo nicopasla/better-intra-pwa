@@ -1,4 +1,4 @@
-import { WORKER_URL, workerFetch } from "./api.ts";
+import { workerFetch, workerUrl } from "./api.ts";
 import { clearPendingPush, readPendingPush } from "./lib/push-store.ts";
 
 export function pushSupported(): boolean {
@@ -73,7 +73,7 @@ export async function enablePush(): Promise<void> {
   if (!reg) throw new Error("no_service_worker");
   await navigator.serviceWorker.ready;
 
-  const keyRes = await fetch(`${WORKER_URL}/api/v1/public/push/key`);
+  const keyRes = await fetch(workerUrl("/api/v1/public/push/key"));
   const { publicKey } = (await keyRes.json()) as { publicKey?: string };
   if (!publicKey) throw new Error("push_not_configured");
 

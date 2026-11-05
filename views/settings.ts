@@ -1,7 +1,7 @@
 import { html, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { until } from "lit-html/directives/until.js";
-import { clearSession, getDeviceName, getSession, WORKER_URL } from "../api.ts";
+import { clearSession, getDeviceName, getSession, WORKER_URL, workerUrl } from "../api.ts";
 import {
   SessionItem,
   createCalendarToken,
@@ -1174,9 +1174,7 @@ export async function loadSettings(force = false): Promise<void> {
   }
   if (!mockMode) {
     try {
-      const res = await fetch(
-        "https://api.betterintra.com/api/v1/public/push/key",
-      );
+      const res = await fetch(workerUrl("/api/v1/public/push/key"));
       workerOk = res.ok;
     } catch {
       workerOk = false;

@@ -1,5 +1,7 @@
+import { workerUrl } from "../../api.ts";
+
 /** Shared cluster maps, served from the repo through the worker. */
-const MAP_BASE = "https://api.betterintra.com/gh/campuses/maps/belgium";
+const MAP_BASE = workerUrl("/gh/campuses/maps/belgium");
 
 export interface ClusterMapDef {
   /** Matches the cluster name in campuses/belgium.json. */
@@ -147,7 +149,7 @@ export function findClusterMap(id: string): ClusterMapDef | undefined {
   return CLUSTER_MAPS.find((map) => map.id === id);
 }
 
-const CAMPUS_DATA_URL = "https://api.betterintra.com/gh/campuses/belgium.json";
+const CAMPUS_DATA_URL = workerUrl("/gh/campuses/belgium.json");
 const CLUSTER_IDS_KEY = "ft_cluster_map_ids";
 const CLUSTER_IDS_TTL = 24 * 60 * 60 * 1000;
 

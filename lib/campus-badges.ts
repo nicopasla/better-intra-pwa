@@ -1,7 +1,8 @@
 /** Campus badge links (Tutor, PHOENIX, PEGASUS, SLOTS) from the shared data. */
+import { workerUrl } from "../api.ts";
 import { refresh } from "../refresh.ts";
 
-const SOURCE = "https://api.betterintra.com/gh/campuses/belgium.json";
+const SOURCE = workerUrl("/gh/campuses/belgium.json");
 const CACHE_KEY = "ft_campus_badges";
 const TTL = 24 * 60 * 60 * 1000;
 

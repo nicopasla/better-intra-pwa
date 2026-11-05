@@ -6,6 +6,17 @@ import { refresh } from "./refresh.ts";
 
 export const WORKER_URL = "https://api.betterintra.com";
 
+/**
+ * Worker URL for a request path. In dev it stays relative so Vite's `/api` and
+ * `/gh` proxy forwards it: the worker rejects any request whose `Origin` is
+ * localhost unless `ALLOW_LOCAL_DEV` is enabled on the deployment, and we don't
+ * want that on production. Full-page links (the OAuth `/login`) keep using
+ * `WORKER_URL` directly.
+ */
+export function workerUrl(path: string): string {
+  return import.meta.env.DEV ? path : `${WORKER_URL}${path}`;
+}
+
 const TOKEN_KEY = "ft_pwa_token";
 const LOGIN_KEY = "ft_pwa_login";
 const DEVICE_KEY = "ft_pwa_device";
@@ -78,7 +89,7 @@ export function loginUrl(): string {
 export async function exchangeCode(
   code: string,
 ): Promise<{ token: string; login: string }> {
-  const res = await fetch(`${WORKER_URL}/api/v1/public/auth/exchange`, {
+  const res = await fetch(workerUrl("/api/v1/public/auth/exchange"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
@@ -97,7 +108,7 @@ export async function workerFetch(
   withAuth = true,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  let url = `${WORKER_URL}${path}`;
+  let url = workerUrl(path);
 
   if (withAuth) {
     const session = getSession();
