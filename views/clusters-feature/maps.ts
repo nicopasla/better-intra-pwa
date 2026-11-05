@@ -1,5 +1,3 @@
-import { mockMode } from "../../mock.ts";
-
 /** Shared cluster maps, served from the repo through the worker. */
 const MAP_BASE = "https://api.betterintra.com/gh/campuses/maps/belgium";
 
@@ -79,16 +77,6 @@ export const CLUSTER_MAPS: ClusterMapDef[] = [
   },
 ];
 
-/**
- * Real repo maps for `?mock`, imported lazily so only mock mode pays for them.
- * Read straight from `campuses/maps/belgium`, the same files production serves.
- */
-const MOCK_MAP_IMPORTS: Record<string, () => Promise<{ default: string }>> = {
-  fu: () => import("../../../campuses/maps/belgium/fu.svg?raw"),
-  mi: () => import("../../../campuses/maps/belgium/mi.svg?raw"),
-  shi: () => import("../../../campuses/maps/belgium/shi.svg?raw"),
-};
-
 const loads = new Map<string, Promise<void>>();
 
 /** Applies a freshly fetched map: cleaned markup, seat ids, and freshness. */
@@ -99,15 +87,6 @@ function applyMapSvg(map: ClusterMapDef, raw: string): void {
   map.loadedAt = Date.now();
   map.retryAt = 0;
   map.failed = false;
-}
-
-/**
- * `?mock` renders the real repo map from the bundle, so the demo works with no
- * network at all.
- */
-async function loadMockClusterMap(map: ClusterMapDef): Promise<void> {
-  const load = MOCK_MAP_IMPORTS[map.id] ?? MOCK_MAP_IMPORTS.fu;
-  applyMapSvg(map, (await load()).default);
 }
 
 /**
@@ -131,7 +110,6 @@ export function loadClusterMap(
   force = false,
 ): Promise<void> {
   if (!force && !isMapStale(map)) return Promise.resolve();
-  if (mockMode) return loadMockClusterMap(map);
   const running = loads.get(map.id);
   if (running) return running;
 

@@ -1,5 +1,10 @@
 import { getSession, workerFetch } from "../../api.ts";
-import { mockMode } from "../../mock.ts";
+import {
+  mockMode,
+  mockRecordSeatReports,
+  mockSeatHistory,
+  mockSeatReports,
+} from "../../mock.ts";
 import type {
   SeatComponentKey,
   SeatSeverity,
@@ -21,99 +26,6 @@ export interface SeatReportInput {
 
 const byHost = new Map<string, SeatReport>();
 
-const MOCK_REPORTS: SeatReport[] = [
-  {
-    host: "fu-r1-p2",
-    cluster: "fu",
-    components: [
-      {
-        component: "boot",
-        status: "broken",
-        updatedAt: Date.now() - 5 * 60_000,
-        confirmations: 2,
-        reporter: "mock.user",
-      },
-    ],
-  },
-  {
-    host: "fu-r2-p3",
-    cluster: "fu",
-    components: [
-      {
-        component: "keyboard",
-        status: "broken",
-        updatedAt: Date.now() - 20 * 60_000,
-        confirmations: 1,
-        reporter: "mock.user",
-      },
-      {
-        component: "audio",
-        status: "works",
-        updatedAt: Date.now() - 20 * 60_000,
-        confirmations: 1,
-        reporter: null,
-      },
-    ],
-  },
-  {
-    host: "fu-r4-p1",
-    cluster: "fu",
-    components: [
-      {
-        component: "network",
-        status: "broken",
-        updatedAt: Date.now() - 45 * 60_000,
-        confirmations: 1,
-        reporter: "arobion",
-      },
-    ],
-  },
-  {
-    host: "fu-r4-p5",
-    cluster: "fu",
-    components: [
-      {
-        component: "audio",
-        status: "broken",
-        updatedAt: Date.now() - 90 * 60_000,
-        confirmations: 3,
-        reporter: "clemarche",
-      },
-    ],
-  },
-  {
-    // Empty seat: shows the USB-C badge on the map.
-    host: "fu-r4-p6",
-    cluster: "fu",
-    components: [
-      {
-        component: "usbc",
-        status: "works",
-        updatedAt: Date.now() - 3 * 60 * 60_000,
-        confirmations: 1,
-        reporter: "mferreir",
-      },
-    ],
-  },
-];
-
-let mockReports: SeatReport[] = MOCK_REPORTS.map((seat) => ({
-  ...seat,
-  components: seat.components.map((component) => ({ ...component })),
-}));
-
-type MockHistoryEvent = SeatReportEvent & { host: string };
-
-let mockHistory: MockHistoryEvent[] = MOCK_REPORTS.flatMap((seat) =>
-  seat.components.map((component) => ({
-    host: seat.host,
-    component: component.component,
-    status: component.status,
-    createdAt: component.updatedAt,
-    reporter: component.reporter,
-  })),
-);
-
 function normalizeHost(host: string): string {
   return host.trim().toLowerCase();
 }
@@ -129,7 +41,7 @@ function replace(seats: SeatReport[]): void {
 /** Loads the current reports. Failures keep the previous map (offline). */
 export async function loadSeatReports(): Promise<void> {
   if (mockMode) {
-    replace(mockReports);
+    replace(mockSeatReports());
     return;
   }
   try {
@@ -151,13 +63,7 @@ export async function loadSeatHistory(
   host: string,
 ): Promise<SeatReportEvent[]> {
   const key = normalizeHost(host);
-  if (mockMode) {
-    return mockHistory
-      .filter((event) => event.host === key)
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 50)
-      .map(({ host: _host, ...event }) => event);
-  }
+  if (mockMode) return mockSeatHistory(key);
   const res = await workerFetch(
     `/api/v1/private/cluster/reports/history?host=${encodeURIComponent(key)}`,
   );
@@ -260,19 +166,11 @@ export async function submitSeatReports(
   applyLocally(key, cluster, entries);
 
   if (mockMode) {
-    mockReports = [...byHost.values()].map((seat) => ({
-      ...seat,
-      components: seat.components.map((component) => ({ ...component })),
-    }));
-    const now = Date.now();
-    mockHistory.push(
-      ...entries.map((entry) => ({
-        host: key,
-        component: entry.component,
-        status: entry.status,
-        createdAt: now,
-        reporter: getSession()?.login ?? null,
-      })),
+    mockRecordSeatReports(
+      [...byHost.values()],
+      key,
+      entries,
+      getSession()?.login ?? null,
     );
     return;
   }

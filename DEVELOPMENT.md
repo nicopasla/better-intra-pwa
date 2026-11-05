@@ -27,7 +27,7 @@ npm run deploy     # build, then wrangler deploy
 
 ### Mock mode
 
-Appending `?mock` to the URL (or building with `VITE_MOCK=1`) skips auth entirely and renders the app with fixture data from `mock.ts`. Useful for UI work without a worker session or network access.
+`npm run dev` starts in mock mode: auth is skipped and the app renders fixture data from `mock.ts`. Append `?real` to the dev URL to use the worker instead. Mock mode is dev-only — `vite.config.ts` swaps `mock.ts` for `mock.stub.ts` in production builds, so `?mock` does nothing on the deployed app and none of the fixtures reach the bundle. Useful for UI work without a worker session or network access.
 
 Mock mode also flips `AVATARS_ENABLED` on (`lib/avatar.ts`), so the fixture images render instead of initials. Production renders 42 photos through the worker's signed proxy (`/api/v1/public/avatar/...` → 42 CDN via the Deno relay), falls back to initials when a photo is missing, and always prefers custom avatars outside the Clusters tab. Clusters shows 42 photos unless **Settings → Avatars → Show custom avatars in clusters** is enabled (off by default). The Students tab never requests 42 photos and uses initials or custom avatars.
 
@@ -49,7 +49,8 @@ shell.ts             bottom dock, Tab type, navigate(), renderShell()
 api.ts               worker URL, session storage, loginUrl(), exchangeCode(), workerFetch()
 data.ts              typed worker fetchers (me, evals, friends, students, events, settings)
 push.ts              Web Push subscribe/unsubscribe/test + eval-tracking sync
-mock.ts              mock mode fixtures (mockMode, mock)
+mock.ts              mock mode fixtures (mockMode, mock) — dev only
+mock.stub.ts         production stand-in for mock.ts (see vite.config.ts)
 refresh.ts           setRefresh()/refresh(), asks the shell to repaint
 theme.ts             theme modes (system/light/dark/extension) + meta theme-color
 lib/theme-presets.ts built-in preset ids (mirrors the extension's theme list)
@@ -213,6 +214,8 @@ browser HTTP cache only, not in `bi-shell-v6`: they're fetched with
 `cache: "no-cache"` and kept in memory for 10 minutes (`maps.ts` `MAP_TTL_MS`),
 then revalidated with the worker's `ETag` (a 304 when unchanged). Pull-to-refresh
 forces a check, and a failed refresh keeps the last map with a 1-minute backoff.
+Mock mode uses the same network path — no map is bundled, so the app never reads
+the extension repo's `campuses/` folder at build time.
 
 The app also listens for cross-tab `storage` events on the session keys (`ft_pwa_token`, `ft_pwa_login`), the friends keys (`FRIENDS_LIST`, `ft_pwa_friends_custom`), and the avatars preference (`ft_pwa_show_custom_avatars`), refreshing the active tab, or reloading when the session disappears.
 

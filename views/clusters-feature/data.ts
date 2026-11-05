@@ -1,50 +1,9 @@
 import { workerFetch } from "../../api.ts";
-import { catImage } from "../../lib/cat-images.ts";
-import { mockMode } from "../../mock.ts";
+import { mockMode, mockOccupancy } from "../../mock.ts";
 import type { OccupancyEntry, OccupancyResponse } from "./types";
 
 /** Better Intra's clusters feature only targets Belgium for now. */
 export const CAMPUS_ID = "12";
-
-const MOCK_PEOPLE: { login: string; name: string }[] = [
-  { login: "nponchon", name: "Nicolas Ponchon" },
-  { login: "arobion", name: "Alice Robion" },
-  { login: "clemarche", name: "Clément Le Marchand" },
-  { login: "mferreir", name: "Marco Ferreira" },
-  { login: "jdupont", name: "Julien Dupont" },
-  { login: "svandenb", name: "Sophie Van Den Berg" },
-  { login: "akadri", name: "Amina Kadri" },
-  { login: "lmoreau", name: "Louis Moreau" },
-  { login: "tlecoq", name: "Théo Lecocq" },
-  { login: "ebastien", name: "Emma Bastien" },
-  { login: "ghubert", name: "Gaëtan Hubert" },
-  { login: "vmarquet", name: "Victor Marquet" },
-  // Keep the clusters fixtures testable: one self seat and two friends.
-  { login: "mock.user", name: "Mock User" },
-  { login: "amelie", name: "Jean-Baptiste Alexandre de La Rochefoucauld" },
-  { login: "vmoreau", name: "Victor Moreau" },
-];
-
-const MOCK_HOSTS = [
-  "fu-r1-p1",
-  "fu-r1-p2",
-  "fu-r2-p3",
-  "fu-r5-p5",
-  "fu-r10-p1",
-  "fu-c1-p1",
-  "fu-c2-p2",
-  "fu-c3-p1",
-  "fu-c4-p1",
-];
-
-const MOCK_OCCUPANCY: OccupancyEntry[] = MOCK_PEOPLE.map((p, i) => ({
-  host: i % 4 === 3 ? `wifi-${i + 1}` : MOCK_HOSTS[i % MOCK_HOSTS.length],
-  login: p.login,
-  name: p.name,
-  cdn_uri: catImage(i),
-  begin_at: new Date(Date.now() - (i * 17 + 4) * 60_000).toISOString(),
-  end_at: null,
-}));
 
 /** Active (online) students for the campus, keyed by host. */
 export async function fetchOccupancy(
@@ -52,7 +11,7 @@ export async function fetchOccupancy(
 ): Promise<Map<string, OccupancyEntry>> {
   const map = new Map<string, OccupancyEntry>();
   if (mockMode) {
-    for (const entry of MOCK_OCCUPANCY) map.set(entry.host, entry);
+    for (const entry of mockOccupancy()) map.set(entry.host, entry);
     return map;
   }
   try {

@@ -1,10 +1,21 @@
 import type { StudentEntry, UserProfile } from "./data.ts";
 import { catImage } from "./lib/cat-images.ts";
+import type { SeatComponentKey } from "./views/clusters-feature/components.ts";
+import type {
+  OccupancyEntry,
+  SeatComponentStatus,
+  SeatReport,
+  SeatReportEvent,
+} from "./views/clusters-feature/types.ts";
 
+/**
+ * Fixtures are a dev-only tool: production builds fold this to `false`, and
+ * the module (plus everything it pulls in) is tree-shaken out of the bundle.
+ * `npm run dev` starts in mock mode; add `?real` to use the worker instead.
+ */
 export const mockMode =
-  typeof window !== "undefined" &&
-  (new URLSearchParams(window.location.search).has("mock") ||
-    import.meta.env?.VITE_MOCK === "1");
+  import.meta.env.DEV &&
+  !new URLSearchParams(window.location.search).has("real");
 
 const now = Date.now();
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -1139,4 +1150,182 @@ if (mockMode) {
   if (Number.isFinite(campus) && campus > 0) {
     (mock.me as { campusId: number | null }).campusId = campus;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Cluster fixtures. They live here (not next to the production code) so the
+// whole set disappears from production builds along with this module.
+// ---------------------------------------------------------------------------
+
+const MOCK_PEOPLE: { login: string; name: string }[] = [
+  { login: "nponchon", name: "Nicolas Ponchon" },
+  { login: "arobion", name: "Alice Robion" },
+  { login: "clemarche", name: "Clément Le Marchand" },
+  { login: "mferreir", name: "Marco Ferreira" },
+  { login: "jdupont", name: "Julien Dupont" },
+  { login: "svandenb", name: "Sophie Van Den Berg" },
+  { login: "akadri", name: "Amina Kadri" },
+  { login: "lmoreau", name: "Louis Moreau" },
+  { login: "tlecoq", name: "Théo Lecocq" },
+  { login: "ebastien", name: "Emma Bastien" },
+  { login: "ghubert", name: "Gaëtan Hubert" },
+  { login: "vmarquet", name: "Victor Marquet" },
+  // Keep the clusters fixtures testable: one self seat and two friends.
+  { login: "mock.user", name: "Mock User" },
+  { login: "amelie", name: "Jean-Baptiste Alexandre de La Rochefoucauld" },
+  { login: "vmoreau", name: "Victor Moreau" },
+];
+
+const MOCK_HOSTS = [
+  "fu-r1-p1",
+  "fu-r1-p2",
+  "fu-r2-p3",
+  "fu-r5-p5",
+  "fu-r10-p1",
+  "fu-c1-p1",
+  "fu-c2-p2",
+  "fu-c3-p1",
+  "fu-c4-p1",
+];
+
+/** Occupancy fixtures for `?mock`: one self seat and two friends. */
+export function mockOccupancy(): OccupancyEntry[] {
+  return MOCK_PEOPLE.map((p, i) => ({
+    host: i % 4 === 3 ? `wifi-${i + 1}` : MOCK_HOSTS[i % MOCK_HOSTS.length],
+    login: p.login,
+    name: p.name,
+    cdn_uri: catImage(i),
+    begin_at: new Date(Date.now() - (i * 17 + 4) * 60_000).toISOString(),
+    end_at: null,
+  }));
+}
+
+const MOCK_REPORTS: SeatReport[] = [
+  {
+    host: "fu-r1-p2",
+    cluster: "fu",
+    components: [
+      {
+        component: "boot",
+        status: "broken",
+        updatedAt: Date.now() - 5 * 60_000,
+        confirmations: 2,
+        reporter: "mock.user",
+      },
+    ],
+  },
+  {
+    host: "fu-r2-p3",
+    cluster: "fu",
+    components: [
+      {
+        component: "keyboard",
+        status: "broken",
+        updatedAt: Date.now() - 20 * 60_000,
+        confirmations: 1,
+        reporter: "mock.user",
+      },
+      {
+        component: "audio",
+        status: "works",
+        updatedAt: Date.now() - 20 * 60_000,
+        confirmations: 1,
+        reporter: null,
+      },
+    ],
+  },
+  {
+    host: "fu-r4-p1",
+    cluster: "fu",
+    components: [
+      {
+        component: "network",
+        status: "broken",
+        updatedAt: Date.now() - 45 * 60_000,
+        confirmations: 1,
+        reporter: "arobion",
+      },
+    ],
+  },
+  {
+    host: "fu-r4-p5",
+    cluster: "fu",
+    components: [
+      {
+        component: "audio",
+        status: "broken",
+        updatedAt: Date.now() - 90 * 60_000,
+        confirmations: 3,
+        reporter: "clemarche",
+      },
+    ],
+  },
+  {
+    // Empty seat: shows the USB-C badge on the map.
+    host: "fu-r4-p6",
+    cluster: "fu",
+    components: [
+      {
+        component: "usbc",
+        status: "works",
+        updatedAt: Date.now() - 3 * 60 * 60_000,
+        confirmations: 1,
+        reporter: "mferreir",
+      },
+    ],
+  },
+];
+
+let mockReports: SeatReport[] = MOCK_REPORTS.map((seat) => ({
+  ...seat,
+  components: seat.components.map((component) => ({ ...component })),
+}));
+
+type MockHistoryEvent = SeatReportEvent & { host: string };
+
+const mockHistory: MockHistoryEvent[] = MOCK_REPORTS.flatMap((seat) =>
+  seat.components.map((component) => ({
+    host: seat.host,
+    component: component.component,
+    status: component.status,
+    createdAt: component.updatedAt,
+    reporter: component.reporter,
+  })),
+);
+
+/** Current cluster reports for `?mock`. */
+export function mockSeatReports(): SeatReport[] {
+  return mockReports;
+}
+
+/** Status-change history for one seat in `?mock`, newest first. */
+export function mockSeatHistory(host: string): SeatReportEvent[] {
+  return mockHistory
+    .filter((event) => event.host === host)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 50)
+    .map(({ host: _host, ...event }) => event);
+}
+
+/** Persists a submitted batch in mock mode so the reports stay coherent. */
+export function mockRecordSeatReports(
+  seats: SeatReport[],
+  host: string,
+  entries: { component: SeatComponentKey; status: SeatComponentStatus }[],
+  reporter: string | null,
+): void {
+  mockReports = seats.map((seat) => ({
+    ...seat,
+    components: seat.components.map((component) => ({ ...component })),
+  }));
+  const now = Date.now();
+  mockHistory.push(
+    ...entries.map((entry) => ({
+      host,
+      component: entry.component,
+      status: entry.status,
+      createdAt: now,
+      reporter,
+    })),
+  );
 }
