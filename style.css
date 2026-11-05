@@ -655,6 +655,7 @@ html.ft-friends-empty body {
   --pillar-fill: #7a8794;
   --exit-fill: #2e9e5b;
   --seat-dead: #d9453f;
+  --seat-warning: #b45309;
   background: #f7f8fa;
   border-radius: var(--radius-box, 0.75rem);
   overflow: hidden;
@@ -681,6 +682,7 @@ html.ft-friends-empty body {
   --pillar-fill: #6f7f8d;
   --exit-fill: #3cb371;
   --seat-dead: #ff7a72;
+  --seat-warning: #fbbf24;
   background: #10161c;
 }
 
@@ -839,6 +841,13 @@ html.ft-friends-empty body {
 .cluster-map .seat-usbc-badge .usbc-bar {
   fill: currentColor;
   stroke: none;
+}
+
+/* Non-blocking defect (keyboard, mouse scroll, audio): a small triangle in the
+   seat's bottom-left corner. Crossed seats only show the cross. */
+.cluster-map .seat-warning-badge {
+  color: var(--seat-warning, #b45309);
+  cursor: help;
 }
 
 /* Reported-broken seats reuse the map builder's .cross style. */

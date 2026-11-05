@@ -6,6 +6,7 @@ import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import BUG_SVG from "../assets/bug.svg?raw";
 import USBC_SVG from "../assets/usbc.svg?raw";
+import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { refresh } from "../refresh.ts";
@@ -38,9 +39,11 @@ import {
 import { formatTimeAgo, sortActiveUsers } from "./clusters-feature/render.ts";
 import {
   getComponentStatus,
+  getMinorSeatIssues,
   getSeatSeverity,
   loadSeatReports,
 } from "./clusters-feature/reports.ts";
+import { SEAT_COMPONENT_MAP } from "./clusters-feature/components.ts";
 import { openSeatReportDialog } from "./seat-report-dialog.ts";
 import {
   activeSortIcon,
@@ -679,6 +682,8 @@ const friendRings = new WeakMap<SVGSVGElement, Map<string, SVGRectElement>>();
 const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGPathElement>>();
 /** USB-C glyphs on empty seats that reported a port, per SVG. */
 const usbcBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
+/** Warning triangles on seats with non-blocking defects, per SVG. */
+const warningBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
 /** Dashed report-mode targets over every seat, per SVG. */
 const reportModeTargets = new WeakMap<
   SVGSVGElement,
@@ -802,6 +807,78 @@ function applyUsbcSeats(
       } ${y + h - size / 2 - inset})`,
     );
     badge.appendChild(usbcGlyph(size));
+
+    img.parentNode.insertBefore(badge, img.nextSibling);
+    badges.set(id, badge);
+  }
+}
+
+let warningTemplate: Element | null = null;
+
+/** One shared parse of the warning asset, cloned per seat. */
+function warningGlyph(size: number): SVGSVGElement {
+  warningTemplate ??= new DOMParser().parseFromString(
+    WARNING_SVG,
+    "image/svg+xml",
+  ).documentElement;
+  const glyph = document.importNode(
+    warningTemplate,
+    true,
+  ) as unknown as SVGSVGElement;
+  glyph.setAttribute("width", String(size));
+  glyph.setAttribute("height", String(size));
+  return glyph;
+}
+
+/**
+ * Warning triangle on seats with a reported non-blocking defect (keyboard,
+ * mouse scroll, audio). Crossed seats only show the cross.
+ */
+function applyWarningSeats(svg: SVGSVGElement): void {
+  let badges = warningBadges.get(svg);
+  if (!badges) {
+    badges = new Map();
+    warningBadges.set(svg, badges);
+  }
+  for (const [id, img] of mapSeatIndex(svg)) {
+    const issues =
+      getSeatSeverity(id) === "blocking" ? [] : getMinorSeatIssues(id);
+    const existing = badges.get(id);
+    if (issues.length === 0) {
+      if (existing) {
+        existing.remove();
+        badges.delete(id);
+      }
+      continue;
+    }
+
+    const tip = `Broken: ${issues
+      .map((component) => SEAT_COMPONENT_MAP.get(component)?.label ?? component)
+      .join(" / ")}`;
+    if (existing) {
+      if (existing.getAttribute("data-tip") !== tip) {
+        existing.setAttribute("data-tip", tip);
+      }
+      continue;
+    }
+    if (!img.parentNode) continue;
+
+    const { x, y, w, h } = seatBox(img);
+    const size = Math.max(12, Math.min(20, Math.min(w, h) * 0.45));
+    const inset = Math.max(1, Math.min(w, h) * 0.1);
+
+    const badge = document.createElementNS(SVG_NS, "g");
+    badge.setAttribute("class", "seat-warning-badge");
+    badge.setAttribute("data-tip", tip);
+    const imageTransform = img.getAttribute("transform");
+    // The triangle asset has ~15% empty space below the glyph; drop it so its
+    // visible bottom matches the USB-C badge's bottom.
+    const bottom = y + h - size - inset + size * 0.15;
+    badge.setAttribute(
+      "transform",
+      `${imageTransform ? `${imageTransform} ` : ""}translate(${x + inset} ${bottom})`,
+    );
+    badge.appendChild(warningGlyph(size));
 
     img.parentNode.insertBefore(badge, img.nextSibling);
     badges.set(id, badge);
@@ -973,6 +1050,9 @@ function applyMapOccupancy(): void {
 
   // Red rings for seats with a reported broken component.
   applyBrokenSeats(svg);
+
+  // Warning triangle for non-blocking issues (keyboard, scroll, audio).
+  applyWarningSeats(svg);
 
   // Dashed targets over every seat while report mode is armed.
   applyReportModeTargets(svg);

@@ -143,6 +143,25 @@ export function getSeatSeverity(host: string): SeatSeverity | null {
   return severity;
 }
 
+/**
+ * Broken components that do not cross the seat out: keyboard, mouse scroll and
+ * audio. Used for the map's warning glyph, so a crossed seat keeps its cross
+ * and only the non-blocking issues get the triangle.
+ */
+export function getMinorSeatIssues(host: string): SeatComponentKey[] {
+  const report = getSeatReport(host);
+  if (!report) return [];
+  const issues: SeatComponentKey[] = [];
+  for (const component of report.components) {
+    if (component.status !== "broken") continue;
+    const def = SEAT_COMPONENT_MAP.get(component.component);
+    if (!def || def.kind === "presence") continue;
+    if (def.severity !== "minor") continue;
+    issues.push(component.component);
+  }
+  return issues;
+}
+
 /** Current status for one component, or null when it was never reported. */
 export function getComponentStatus(
   host: string,
