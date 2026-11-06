@@ -142,7 +142,7 @@ let pushEnabled: boolean | null = readPushState();
 let pushMessage: { ok: boolean; text: string } | null = null;
 const NOTIFY_GROUPS: {
   title: string;
-  rows: { key: string; label: string; hint: string }[];
+  rows: { key: string; label: string; hint: string; disabled?: boolean }[];
 }[] = [
   {
     title: "Evaluations you give",
@@ -186,6 +186,7 @@ const NOTIFY_GROUPS: {
         key: "SUBJECT_NOTIFY_UPDATED",
         label: "Subject updated",
         hint: "An ongoing project's subject has a new version (detected by the extension).",
+        disabled: true,
       },
     ],
   },
@@ -548,18 +549,32 @@ function notifyGroup(group: (typeof NOTIFY_GROUPS)[number]) {
   `;
 }
 
-function notifyRow(row: { key: string; label: string; hint: string }) {
+function notifyRow(row: {
+  key: string;
+  label: string;
+  hint: string;
+  disabled?: boolean;
+}) {
   return html`
-    <label class="flex items-center justify-between gap-3 cursor-pointer">
+    <label
+      class="flex items-center justify-between gap-3 ${row.disabled
+        ? "opacity-50 cursor-not-allowed"
+        : "cursor-pointer"}"
+    >
       <span class="flex flex-col">
-        <span class="text-sm">${row.label}</span>
+        <span class="text-sm flex items-center gap-2"
+          >${row.label}${row.disabled
+            ? html`<span class="badge badge-ghost badge-xs">Paused</span>`
+            : ""}</span
+        >
         <span class="text-xs opacity-60">${row.hint}</span>
       </span>
       <input
         type="checkbox"
         class="toggle toggle-sm toggle-primary"
         .checked=${notifyTypes[row.key] !== false}
-        @change=${() => void toggleNotifyType(row.key)}
+        ?disabled=${row.disabled === true}
+        @change=${row.disabled ? undefined : () => void toggleNotifyType(row.key)}
       />
     </label>
   `;
