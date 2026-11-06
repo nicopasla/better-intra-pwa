@@ -781,7 +781,7 @@ function evalRow(e: UpcomingEval, past = false) {
       ? `${person ?? "Someone"} evaluated you`
       : `you evaluated ${person ?? "someone"}`
     : countdown
-      ? `${label} · ${dateTimeShort(e.beginAt)}`
+      ? `${label} at ${dateTimeShort(e.beginAt)}`
       : label;
   return html`<li
     class="flex items-center justify-between gap-3 py-2 ${past
