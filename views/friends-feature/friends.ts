@@ -101,12 +101,17 @@ export async function isFriend(login: string): Promise<boolean> {
 }
 
 const CACHE_KEY = "FRIENDS_DATA_CACHE";
-const CACHE_TTL = 5 * 60_000;
+/** Cached friends render immediately; auto-revalidate after this long. */
+export const AUTO_REFRESH_MS = 15 * 60_000;
+/** Snapshot age after which online dots are presented as stale. */
+export const STALE_ONLINE_MS = 5 * 60_000;
 
-async function getCachedData(): Promise<{
+export interface FriendsCacheEntry {
   data: FriendData[];
   timestamp: number;
-} | null> {
+}
+
+async function getCachedData(): Promise<FriendsCacheEntry | null> {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     const val = raw ? JSON.parse(raw) : null;
@@ -116,6 +121,11 @@ async function getCachedData(): Promise<{
   } catch {
     return null;
   }
+}
+
+/** Reads the stored list at any age, without touching the network. */
+export function readFriendsCache(): Promise<FriendsCacheEntry | null> {
+  return getCachedData();
 }
 
 function setCachedData(data: FriendData[]): void {
@@ -135,6 +145,7 @@ export async function clearFriendsCache(): Promise<void> {
 
 export async function fetchFriendsData(
   logins: string[],
+  opts: { force?: boolean } = {},
 ): Promise<FriendData[]> {
   if (logins.length === 0) return [];
 
@@ -150,12 +161,18 @@ export async function fetchFriendsData(
   const session = getSession();
   if (!session) return [];
 
+  // The list travels in the body so it never lands in URLs/logs.
+  const request = (list: string[]): Promise<Response> =>
+    workerFetch("/api/v1/private/friends/data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logins: list }),
+    });
+
   // Single-login fetches (add friend validation) always go to the API.
   if (logins.length === 1) {
     try {
-      const res = await workerFetch(
-        `/api/v1/private/friends/data?logins=${encodeURIComponent(logins[0])}`,
-      );
+      const res = await request(logins);
       return res.ok
         ? (((await res.json()) as { friends?: FriendData[] }).friends ?? [])
         : [];
@@ -166,17 +183,16 @@ export async function fetchFriendsData(
 
   const cached = await getCachedData();
   if (
+    !opts.force &&
     cached &&
     cached.data.length > 0 &&
-    Date.now() - cached.timestamp < CACHE_TTL
+    Date.now() - cached.timestamp < AUTO_REFRESH_MS
   ) {
     return cached.data;
   }
 
   try {
-    const res = await workerFetch(
-      `/api/v1/private/friends/data?logins=${encodeURIComponent(logins.join(","))}`,
-    );
+    const res = await request(logins);
     if (res.ok) {
       const data = (await res.json()) as { friends?: FriendData[] };
       const friends = data.friends ?? [];

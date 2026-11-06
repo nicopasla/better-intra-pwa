@@ -2,10 +2,12 @@ import { html, render } from "lit-html";
 import type { TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import {
+  AUTO_REFRESH_MS,
+  STALE_ONLINE_MS,
   FriendData,
-  clearFriendsCache,
   fetchFriendsData,
   getFriendsList,
+  readFriendsCache,
   removeFriend,
 } from "./friends.ts";
 import { loginUrl, getSession } from "../../api.ts";
@@ -70,6 +72,7 @@ function renderFriendRow(
   deleteMode = false,
   selected = false,
   onToggleSelect?: (login: string) => void,
+  staleOnline = false,
 ) {
   const medalClass = rank >= 0 && rank < MEDALS.length ? MEDALS[rank] : "";
   const hasCustom = !!(
@@ -257,9 +260,13 @@ function renderFriendRow(
           friend.isOnline && friend.lastSeen
             ? html`<a
                 href="#/clusters?seat=${encodeURIComponent(friend.lastSeen)}"
-                class="badge badge-success badge-md gap-1 px-2 hover:brightness-110 transition-all cursor-pointer no-underline"
+                class="badge badge-success badge-md gap-1 px-2 hover:brightness-110 transition-all cursor-pointer no-underline ${staleOnline
+                  ? "opacity-50"
+                  : ""}"
                 style="border:3px solid color-mix(in oklab, var(--color-success) 55%, transparent);border-radius:var(--badge-radius);height:auto;padding-block:0.15rem;font-weight:600;"
-                data-tip="Show ${friend.lastSeen} on the cluster map"
+                data-tip="${staleOnline
+                  ? `Last known seat ${friend.lastSeen} — online status may be stale`
+                  : `Show ${friend.lastSeen} on the cluster map`}"
                 @click=${(event: Event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -510,12 +517,47 @@ function renderSortControl(
 }
 
 /** Online filter + sort, rendered as the Friends tab's bottom sub-tabs. */
+function renderCacheChip(state: WidgetState): unknown {
+  if (state.loading) {
+    return html`<span
+      class="badge badge-ghost badge-sm opacity-70"
+      aria-live="polite"
+      >Refreshing…</span
+    >`;
+  }
+  if (!state.lastFetch) return "";
+  const age = Date.now() - state.lastFetch;
+  if (age < 60_000) {
+    return html`<span
+      class="badge badge-success badge-sm"
+      aria-live="polite"
+      data-tip="Live data"
+      >Live</span
+    >`;
+  }
+  const stale = age >= STALE_ONLINE_MS;
+  const ago = relativeTime(state.lastFetch);
+  return html`<button
+    type="button"
+    class="badge ${stale ? "badge-warning" : "badge-ghost opacity-70"} badge-sm"
+    aria-live="polite"
+    data-tip="${stale
+      ? "Showing cached friends — tap to refresh for live status"
+      : `Updated ${ago}`}"
+    @click="${state.onRefresh}"
+    >${stale ? "Cached · " : "Updated "}${ago}</button
+  >`;
+}
+
 function renderFriendsBottomBar(state: WidgetState) {
   const onlineCount = state.friends.filter((f) => f.isOnline).length;
   const primaryColor = "var(--color-primary)";
   const primaryContent = "var(--color-primary-content)";
   return html`
     <div class="ft-subtabs flex flex-col gap-2 px-4 pb-2">
+      ${state.lastFetch || state.loading
+        ? html`<div class="flex justify-center">${renderCacheChip(state)}</div>`
+        : ""}
       ${state.deleteMode && !state.notConnected && !state.needsReconnect
         ? html`<div
             class="flex items-center gap-2 rounded-xl bg-base-100 p-1.5 shadow-lg"
@@ -1084,6 +1126,9 @@ function renderWidget(state: WidgetState) {
                                     state.deleteMode,
                                     state.selected.includes(f.login),
                                     state.onToggleSelect,
+                                    !!state.lastFetch &&
+                                      Date.now() - state.lastFetch >=
+                                        STALE_ONLINE_MS,
                                   )}
                                 </li>`,
                             )}
@@ -1188,11 +1233,16 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
       _state.loading = true;
       _state.loadError = false;
       emit();
-      clearFriendsCache();
       const list = await getFriendsList();
-      _state.friends = await fetchFriendsData(list);
-      _state.loadError = list.length > 0 && _state.friends.length === 0;
-      _state.lastFetch = Date.now();
+      const friends = await fetchFriendsData(list, { force: true });
+      if (!_state) return;
+      // The cache timestamp only advances on a successful fetch, so a failed
+      // refresh keeps the "cached" label instead of pretending to be live.
+      const cache = await readFriendsCache();
+      _state.friends = friends;
+      _state.loadError = list.length > 0 && friends.length === 0;
+      _state.lastFetch =
+        cache && friends.length > 0 ? cache.timestamp : Date.now();
       _state.loading = false;
       emit();
     },
@@ -1260,14 +1310,19 @@ export async function initFriendsFeature(onUpdate: () => void): Promise<void> {
   emit();
 
   if (!_state.notConnected && !_state.needsReconnect) {
-    _state.loading = true;
-    _state.loadError = false;
-    emit();
-    const list = await getFriendsList();
-    _state.friends = await fetchFriendsData(list);
-    _state.loadError = list.length > 0 && _state.friends.length === 0;
-    _state.lastFetch = Date.now();
-    _state.loading = false;
+    // Show whatever is cached first (any age), then revalidate only when the
+    // snapshot is older than the auto-refresh window.
+    const cached = await readFriendsCache();
+    if (cached && cached.data.length > 0) {
+      _state.friends = cached.data;
+      _state.lastFetch = cached.timestamp;
+      emit();
+    }
+    const staleSnapshot =
+      !cached || Date.now() - cached.timestamp >= AUTO_REFRESH_MS;
+    if (staleSnapshot) {
+      await _state.onRefresh();
+    }
   }
 
   emit();
