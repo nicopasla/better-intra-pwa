@@ -661,9 +661,18 @@ function upcomingCard() {
   // Ticked evals leave the active list right away. Unticked ones stay there
   // for a day after they started, so the "done" check is only offered once the
   // evaluation is actually over; after the grace window they auto-archive.
-  const activeItems = upcoming.items.filter(
-    (e) => !done.has(e.id) && beginAt(e) > now - EVAL_CHECK_GRACE_MS,
-  );
+  // Upcoming evals come first (soonest on top); the ones that already started
+  // and are still waiting to be checked sink to the bottom.
+  const started = (e: UpcomingEval) => (beginAt(e) <= now ? 1 : 0);
+  const activeItems = upcoming.items
+    .filter((e) => !done.has(e.id) && beginAt(e) > now - EVAL_CHECK_GRACE_MS)
+    .sort((a, b) =>
+      started(a) !== started(b)
+        ? started(a) - started(b)
+        : started(a)
+          ? beginAt(b) - beginAt(a)
+          : beginAt(a) - beginAt(b),
+    );
   const pastItems = upcoming.items
     .filter((e) => done.has(e.id) || beginAt(e) <= now - EVAL_CHECK_GRACE_MS)
     .sort((a, b) => beginAt(b) - beginAt(a));
