@@ -1,4 +1,5 @@
 import { html } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { Me, ProfileStats, me, outstandingIds, profileStats } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import { currentTab } from "../shell.ts";
@@ -8,6 +9,7 @@ import { isRetryableError, friendlyError, Retrier } from "../lib/retry.ts";
 import { observeTabsOverflow, segmentedTabs } from "../lib/segmented-tabs.ts";
 import { dateTime } from "../lib/format.ts";
 import { profileTabSkeleton } from "../lib/skeletons.ts";
+import TROPHY_SVG from "../assets/trophy.svg?raw";
 
 type SubTab = "evaluations" | "projects" | "achievements";
 
@@ -397,6 +399,18 @@ function usableIcon(url: string | null | undefined): string | null {
   return url;
 }
 
+const brokenAchievementIcons = new Set<string>();
+
+function achievementFallbackIcon() {
+  return html`<span
+    class="size-10 rounded-box grid place-items-center bg-base-200/60 text-base-content/40"
+    aria-hidden="true"
+    >${unsafeHTML(
+      TROPHY_SVG.replace("<svg", '<svg width="24" height="24"'),
+    )}</span
+  >`;
+}
+
 function achievementsTab(m: Me) {
   if (m.achievements.length === 0) {
     return card(
@@ -410,9 +424,10 @@ function achievementsTab(m: Me) {
         // Only the signed proxy can serve these cross-origin; the raw CDN
         // path always 403s in the PWA.
         const icon = usableIcon(a.imageUrl);
+        const broken = !!icon && brokenAchievementIcons.has(icon);
         return html`
           <li class="list-row items-center">
-            ${icon
+            ${icon && !broken
               ? html`<img
                   class="size-10 rounded-box skeleton"
                   src="${icon}"
@@ -420,18 +435,16 @@ function achievementsTab(m: Me) {
                   loading="lazy"
                   decoding="async"
                   referrerpolicy="no-referrer"
-                  @error=${(e: Event) => {
-                    const img = e.currentTarget as HTMLImageElement;
-                    img.style.visibility = "hidden";
-                    img.classList.remove("skeleton");
+                  @error=${() => {
+                    brokenAchievementIcons.add(icon);
+                    refresh();
                   }}
                   @load=${(e: Event) => {
                     const img = e.currentTarget as HTMLImageElement;
-                    img.style.visibility = "";
                     img.classList.remove("skeleton");
                   }}
                 />`
-              : html`<div class="size-10 rounded-box skeleton"></div>`}
+              : achievementFallbackIcon()}
             <div class="list-col-grow min-w-0">
               <div class="font-semibold">${a.name}</div>
               ${a.description
