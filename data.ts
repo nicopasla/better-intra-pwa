@@ -351,6 +351,50 @@ export const logtimeHistory = (login: string): Promise<LogtimeHistory> =>
         `/api/v1/private/logtime/history?user=${encodeURIComponent(login)}&back=1`,
       );
 
+export interface LogtimeWeek {
+  /** First day of the requested week (`YYYY-MM-DD`). */
+  start: string;
+  /** Exactly seven entries, one per day, seconds logged (0 when none). */
+  days: Record<string, number>;
+  total: number;
+  /** When the worker last wrote the history (ms since epoch). */
+  updatedAt?: number | null;
+  /** The 42 refresh failed: this is the stored snapshot. */
+  stale?: boolean;
+}
+
+/**
+ * One week of logtime for the home heat card. The worker re-reads the days that
+ * can still change (today, a running session's start day, yesterday once, and
+ * the gap since the last sync) and answers with exactly seven days.
+ */
+export const logtimeWeek = (start: string): Promise<LogtimeWeek> => {
+  if (mockMode) {
+    const source = mock.logtime("me").days;
+    const days: Record<string, number> = {};
+    let total = 0;
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(`${start}T00:00:00`);
+      date.setDate(date.getDate() + i);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}-${String(date.getDate()).padStart(2, "0")}`;
+      const secs = source[key] ?? 0;
+      days[key] = secs;
+      total += secs;
+    }
+    return Promise.resolve({ start, days, total });
+  }
+  const session = getSession();
+  if (!session) return Promise.reject(new Error("not_authenticated"));
+  return json<LogtimeWeek>(
+    `/api/v1/private/logtime/week?user=${encodeURIComponent(
+      session.login,
+    )}&start=${encodeURIComponent(start)}`,
+  );
+};
+
 /** Outstanding-corrector counts keyed by projects_user id. Triggers a sync. */
 export async function outstandingIds(
   count: number,

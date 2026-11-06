@@ -692,7 +692,7 @@ export const mock = {
       FRIENDS_LIST: ["amelie", "bdurand", "cpetit", "dleroy", "vmoreau"],
       SHOW_CUSTOM_AVATARS_IN_FRIENDS: true,
       PROFILE_USE_CUSTOM_COLOR: true,
-      LOGTIME_CALENDAR_COLOR: "#00BCBA",
+      LOGTIME_CALENDAR_COLOR: "#a855f7",
       CLUSTERS_DEFAULT_ID: "fu",
     },
     revision: "mock",

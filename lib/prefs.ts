@@ -2,6 +2,7 @@
 
 export type HomeCardId =
   | "logtime"
+  | "week"
   | "upcoming"
   | "live"
   | "projects"
@@ -29,6 +30,7 @@ export interface HomeLayout {
 const LAYOUT_KEY = "ft_home_layout";
 
 export const HOME_CARDS: HomeCardId[] = [
+  "week",
   "logtime",
   "upcoming",
   "live",
@@ -58,7 +60,8 @@ const HIDDEN_BY_DEFAULT = new Set<string>(["pool", "blackhole"]);
 const defaults = (ids: readonly string[]): HomeLayoutItem[] =>
   ids.map((id) => ({ id, hidden: HIDDEN_BY_DEFAULT.has(id) }));
 
-/** Keeps the saved order, drops unknown ids and appends new ones. */
+/** Keeps the saved order, drops unknown ids and inserts new ones at their
+ *  default position (so a card added later doesn't always land at the end). */
 function merge(saved: unknown, ids: readonly string[]): HomeLayoutItem[] {
   const items: HomeLayoutItem[] = [];
   const seen = new Set<string>();
@@ -70,9 +73,13 @@ function merge(saved: unknown, ids: readonly string[]): HomeLayoutItem[] {
       items.push({ id, hidden: raw.hidden === true });
     }
   }
-  for (const id of ids) {
-    if (!seen.has(id)) items.push({ id, hidden: HIDDEN_BY_DEFAULT.has(id) });
-  }
+  ids.forEach((id, index) => {
+    if (seen.has(id)) return;
+    items.splice(Math.min(index, items.length), 0, {
+      id,
+      hidden: HIDDEN_BY_DEFAULT.has(id),
+    });
+  });
   return items;
 }
 
@@ -151,6 +158,30 @@ export function setLastTab(tab: string): void {
   if (!RESTORABLE_TABS.has(tab)) return;
   try {
     localStorage.setItem(LAST_TAB_KEY, tab);
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+export type WeekStart = "monday" | "saturday";
+
+const WEEK_START_KEY = "ft_week_start";
+
+/** First day of the home heat card's week. Saturday–Friday matches the piscine
+ *  schedule; Monday–Sunday is the default. Per device. */
+export function getWeekStart(): WeekStart {
+  try {
+    return localStorage.getItem(WEEK_START_KEY) === "saturday"
+      ? "saturday"
+      : "monday";
+  } catch {
+    return "monday";
+  }
+}
+
+export function setWeekStart(value: WeekStart): void {
+  try {
+    localStorage.setItem(WEEK_START_KEY, value);
   } catch {
     /* quota / private mode */
   }

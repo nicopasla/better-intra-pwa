@@ -6,6 +6,7 @@ import {
   events,
   getBlob,
   logtimeHistory,
+  logtimeWeek,
   userProfile,
   Me,
   UpcomingEval,
@@ -31,14 +32,19 @@ import { dashboardSkeleton, heroSkeleton } from "../lib/skeletons.ts";
 import { dateTimeShort, evalCountdown, relativeTime } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
+import { MAX_INTENSITY_SECS } from "./logtime-feature/constants.ts";
+import { contrastText, toRgba } from "./logtime-feature/color.ts";
+import { fmtHours } from "./logtime-feature/format.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
 import {
   BADGE_ROWS,
   getHomeLayout,
+  getWeekStart,
   resetHomeLayout,
   setHomeLayout,
+  setWeekStart,
 } from "../lib/prefs.ts";
 import type { HomeLayoutItem } from "../lib/prefs.ts";
 import { setPullRefreshEnabled } from "../pull-refresh.ts";
@@ -58,6 +64,7 @@ import EYE_SLASH_SVG from "../assets/eye-slash.svg?raw";
 
 const CARD_LABELS: Record<string, string> = {
   logtime: "Logtime",
+  week: "This week",
   upcoming: "Evaluations",
   live: "Live events",
   projects: "Projects",
@@ -66,6 +73,7 @@ const CARD_LABELS: Record<string, string> = {
 
 const CARD_BUILDERS: Record<string, () => unknown> = {
   logtime: logtimeCard,
+  week: weekCard,
   upcoming: upcomingCard,
   live: liveEventsCard,
   projects: projectsCard,
@@ -200,6 +208,9 @@ function toggleCard(id: string): void {
   if (!item) return;
   item.hidden = !item.hidden;
   setHomeLayout(layout);
+  if (id === "week" && !item.hidden && weekDays === null) {
+    void loadWeekLogtime(true);
+  }
   refresh();
 }
 
@@ -379,6 +390,28 @@ function editBlock(id: string, hidden: boolean) {
           ${svg18(hidden ? EYE_SVG : EYE_SLASH_SVG)}
         </button>
       </div>
+      ${id === "week"
+        ? html`<label
+            class="flex items-center justify-between gap-3 px-1 mb-1 text-sm opacity-70 cursor-pointer"
+            data-no-swipe
+          >
+            <span>Week starts Saturday (Sat → Fri)</span>
+            <input
+              type="checkbox"
+              class="toggle toggle-md toggle-primary"
+              .checked=${getWeekStart() === "saturday"}
+              @change=${(event: Event) => {
+                setWeekStart(
+                  (event.target as HTMLInputElement).checked
+                    ? "saturday"
+                    : "monday",
+                );
+                void loadWeekLogtime(true);
+                refresh();
+              }}
+            />
+          </label>`
+        : ""}
       <div
         inert
         class="pointer-events-none select-none ${hidden
@@ -465,8 +498,7 @@ function projectsCard() {
       <h2 class="card-title text-base">Projects</h2>
       <div class="flex gap-2">
         ${projectStat("Completed", p.validated)}
-        ${projectStat("Ongoing", p.inProgress)}
-        ${projectStat("Total", p.total)}
+        ${projectStat("Ongoing", p.inProgress)} ${projectStat("Total", p.total)}
       </div>
     </div>
   </div>`;
@@ -620,6 +652,165 @@ function scrollLogtimeToLatest(el: HTMLElement): void {
   requestAnimationFrame(() => {
     el.scrollLeft = el.scrollWidth;
   });
+}
+
+let weekStartDate = "";
+let weekDays: Record<string, number> | null = null;
+let weekTotal = 0;
+let weekLoading = false;
+let weekError = "";
+let weekStale = false;
+let weekFetchedAt: number | null = null;
+/** Re-read the week when the card is refreshed after this long. */
+const WEEK_REFRESH_MS = 60_000;
+
+const dayKey = (date: Date): string =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+function weekKey(date = new Date()): string {
+  const startDow = getWeekStart() === "saturday" ? 6 : 1;
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  const offset = (day.getDay() - startDow + 7) % 7;
+  day.setDate(day.getDate() - offset);
+  return dayKey(day);
+}
+
+function shiftKey(key: string, days: number): string {
+  const date = new Date(`${key}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return dayKey(date);
+}
+
+async function loadWeekLogtime(force = false): Promise<void> {
+  if (weekLoading) return;
+  const start = weekKey();
+  const current = weekDays !== null && weekStartDate === start;
+  if (
+    !force &&
+    current &&
+    weekFetchedAt !== null &&
+    Date.now() - weekFetchedAt < WEEK_REFRESH_MS
+  ) {
+    return;
+  }
+  if (!current) {
+    weekStartDate = start;
+    weekDays = null;
+    weekTotal = 0;
+    weekStale = false;
+  }
+  weekLoading = true;
+  weekError = "";
+  refresh();
+  try {
+    const week = await logtimeWeek(start);
+    weekStartDate = week.start;
+    weekDays = week.days;
+    weekTotal = week.total;
+    weekStale = Boolean(week.stale);
+    weekFetchedAt = week.updatedAt ?? Date.now();
+  } catch (e) {
+    if (weekDays) weekStale = true;
+    else weekError = friendlyError(e);
+  } finally {
+    weekLoading = false;
+    refresh();
+  }
+}
+
+/** Card heading: "This week", with the total as a badge on the right. */
+function weekHeading() {
+  return html`<div class="flex items-center justify-between gap-2 -mt-1">
+    <h2 class="card-title text-base">This week</h2>
+    ${weekDays === null
+      ? ""
+      : html`<span
+          class="badge badge-lg border-2 tabular-nums"
+          style="border-color:${profileColor};background:color-mix(in oklab, ${profileColor} 12%, transparent);"
+          data-tip=${weekStale ? "Couldn't refresh · showing cached data" : ""}
+          >${fmtHours(weekTotal)}</span
+        >`}
+  </div>`;
+}
+
+function weekCard() {
+  if (weekDays === null) {
+    if (weekError) {
+      return card(
+        html`${weekHeading()}
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm opacity-70">Couldn't load this week.</p>
+            <button
+              class="btn btn-xs btn-outline"
+              @click=${() => void loadWeekLogtime(true)}
+            >
+              Retry
+            </button>
+          </div>`,
+      );
+    }
+    return card(
+      html`${weekHeading()}
+        <div class="grid grid-cols-7 gap-1.5">
+          ${Array.from(
+            { length: 7 },
+            () => html`<div class="skeleton aspect-square rounded-md"></div>`,
+          )}
+        </div>`,
+    );
+  }
+
+  const days = weekDays;
+  // Same accent as the project card: the user's custom colour when enabled.
+  const color = profileColor;
+  const today = dayKey(new Date());
+
+  const cells = Array.from({ length: 7 }, (_, i) => {
+    const key = shiftKey(weekStartDate, i);
+    const date = new Date(`${key}T00:00:00`);
+    const secs = days[key] ?? 0;
+    const future = key > today;
+    const isToday = key === today;
+    const alpha = Math.min(secs / MAX_INTENSITY_SECS, 1);
+    const bg = secs > 0 ? toRgba(color, alpha) : "";
+    const fg = secs > 0 && alpha > 0.45 ? contrastText(color) : "";
+    const weekday = date.toLocaleDateString("en-GB", { weekday: "short" });
+    const tooltip = `${weekday} ${date.getDate()} ${date.toLocaleDateString(
+      "en-GB",
+      { month: "short" },
+    )} · ${secs > 0 ? fmtHours(secs) : "no logtime"}`;
+    return html`<div
+      class="aspect-square rounded-md flex flex-col items-center justify-center leading-none ${future
+        ? "opacity-40"
+        : ""} ${secs > 0 ? "" : "bg-base-300/40"} ${isToday
+        ? "outline outline-2 outline-primary -outline-offset-2"
+        : ""}"
+      style=${bg ? `background:${bg};${fg ? `color:${fg};` : ""}` : ""}
+      data-tip=${tooltip}
+    >
+      <span class="text-[10px] uppercase tracking-wide opacity-70"
+        >${date.toLocaleDateString("en-GB", { weekday: "narrow" })}</span
+      >
+      <span class="text-sm font-bold tabular-nums mt-0.5"
+        >${date.getDate()}</span
+      >
+    </div>`;
+  });
+
+  return card(
+    html`${weekHeading()}
+      <div class="grid grid-cols-7 gap-1.5">${cells}</div>
+      ${weekStale
+        ? html`<p class="text-[11px] text-warning mt-1">
+            Couldn't refresh · showing cached data
+          </p>`
+        : ""}`,
+  );
+}
+
+function homeCardVisible(id: string): boolean {
+  return getHomeLayout().cards.some((card) => card.id === id && !card.hidden);
 }
 
 let upcomingTab: "evaluator" | "corrected" | null = null;
@@ -1117,7 +1308,14 @@ function formatDuration(start: Date, end: Date): string {
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 const DASHBOARD_CACHE = "dashboard";
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
+
+interface CachedWeek {
+  start: string;
+  days: Record<string, number>;
+  total: number;
+  updatedAt: number | null;
+}
 
 interface DashboardCache {
   v: number;
@@ -1127,6 +1325,7 @@ interface DashboardCache {
   upcoming: UpcomingResponse;
   events: CalendarEvent[];
   profileColor: string;
+  week?: CachedWeek;
 }
 
 export function hydrateDashboardCache(): void {
@@ -1137,6 +1336,13 @@ export function hydrateDashboardCache(): void {
   upcoming = { ...cached.upcoming, items: mergeEvals(cached.upcoming.items) };
   allEvents = cached.events;
   if (cached.profileColor) profileColor = cached.profileColor;
+  // Only reuse the week while it is still the current one.
+  if (cached.week && cached.week.start === weekKey()) {
+    weekStartDate = cached.week.start;
+    weekDays = cached.week.days;
+    weekTotal = cached.week.total;
+    weekFetchedAt = cached.week.updatedAt;
+  }
   loading = false;
 }
 
@@ -1154,6 +1360,15 @@ function writeDashboardCache(): void {
     upcoming,
     events: allEvents,
     profileColor,
+    week:
+      weekDays && weekStartDate
+        ? {
+            start: weekStartDate,
+            days: weekDays,
+            total: weekTotal,
+            updatedAt: weekFetchedAt,
+          }
+        : undefined,
   } satisfies DashboardCache);
 }
 
@@ -1215,6 +1430,7 @@ export function loadDashboard(silent = false): void {
 
     if (failure && isRetryableError(failure)) retrier.schedule();
     else retrier.reset();
+    if (homeCardVisible("week")) void loadWeekLogtime();
     refresh();
   });
 }
