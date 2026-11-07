@@ -663,8 +663,7 @@ export function clustersBottomBar(): unknown {
               >
             </button>
             ${CLUSTER_MAPS.map((m) => {
-              const seats = usableSeats(m);
-              const seated = seats > 0 ? seatedEntries(m).length : 0;
+              const { seated, seats } = clusterCounts(m);
               return html`
                 <button
                   role="tab"
@@ -1121,7 +1120,13 @@ function applyMapOccupancy(): void {
   });
 }
 
-/** Paints "N connected" under each cluster label on the floor plan. */
+/** Live occupancy of a cluster, shared by the tabs and the floor plan. */
+function clusterCounts(map: ClusterMapDef): { seated: number; seats: number } {
+  const seats = usableSeats(map);
+  return { seats, seated: seats > 0 ? seatedEntries(map).length : 0 };
+}
+
+/** Paints the occupied/total count under each cluster label on the floor plan. */
 function applyPlanCounts(): void {
   const mapEl = document.getElementById("ft-cluster-map");
   const svg = mapEl?.querySelector<SVGSVGElement>("svg");
@@ -1129,28 +1134,29 @@ function applyPlanCounts(): void {
 
   for (const group of svg.querySelectorAll<SVGGElement>("[data-cluster]")) {
     const id = group.getAttribute("data-cluster") ?? "";
-    if (!findClusterMap(id)) continue;
+    const map = findClusterMap(id);
+    if (!map) continue;
+
+    const label = group.querySelector<SVGTextElement>(".plan-label");
+    const centerY = Number(
+      label?.getAttribute("data-center-y") ?? label?.getAttribute("y") ?? 0,
+    );
 
     let count = group.querySelector<SVGTextElement>(".plan-count");
     if (!count) {
-      const label = group.querySelector<SVGTextElement>(".plan-label");
       count = document.createElementNS(SVG_NS, "text");
       count.setAttribute("class", "plan-count");
       count.setAttribute("x", label?.getAttribute("x") ?? "0");
-      count.setAttribute(
-        "y",
-        String(Number(label?.getAttribute("y") ?? 0) + 25),
-      );
       group.appendChild(count);
     }
+    count.setAttribute("y", String(centerY + 13));
 
-    // Hostnames are prefixed by the cluster name (`shi-r1-p1`), so this works
-    // before the room maps have finished loading.
-    const prefix = `${id}-`;
-    const seated = entries.filter((entry) =>
-      (entry.host ?? "").trim().toLowerCase().startsWith(prefix),
-    ).length;
-    count.textContent = String(seated);
+    const { seated, seats } = clusterCounts(map);
+    const visible = seated > 0 && seats > 0;
+    // Keep the label itself centered when there is no count under it.
+    label?.setAttribute("y", String(visible ? centerY - 13 : centerY));
+    count.textContent = visible ? `${seated}/${seats}` : "";
+    count.style.display = visible ? "" : "none";
   }
 }
 
