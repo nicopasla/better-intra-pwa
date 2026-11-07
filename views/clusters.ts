@@ -1139,7 +1139,7 @@ function applyPlanCounts(): void {
       count.setAttribute("x", label?.getAttribute("x") ?? "0");
       count.setAttribute(
         "y",
-        String(Number(label?.getAttribute("y") ?? 0) + 23),
+        String(Number(label?.getAttribute("y") ?? 0) + 25),
       );
       group.appendChild(count);
     }
