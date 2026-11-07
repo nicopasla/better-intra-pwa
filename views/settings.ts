@@ -55,11 +55,17 @@ import {
 } from "../theme.ts";
 import { presetLabel } from "../lib/theme-presets.ts";
 import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
-import { getRememberLastTab, setRememberLastTab } from "../lib/prefs.ts";
+import {
+  getOpenDefaultCluster,
+  getRememberLastTab,
+  setOpenDefaultCluster,
+  setRememberLastTab,
+} from "../lib/prefs.ts";
 import BELL_SVG from "../assets/bell.svg?raw";
 import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import CIRCLE_CHECK_SVG from "../assets/circle-check.svg?raw";
+import CLUSTERS_SVG from "../assets/clusters.svg?raw";
 import GITHUB_SVG from "../assets/github.svg?raw";
 import HOME_SVG from "../assets/home.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
@@ -242,6 +248,7 @@ export function settingsView(): TemplateResult {
     ${section("Theme", PALETTE_SVG, themeSection())}
     ${section("Navigation", HOME_SVG, navigationSection())}
     ${section("Avatars", USER_GROUP_SVG, avatarsSection())}
+    ${section("Clusters", CLUSTERS_SVG, clustersSection())}
     ${section("Calendar", CALENDAR_SVG, calendarSection())}
     ${section("Account", USER_SVG, accountSection(session?.login ?? ""))}
     ${section("Community", USERS_SVG, communitySection())} ${debugSection()}
@@ -327,6 +334,29 @@ function avatarsSection() {
         .checked=${showCustomAvatars()}
         @change=${(e: Event) => {
           setShowCustomAvatars((e.target as HTMLInputElement).checked);
+          refresh();
+        }}
+      />
+    </label>
+  `;
+}
+
+function clustersSection() {
+  return html`
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="flex flex-col">
+        <span>Open my default cluster</span>
+        <span class="text-xs opacity-60"
+          >Uses the default cluster synced from the extension. The campus plan
+          is used when none is set.</span
+        >
+      </span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${getOpenDefaultCluster()}
+        @change=${(e: Event) => {
+          setOpenDefaultCluster((e.target as HTMLInputElement).checked);
           refresh();
         }}
       />

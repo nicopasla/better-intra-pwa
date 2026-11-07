@@ -9,7 +9,13 @@ import USBC_SVG from "../assets/usbc.svg?raw";
 import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
+import { getBlob } from "../data.ts";
 import { refresh } from "../refresh.ts";
+import {
+  getClustersDefaultTab,
+  getOpenDefaultCluster,
+  setClustersDefaultTab,
+} from "../lib/prefs.ts";
 import {
   avatarLoaded,
   customAvatarUrl,
@@ -31,6 +37,7 @@ import {
   CLUSTER_MAPS,
   CLUSTER_PLAN,
   findClusterMap,
+  findDefaultClusterMap,
   isMapStale,
   loadClusterMap,
   preloadClusterMaps,
@@ -55,6 +62,13 @@ import type { OccupancyEntry } from "./clusters-feature/types.ts";
 
 const POLL_INTERVAL = 60_000;
 
+/** Trusts the cached default tab only while it still maps to a real view. */
+function cachedDefaultTab(): string {
+  const tab = getClustersDefaultTab();
+  if (tab === "plan" || tab === "active") return tab;
+  return tab && findClusterMap(tab) ? tab : "plan";
+}
+
 let entries: OccupancyEntry[] = [];
 let loading = true;
 let error = "";
@@ -63,9 +77,14 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * The selected bottom tab: "plan" for the campus floor plan, a cluster map id,
- * or "active" for the online list.
+ * or "active" for the online list. Seeded from the last resolved default so a
+ * cold start paints the right tab before the cloud setting arrives.
  */
-let activeTab = "plan";
+let activeTab = cachedDefaultTab();
+/** The tab shown before the cloud default resolved; detects a manual switch. */
+const seedTab = activeTab;
+/** Cluster picked as default in the extension, applied on first open. */
+let initialTabResolved = false;
 /** Last seat focused from a location link; kept while the map is shown. */
 let focusSeat: string | null = null;
 /** The bug button arms the next seat tap for a report. */
@@ -711,6 +730,7 @@ export async function loadClusters(force = false): Promise<void> {
     started = true;
     startTimers();
     void loadFriendLogins();
+    void applyDefaultCluster();
     await loadOccupancy();
     return;
   }
@@ -718,6 +738,45 @@ export async function loadClusters(force = false): Promise<void> {
     loading = entries.length === 0;
     await loadOccupancy();
   }
+}
+
+/**
+ * Opens the cluster the user picked as default in the extension (synced through
+ * the cloud settings blob). Seat deep links still win, the choice is applied
+ * only once per session so switching tabs afterwards sticks, and a missing or
+ * unresolvable setting leaves the campus plan.
+ */
+async function applyDefaultCluster(): Promise<void> {
+  if (initialTabResolved) return;
+  initialTabResolved = true;
+  if (!getOpenDefaultCluster() || seatFromHash() || activeTab !== seedTab)
+    return;
+
+  let id: unknown;
+  try {
+    id = (await getBlob()).settings?.CLUSTERS_DEFAULT_ID;
+  } catch {
+    return; // keep the cached tab; offline is not an error here
+  }
+
+  let tab = "plan";
+  if (typeof id === "string" && id.trim()) {
+    if (id.trim().toLowerCase() === "active") {
+      tab = "active";
+    } else {
+      const map = await findDefaultClusterMap(id);
+      // Couldn't resolve the id (e.g. campus data offline): keep what we have.
+      if (!map) return;
+      tab = map.id;
+    }
+  }
+
+  setClustersDefaultTab(tab);
+  // Don't yank the map away if the user switched tabs while we were fetching.
+  if (activeTab !== seedTab) return;
+  if (activeTab === tab) return;
+  activeTab = tab;
+  refresh();
 }
 
 const XLINK_NS = "http://www.w3.org/1999/xlink";

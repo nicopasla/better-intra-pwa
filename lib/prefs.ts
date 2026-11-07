@@ -186,3 +186,44 @@ export function setWeekStart(value: WeekStart): void {
     /* quota / private mode */
   }
 }
+
+const OPEN_DEFAULT_CLUSTER_KEY = "ft_open_default_cluster";
+const CLUSTERS_DEFAULT_TAB_KEY = "ft_clusters_default_tab";
+
+/** Per-device: open the cluster set as default in the extension on the first
+ *  visit to Clusters. Defaults to on. */
+export function getOpenDefaultCluster(): boolean {
+  try {
+    return localStorage.getItem(OPEN_DEFAULT_CLUSTER_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function setOpenDefaultCluster(on: boolean): void {
+  try {
+    localStorage.setItem(OPEN_DEFAULT_CLUSTER_KEY, on ? "1" : "0");
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/** Last resolved default tab ("plan", "active" or a map id). Read at startup so
+ *  a cold open paints the right tab before the cloud setting arrives. */
+export function getClustersDefaultTab(): string | null {
+  if (!getOpenDefaultCluster()) return null;
+  try {
+    return localStorage.getItem(CLUSTERS_DEFAULT_TAB_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setClustersDefaultTab(tab: string | null): void {
+  try {
+    if (tab) localStorage.setItem(CLUSTERS_DEFAULT_TAB_KEY, tab);
+    else localStorage.removeItem(CLUSTERS_DEFAULT_TAB_KEY);
+  } catch {
+    /* quota / private mode */
+  }
+}
