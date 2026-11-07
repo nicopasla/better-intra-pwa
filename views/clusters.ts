@@ -7,6 +7,7 @@ import MINIMIZE_SVG from "../assets/minimize.svg?raw";
 import BUG_SVG from "../assets/bug.svg?raw";
 import USBC_SVG from "../assets/usbc.svg?raw";
 import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
+import MAP_SVG from "../assets/map.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { getBlob } from "../data.ts";
@@ -637,16 +638,6 @@ function usableSeats(map: ClusterMapDef): number {
   return Math.max(0, map.seatIds.size - reportedUnusable);
 }
 
-/** The plan's exact wall drawing, scaled down to a tab icon. */
-function planTabIcon(): string {
-  const svg = CLUSTER_PLAN.svg;
-  if (!svg) return "";
-  const walls = svg.match(/<path[^>]*class="plan-wall"[^>]*\bd="([^"]+)"/);
-  const viewBox = svg.match(/\bviewBox="([^"]+)"/);
-  if (!walls || !viewBox) return "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox[1]}" width="32" height="20" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMidYMid meet"><path d="${walls[1]}"/></svg>`;
-}
-
 /** The Clusters bottom tab bar, rendered by the shell above the dock. */
 export function clustersBottomBar(): unknown {
   const isActive = activeTab === "active";
@@ -678,7 +669,9 @@ export function clustersBottomBar(): unknown {
               @click=${() => switchTab("plan")}
             >
               <span class="tab-count tab-count-icon"
-                >${unsafeHTML(planTabIcon())}</span
+                >${unsafeHTML(
+                  MAP_SVG.replace("<svg", '<svg width="18" height="18"'),
+                )}</span
               >
             </button>
             ${CLUSTER_MAPS.map((m) => {
