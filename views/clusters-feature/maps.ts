@@ -155,12 +155,16 @@ export function loadClusterMap(
 }
 
 /** Warms every map when the clusters tab opens (refreshing stale ones). */
-export function preloadClusterMaps(force = false): void {
+export function preloadClusterMaps(
+  force = false,
+  onLoaded?: () => void,
+): void {
+  const loads: Promise<void>[] = [];
   for (const map of [CLUSTER_PLAN, ...CLUSTER_MAPS]) {
-    if (map.loading) continue;
     if (!force && !isMapStale(map)) continue;
-    void loadClusterMap(map, force);
+    loads.push(loadClusterMap(map, force));
   }
+  if (onLoaded) void Promise.all(loads).then(onLoaded);
 }
 
 export function findClusterMap(id: string): ClusterMapDef | undefined {

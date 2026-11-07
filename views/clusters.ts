@@ -4,7 +4,6 @@ import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
-import GRID_SVG from "../assets/grid.svg?raw";
 import BUG_SVG from "../assets/bug.svg?raw";
 import USBC_SVG from "../assets/usbc.svg?raw";
 import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
@@ -406,33 +405,14 @@ function planView(): unknown {
   ensureMap(plan);
   return html`
     <div
-      class="fixed left-0 right-0 z-10 mx-auto flex w-full max-w-3xl flex-col justify-center gap-3 px-4"
+      class="fixed left-0 right-0 z-10 flex flex-col gap-3 px-4"
       style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
       data-no-swipe
     >
       <div
-        class="${mapExpanded
-          ? "absolute inset-0 flex flex-col bg-base-100 p-2"
-          : "relative w-full flex-none flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
+        class="relative flex-1 min-h-0 flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"
         data-no-swipe
       >
-        <button
-          type="button"
-          class="btn btn-circle size-9 absolute top-3 right-3 z-10 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
-          aria-label=${mapExpanded
-            ? "Exit full screen"
-            : "Open the plan full screen"}
-          title=${mapExpanded ? "Exit full screen" : "Full screen"}
-          @click=${toggleMapExpanded}
-        >
-          ${mapExpanded
-            ? unsafeHTML(
-                MINIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
-              )
-            : unsafeHTML(
-                MAXIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
-              )}
-        </button>
         ${plan.svg
           ? html`<div
               id="ft-cluster-map"
@@ -448,43 +428,6 @@ function planView(): unknown {
             ? mapFailed(plan)
             : mapLoading()}
       </div>
-      ${mapExpanded ? "" : planSummary()}
-    </div>
-  `;
-}
-
-/** Per-cluster status under the plan; doubles as another way into a room. */
-function planSummary(): unknown {
-  return html`
-    <div class="w-full flex-none rounded-xl bg-base-100 p-3 shadow-lg">
-      <div class="flex items-baseline justify-between pb-1">
-        <h2 class="font-semibold">Clusters</h2>
-        <span class="text-[11px] opacity-60">Tap the plan or a row</span>
-      </div>
-      <ul class="flex flex-col divide-y divide-base-300">
-        ${CLUSTER_MAPS.map((map) => {
-          const seats = usableSeats(map);
-          const seated = seatedEntries(map).length;
-          return html`
-            <li>
-              <button
-                type="button"
-                class="flex w-full items-center gap-3 py-2 text-left active:opacity-70"
-                title="Open the ${map.label} cluster map"
-                @click=${() => switchTab(map.id)}
-              >
-                <span class="w-9 font-semibold">${map.label}</span>
-                <span class="text-xs tabular-nums opacity-70">
-                  ${seats > 0 ? `${seated} / ${seats} seats taken` : "…"}
-                </span>
-                <span class="ml-auto text-xs font-semibold text-primary"
-                  >Open</span
-                >
-              </button>
-            </li>
-          `;
-        })}
-      </ul>
     </div>
   `;
 }
@@ -675,6 +618,16 @@ function usableSeats(map: ClusterMapDef): number {
   return Math.max(0, map.seatIds.size - reportedUnusable);
 }
 
+/** The plan's exact wall drawing, scaled down to a tab icon. */
+function planTabIcon(): string {
+  const svg = CLUSTER_PLAN.svg;
+  if (!svg) return "";
+  const walls = svg.match(/<path[^>]*class="plan-wall"[^>]*\bd="([^"]+)"/);
+  const viewBox = svg.match(/\bviewBox="([^"]+)"/);
+  if (!walls || !viewBox) return "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox[1]}" width="32" height="20" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMidYMid meet"><path d="${walls[1]}"/></svg>`;
+}
+
 /** The Clusters bottom tab bar, rendered by the shell above the dock. */
 export function clustersBottomBar(): unknown {
   const isActive = activeTab === "active";
@@ -706,9 +659,7 @@ export function clustersBottomBar(): unknown {
               @click=${() => switchTab("plan")}
             >
               <span class="tab-count tab-count-icon"
-                >${unsafeHTML(
-                  GRID_SVG.replace("<svg", '<svg width="14" height="14"'),
-                )}</span
+                >${unsafeHTML(planTabIcon())}</span
               >
             </button>
             ${CLUSTER_MAPS.map((m) => {
@@ -756,7 +707,7 @@ export function clustersBottomBar(): unknown {
 }
 
 export async function loadClusters(force = false): Promise<void> {
-  preloadClusterMaps(force && !document.hidden);
+  preloadClusterMaps(force && !document.hidden, refresh);
   if (!started) {
     started = true;
     startTimers();
@@ -1170,10 +1121,46 @@ function applyMapOccupancy(): void {
   });
 }
 
+/** Paints "N connected" under each cluster label on the floor plan. */
+function applyPlanCounts(): void {
+  const mapEl = document.getElementById("ft-cluster-map");
+  const svg = mapEl?.querySelector<SVGSVGElement>("svg");
+  if (!svg) return;
+
+  for (const group of svg.querySelectorAll<SVGGElement>("[data-cluster]")) {
+    const id = group.getAttribute("data-cluster") ?? "";
+    if (!findClusterMap(id)) continue;
+
+    let count = group.querySelector<SVGTextElement>(".plan-count");
+    if (!count) {
+      const label = group.querySelector<SVGTextElement>(".plan-label");
+      count = document.createElementNS(SVG_NS, "text");
+      count.setAttribute("class", "plan-count");
+      count.setAttribute("x", label?.getAttribute("x") ?? "0");
+      count.setAttribute(
+        "y",
+        String(Number(label?.getAttribute("y") ?? 0) + 23),
+      );
+      group.appendChild(count);
+    }
+
+    // Hostnames are prefixed by the cluster name (`shi-r1-p1`), so this works
+    // before the room maps have finished loading.
+    const prefix = `${id}-`;
+    const seated = entries.filter((entry) =>
+      (entry.host ?? "").trim().toLowerCase().startsWith(prefix),
+    ).length;
+    count.textContent = String(seated);
+  }
+}
+
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
-  // The plan has no seats or gesture layer; its room taps are handled in planView().
-  if (activeTab === "plan") return;
+  // The plan has no seats or gesture layer; only its per-cluster counts change.
+  if (activeTab === "plan") {
+    applyPlanCounts();
+    return;
+  }
   applyMapOccupancy();
   const seat = seatFromHash();
   const mapEl = document.getElementById("ft-cluster-map");

@@ -799,6 +799,18 @@ html.ft-friends-empty body {
   fill: var(--color-primary);
 }
 
+.plan-map .plan-count {
+  fill: var(--zone-text, #4b5866);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .cluster-map .slot {
   fill: var(--slot-fill, #00babc2e);
   stroke: var(--slot-stroke, #c3ccd5);
