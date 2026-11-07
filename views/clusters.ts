@@ -4,13 +4,13 @@ import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import FRIEND_SVG from "../assets/face-slightly-smiling-plus.svg?raw";
 import MAXIMIZE_SVG from "../assets/maximize.svg?raw";
 import MINIMIZE_SVG from "../assets/minimize.svg?raw";
+import GRID_SVG from "../assets/grid.svg?raw";
 import BUG_SVG from "../assets/bug.svg?raw";
 import USBC_SVG from "../assets/usbc.svg?raw";
 import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { refresh } from "../refresh.ts";
-import { getBlob } from "../data.ts";
 import {
   avatarLoaded,
   customAvatarUrl,
@@ -30,8 +30,8 @@ import {
 } from "./clusters-feature/map-gestures.ts";
 import {
   CLUSTER_MAPS,
+  CLUSTER_PLAN,
   findClusterMap,
-  findDefaultClusterMap,
   isMapStale,
   loadClusterMap,
   preloadClusterMaps,
@@ -63,11 +63,10 @@ let started = false;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
- * The selected bottom tab: a cluster map id, or "active" for the online list.
+ * The selected bottom tab: "plan" for the campus floor plan, a cluster map id,
+ * or "active" for the online list.
  */
-let activeTab = "active";
-/** Cluster picked as default in the extension, applied on first open. */
-let initialTabResolved = false;
+let activeTab = "plan";
 /** Last seat focused from a location link; kept while the map is shown. */
 let focusSeat: string | null = null;
 /** The bug button arms the next seat tap for a report. */
@@ -98,7 +97,7 @@ function mapIdForSeat(seat: string): string | null {
 
 function switchTab(id: string): void {
   if (id === activeTab) return;
-  if (id !== "active" && !findClusterMap(id)) return;
+  if (id !== "active" && id !== "plan" && !findClusterMap(id)) return;
   // Switching rooms drops any seat focus and returns the map to the fit view.
   const currentMap = document.getElementById("ft-cluster-map");
   if (currentMap) resetMapZoom(currentMap);
@@ -155,6 +154,7 @@ export function clustersView(): unknown {
     const mapId = mapIdForSeat(seat);
     activeTab = mapId ?? "active";
   }
+  if (activeTab === "plan") return planView();
   if (activeTab !== "active") {
     const map = findClusterMap(activeTab);
     if (map) return mapView(map);
@@ -375,6 +375,120 @@ function toggleReportMode(): void {
   refresh();
 }
 
+const PLAN_CLUSTER_IDS = new Set(CLUSTER_MAPS.map((m) => m.id));
+
+/** Cluster id under a plan tap/keypress, if any. */
+function planClusterFrom(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) return null;
+  const region = target.closest("[data-cluster]");
+  const id = region?.getAttribute("data-cluster") ?? "";
+  return PLAN_CLUSTER_IDS.has(id) ? id : null;
+}
+
+function onPlanClick(e: Event): void {
+  const id = planClusterFrom(e.target);
+  if (!id) return;
+  e.preventDefault();
+  switchTab(id);
+}
+
+function onPlanKeydown(e: KeyboardEvent): void {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const id = planClusterFrom(e.target);
+  if (!id) return;
+  e.preventDefault();
+  switchTab(id);
+}
+
+/** Campus floor plan: a room picker that opens the matching cluster map. */
+function planView(): unknown {
+  const plan = CLUSTER_PLAN;
+  ensureMap(plan);
+  return html`
+    <div
+      class="fixed left-0 right-0 z-10 mx-auto flex w-full max-w-3xl flex-col justify-center gap-3 px-4"
+      style="top: calc(env(safe-area-inset-top) + 1rem); bottom: calc(8.5rem + env(safe-area-inset-bottom));"
+      data-no-swipe
+    >
+      <div
+        class="${mapExpanded
+          ? "absolute inset-0 flex flex-col bg-base-100 p-2"
+          : "relative w-full flex-none flex flex-col rounded-xl bg-base-100 p-2 shadow-lg"}"
+        data-no-swipe
+      >
+        <button
+          type="button"
+          class="btn btn-circle size-9 absolute top-3 right-3 z-10 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
+          aria-label=${mapExpanded
+            ? "Exit full screen"
+            : "Open the plan full screen"}
+          title=${mapExpanded ? "Exit full screen" : "Full screen"}
+          @click=${toggleMapExpanded}
+        >
+          ${mapExpanded
+            ? unsafeHTML(
+                MINIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
+              )
+            : unsafeHTML(
+                MAXIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
+              )}
+        </button>
+        ${plan.svg
+          ? html`<div
+              id="ft-cluster-map"
+              class="cluster-map plan-map flex-1 min-h-0"
+              data-no-swipe
+              aria-label="Campus floor plan"
+              @click=${onPlanClick}
+              @keydown=${onPlanKeydown}
+            >
+              ${unsafeHTML(plan.svg)}
+            </div>`
+          : plan.failed
+            ? mapFailed(plan)
+            : mapLoading()}
+      </div>
+      ${mapExpanded ? "" : planSummary()}
+    </div>
+  `;
+}
+
+/** Per-cluster status under the plan; doubles as another way into a room. */
+function planSummary(): unknown {
+  return html`
+    <div class="w-full flex-none rounded-xl bg-base-100 p-3 shadow-lg">
+      <div class="flex items-baseline justify-between pb-1">
+        <h2 class="font-semibold">Clusters</h2>
+        <span class="text-[11px] opacity-60">Tap the plan or a row</span>
+      </div>
+      <ul class="flex flex-col divide-y divide-base-300">
+        ${CLUSTER_MAPS.map((map) => {
+          const seats = usableSeats(map);
+          const seated = seatedEntries(map).length;
+          return html`
+            <li>
+              <button
+                type="button"
+                class="flex w-full items-center gap-3 py-2 text-left active:opacity-70"
+                title="Open the ${map.label} cluster map"
+                @click=${() => switchTab(map.id)}
+              >
+                <span class="w-9 font-semibold">${map.label}</span>
+                <span class="text-xs tabular-nums opacity-70">
+                  ${seats > 0 ? `${seated} / ${seats} seats taken` : "…"}
+                </span>
+                <span class="ml-auto text-xs font-semibold text-primary"
+                  >Open</span
+                >
+              </button>
+            </li>
+          `;
+        })}
+      </ul>
+    </div>
+  `;
+}
+
 function mapView(map: ClusterMapDef): unknown {
   ensureMap(map);
   const seated = seatedEntries(map);
@@ -583,6 +697,20 @@ export function clustersBottomBar(): unknown {
             role="tablist"
             aria-label="Clusters"
           >
+            <button
+              role="tab"
+              aria-selected=${activeTab === "plan" ? "true" : "false"}
+              class="tab-btn ${activeTab === "plan" ? "active" : ""}"
+              title="Campus floor plan"
+              aria-label="Campus floor plan"
+              @click=${() => switchTab("plan")}
+            >
+              <span class="tab-count tab-count-icon"
+                >${unsafeHTML(
+                  GRID_SVG.replace("<svg", '<svg width="14" height="14"'),
+                )}</span
+              >
+            </button>
             ${CLUSTER_MAPS.map((m) => {
               const seats = usableSeats(m);
               const seated = seats > 0 ? seatedEntries(m).length : 0;
@@ -633,7 +761,6 @@ export async function loadClusters(force = false): Promise<void> {
     started = true;
     startTimers();
     void loadFriendLogins();
-    await applyDefaultCluster();
     await loadOccupancy();
     return;
   }
@@ -641,29 +768,6 @@ export async function loadClusters(force = false): Promise<void> {
     loading = entries.length === 0;
     await loadOccupancy();
   }
-}
-
-/**
- * Opens the cluster the user picked as default in the extension (synced through
- * the cloud settings blob). Seat deep links still win, and the choice is only
- * applied once per session so switching tabs afterwards sticks.
- */
-async function applyDefaultCluster(): Promise<void> {
-  if (initialTabResolved) return;
-  initialTabResolved = true;
-  if (seatFromHash() || activeTab !== "active") return;
-  let id: unknown;
-  try {
-    const blob = await getBlob();
-    id = blob.settings?.CLUSTERS_DEFAULT_ID;
-  } catch {
-    return;
-  }
-  if (typeof id !== "string" || !id) return;
-  const map = await findDefaultClusterMap(id);
-  if (!map) return;
-  activeTab = map.id;
-  refresh();
 }
 
 const XLINK_NS = "http://www.w3.org/1999/xlink";
@@ -1068,6 +1172,8 @@ function applyMapOccupancy(): void {
 
 /** Called by the app after it re-renders the tab. */
 export function clustersAttachObservers(): void {
+  // The plan has no seats or gesture layer; its room taps are handled in planView().
+  if (activeTab === "plan") return;
   applyMapOccupancy();
   const seat = seatFromHash();
   const mapEl = document.getElementById("ft-cluster-map");

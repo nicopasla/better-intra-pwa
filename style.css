@@ -743,6 +743,62 @@ html.ft-friends-empty body {
   fill: var(--wall-fill, #46525e);
 }
 
+/* Campus floor plan: the room paths are invisible hit areas; the labels are
+   the visible affordance. The SVG also carries presentation attributes so it
+   renders on its own (standalone / Affinity) without this stylesheet. */
+.plan-map {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-map svg {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+
+.plan-map .plan-walls {
+  pointer-events: none;
+}
+
+.plan-map .plan-wall {
+  fill: none;
+  stroke: var(--wall-fill, #46525e);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.plan-map .plan-room-group {
+  cursor: pointer;
+  outline: none;
+}
+
+.plan-map .plan-room {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+
+.plan-map .plan-label {
+  fill: var(--zone-text, #4b5866);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  transition: fill 120ms ease;
+}
+
+.plan-map .plan-room-group:hover .plan-label,
+.plan-map .plan-room-group:focus-visible .plan-label {
+  fill: var(--color-primary);
+}
+
 .cluster-map .slot {
   fill: var(--slot-fill, #00babc2e);
   stroke: var(--slot-stroke, #c3ccd5);

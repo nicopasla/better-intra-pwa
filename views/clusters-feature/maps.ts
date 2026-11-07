@@ -2,6 +2,8 @@ import { workerUrl } from "../../api.ts";
 
 /** Shared cluster maps, served from the repo through the worker. */
 const MAP_BASE = workerUrl("/gh/campuses/maps/belgium");
+/** Floor plans served from R2 through the worker (not committed to the repo). */
+const CAMPUS_MAP_BASE = "/api/v1/public/campus-map/belgium";
 
 export interface ClusterMapDef {
   /** Matches the cluster name in campuses/belgium.json. */
@@ -50,6 +52,22 @@ function seatIdsFromSvg(svg: string): Set<string> {
   }
   return ids;
 }
+
+/**
+ * Campus floor plan: the default clusters view. Its room regions carry
+ * `data-cluster` ids ("shi", "fu", "mi") that open the matching room map.
+ */
+export const CLUSTER_PLAN: ClusterMapDef = {
+  id: "plan",
+  label: "PLAN",
+  // Dev reads the local copy (the Vite middleware serves campuses/), so the
+  // plan can be edited without uploading it; production reads it from R2.
+  url: import.meta.env.DEV
+    ? `${MAP_BASE}/plan.svg`
+    : workerUrl(`${CAMPUS_MAP_BASE}/plan.svg`),
+  seatIds: new Set(),
+  loadedAt: 0,
+};
 
 /**
  * Cluster names come from campuses/belgium.json; these are the ones with a map
@@ -138,7 +156,7 @@ export function loadClusterMap(
 
 /** Warms every map when the clusters tab opens (refreshing stale ones). */
 export function preloadClusterMaps(force = false): void {
-  for (const map of CLUSTER_MAPS) {
+  for (const map of [CLUSTER_PLAN, ...CLUSTER_MAPS]) {
     if (map.loading) continue;
     if (!force && !isMapStale(map)) continue;
     void loadClusterMap(map, force);

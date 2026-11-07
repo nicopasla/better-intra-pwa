@@ -1,10 +1,13 @@
 import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
+import { join, normalize, sep } from "node:path";
 import { defineConfig, type Plugin, type ProxyOptions } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import pkg from "./package.json" with { type: "json" };
 
 const WORKER_ORIGIN = "https://api.betterintra.com";
 const MOCK_STUB = fileURLToPath(new URL("./mock.stub.ts", import.meta.url));
+const CAMPUS_DIR = fileURLToPath(new URL("../campuses", import.meta.url));
 
 /**
  * Fixtures are dev-only: production builds resolve every `mock.ts` import to
@@ -19,6 +22,48 @@ function stubMockInBuild(): Plugin {
     resolveId(source, importer) {
       if (importer && /(^|\/)mock\.ts$/.test(source)) return MOCK_STUB;
       return null;
+    },
+  };
+}
+
+/**
+ * Dev-only: serve the repo's `campuses/` folder before the `/gh/` proxy, so map
+ * edits (including new files) can be tested without pushing them to GitHub.
+ */
+function localCampuses(): Plugin {
+  const root = normalize(CAMPUS_DIR);
+  const types: Record<string, string> = {
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml",
+  };
+  return {
+    name: "better-intra:local-campuses",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url || "").split("?")[0];
+        if (!path.startsWith("/gh/campuses/")) return next();
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        let rel: string;
+        try {
+          rel = decodeURIComponent(path.slice("/gh/campuses/".length));
+        } catch {
+          return next();
+        }
+        const file = normalize(join(root, rel));
+        if (!file.startsWith(root + sep)) return next();
+        void readFile(file)
+          .then((data) => {
+            const ext = file.slice(file.lastIndexOf("."));
+            res.setHeader(
+              "Content-Type",
+              types[ext] ?? "application/octet-stream",
+            );
+            res.setHeader("Cache-Control", "no-store");
+            res.end(req.method === "HEAD" ? undefined : data);
+          })
+          .catch(() => next());
+      });
     },
   };
 }
@@ -40,7 +85,7 @@ function workerProxy(): ProxyOptions {
 
 /** Better Intra PWA — deployed to Cloudflare Workers static assets at mobile.betterintra.com. */
 export default defineConfig({
-  plugins: [tailwindcss(), stubMockInBuild()],
+  plugins: [localCampuses(), tailwindcss(), stubMockInBuild()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
