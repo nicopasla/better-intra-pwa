@@ -776,10 +776,32 @@ html.ft-friends-empty body {
   outline: none;
 }
 
+/* Campus plan: tint each cluster zone so the three areas read at a glance.
+   The SVG bakes light-mode tints for standalone use; these rules follow the
+   app theme instead. */
+.plan-map .plan-room-group[data-cluster="shi"] {
+  --plan-zone: var(--color-info);
+}
+
+.plan-map .plan-room-group[data-cluster="fu"] {
+  --plan-zone: var(--color-success);
+}
+
+.plan-map .plan-room-group[data-cluster="mi"] {
+  --plan-zone: var(--color-warning);
+}
+
 .plan-map .plan-room {
-  fill: transparent;
-  stroke: none;
+  fill: color-mix(in oklab, var(--plan-zone, transparent) 16%, transparent);
+  stroke: color-mix(in oklab, var(--plan-zone, transparent) 50%, transparent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
   pointer-events: all;
+}
+
+.plan-map .plan-room-group:hover .plan-room,
+.plan-map .plan-room-group:focus-visible .plan-room {
+  fill: color-mix(in oklab, var(--plan-zone, transparent) 24%, transparent);
 }
 
 .plan-map .plan-label {
