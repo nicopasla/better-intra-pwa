@@ -733,6 +733,21 @@ html.ft-friends-empty body {
   pointer-events: none;
 }
 
+/* Seats reported as having no computer: a quiet red tint, never a cross. */
+.cluster-map .posts rect.seat-no-computer,
+.cluster-map rect[id].seat-no-computer {
+  fill: color-mix(in oklab, var(--color-error) 22%, var(--seat-fill, #e5e5e5));
+  stroke: var(--color-error);
+}
+
+.cluster-map rect.seat-no-computer-ring {
+  fill: none;
+  stroke: var(--color-error);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .cluster-map .zone {
   fill: var(--zone-fill, #d5d5d5);
   stroke: var(--zone-stroke, #a5a8ab);

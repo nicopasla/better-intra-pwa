@@ -1226,7 +1226,7 @@ const MOCK_REPORTS: SeatReport[] = [
         reporter: "mock.user",
       },
       {
-        component: "audio",
+        component: "computer",
         status: "works",
         updatedAt: Date.now() - 20 * 60_000,
         confirmations: 1,
@@ -1252,7 +1252,7 @@ const MOCK_REPORTS: SeatReport[] = [
     cluster: "fu",
     components: [
       {
-        component: "audio",
+        component: "computer",
         status: "broken",
         updatedAt: Date.now() - 90 * 60_000,
         confirmations: 3,

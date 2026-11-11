@@ -80,19 +80,22 @@ export function getSeatSeverity(host: string): SeatSeverity | null {
   for (const component of report.components) {
     if (component.status !== "broken") continue;
     const def = SEAT_COMPONENT_MAP.get(component.component);
+    // Unknown keys are components removed from the catalog (e.g. the retired
+    // "audio"); their stale rows must not count as issues.
+    if (!def) continue;
     // A missing USB-C port is not a defect: presence answers never mark the
     // seat as broken.
-    if (def?.kind === "presence") continue;
-    if (def?.severity === "blocking") return "blocking";
+    if (def.kind === "presence") continue;
+    if (def.severity === "blocking") return "blocking";
     severity = "minor";
   }
   return severity;
 }
 
 /**
- * Broken components that do not cross the seat out: keyboard, mouse scroll and
- * audio. Used for the map's warning glyph, so a crossed seat keeps its cross
- * and only the non-blocking issues get the triangle.
+ * Broken components that do not cross the seat out: keyboard and mouse scroll.
+ * Used for the map's warning glyph, so a crossed seat keeps its cross and only
+ * the non-blocking issues get the triangle.
  */
 export function getMinorSeatIssues(host: string): SeatComponentKey[] {
   const report = getSeatReport(host);

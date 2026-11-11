@@ -790,6 +790,11 @@ const brokenCrosses = new WeakMap<SVGSVGElement, Map<string, SVGPathElement>>();
 const usbcBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
 /** Warning triangles on seats with non-blocking defects, per SVG. */
 const warningBadges = new WeakMap<SVGSVGElement, Map<string, SVGGElement>>();
+/** Red rings drawn above the avatar of a seat with no computer, per SVG. */
+const noComputerRings = new WeakMap<
+  SVGSVGElement,
+  Map<string, SVGRectElement>
+>();
 /** Dashed report-mode targets over every seat, per SVG. */
 const reportModeTargets = new WeakMap<
   SVGSVGElement,
@@ -923,8 +928,7 @@ function applyUsbcSeats(
 
 let warningTemplate: Element | null = null;
 
-/** One shared parse of the warning asset, cloned per seat. */
-function warningGlyph(size: number): SVGSVGElement {
+/** One shared parse of the warning asset, cloned per seat. */function warningGlyph(size: number): SVGSVGElement {
   warningTemplate ??= new DOMParser().parseFromString(
     WARNING_SVG,
     "image/svg+xml",
@@ -938,9 +942,51 @@ function warningGlyph(size: number): SVGSVGElement {
   return glyph;
 }
 
+/** Red tint (and avatar ring) for a seat reported as having no computer. */
+function applyNoComputerSeat(
+  svg: SVGSVGElement,
+  id: string,
+  img: SVGImageElement,
+): void {
+  let rings = noComputerRings.get(svg);
+  if (!rings) {
+    rings = new Map();
+    noComputerRings.set(svg, rings);
+  }
+  const escaped =
+    typeof CSS !== "undefined" && CSS.escape ? CSS.escape(id) : id;
+  const rect = svg.querySelector<SVGRectElement>(`rect[id="${escaped}"]`);
+  const on = getComponentStatus(id, "computer")?.status === "broken";
+  rect?.classList.toggle("seat-no-computer", on);
+
+  const ring = rings.get(id);
+  const occupied = Boolean(
+    img.getAttribute("href") || img.getAttributeNS(XLINK_NS, "href"),
+  );
+  if (!on || !occupied) {
+    if (ring) {
+      ring.remove();
+      rings.delete(id);
+    }
+    return;
+  }
+  if (ring || !rect || !img.parentNode) return;
+  // The seat's own stroke sits under its avatar, so the red outline has to be
+  // drawn above the <image> to stay visible when someone is seated.
+  const created = document.createElementNS(SVG_NS, "rect");
+  created.setAttribute("class", "seat-no-computer-ring");
+  for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
+    const value = rect.getAttribute(name);
+    if (value) created.setAttribute(name, value);
+  }
+  img.parentNode.insertBefore(created, img.nextSibling);
+  rings.set(id, created);
+}
+
 /**
  * Warning triangle on seats with a reported non-blocking defect (keyboard,
- * mouse scroll, audio). Crossed seats only show the cross.
+ * mouse scroll). Crossed seats only show the cross. Also tints seats reported
+ * as having no computer, which is a presence answer and never a cross.
  */
 function applyWarningSeats(svg: SVGSVGElement): void {
   let badges = warningBadges.get(svg);
@@ -949,6 +995,7 @@ function applyWarningSeats(svg: SVGSVGElement): void {
     warningBadges.set(svg, badges);
   }
   for (const [id, img] of mapSeatIndex(svg)) {
+    applyNoComputerSeat(svg, id, img);
     const issues =
       getSeatSeverity(id) === "blocking" ? [] : getMinorSeatIssues(id);
     const existing = badges.get(id);
@@ -1160,7 +1207,7 @@ function applyMapOccupancy(): void {
   // Red rings for seats with a reported broken component.
   applyBrokenSeats(svg);
 
-  // Warning triangle for non-blocking issues (keyboard, scroll, audio).
+  // Warning triangle for non-blocking issues (keyboard, mouse scroll).
   applyWarningSeats(svg);
 
   // Dashed targets over every seat while report mode is armed.
