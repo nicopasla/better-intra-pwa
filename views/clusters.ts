@@ -433,7 +433,7 @@ const LEGEND_ROWS = [
 
 function legendPanel(): unknown {
   return html`<div
-    class="absolute left-3 bottom-14 z-20 w-64 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
+    class="absolute left-3 top-14 z-20 w-64 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
   >
     <div class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-60">
       Markers
@@ -548,7 +548,7 @@ function mapView(map: ClusterMapDef): unknown {
         </button>
         <button
           type="button"
-          class="btn btn-circle size-9 absolute bottom-3 left-14 z-10 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
+          class="btn btn-circle size-9 absolute top-3 left-3 z-20 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
           aria-label="What the markers mean"
           title=${legendOpen ? "" : "Legend"}
           aria-pressed=${legendOpen}
