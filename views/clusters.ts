@@ -633,7 +633,9 @@ function mapFailed(map: ClusterMapDef): unknown {
 function usableSeats(map: ClusterMapDef): number {
   let reportedUnusable = 0;
   for (const seat of map.seatIds) {
-    if (getSeatSeverity(seat) === "blocking") reportedUnusable++;
+    if (getComponentStatus(seat, "computer")?.status === "broken") {
+      reportedUnusable++;
+    }
   }
   return Math.max(0, map.seatIds.size - reportedUnusable);
 }
@@ -819,17 +821,17 @@ function seatBox(img: SVGImageElement): {
   return { x: box.x, y: box.y, w: box.width, h: box.height };
 }
 
-/** Big red cross over seats whose power/network is reported broken. */
-function applyBrokenSeats(svg: SVGSVGElement): void {
+/** Cross over seats with no computer at all (presence answer). */
+function applyNoComputerCrosses(svg: SVGSVGElement): void {
   let crosses = brokenCrosses.get(svg);
   if (!crosses) {
     crosses = new Map();
     brokenCrosses.set(svg, crosses);
   }
   for (const [id, img] of mapSeatIndex(svg)) {
-    // Only blocking components (power/network) cross out a seat; peripherals
-    // like a sticky scroll wheel leave the computer usable.
-    const broken = getSeatSeverity(id) === "blocking";
+    // Only a missing computer crosses a seat out; a broken power/network is a
+    // red tint instead (rendered by applyBrokenSeat below).
+    const broken = getComponentStatus(id, "computer")?.status === "broken";
     const existing = crosses.get(id);
     if (!broken) {
       if (existing) {
@@ -942,8 +944,8 @@ let warningTemplate: Element | null = null;
   return glyph;
 }
 
-/** Red tint (and avatar ring) for a seat reported as having no computer. */
-function applyNoComputerSeat(
+/** Red tint (and avatar ring) for a seat whose computer is broken. */
+function applyBrokenSeat(
   svg: SVGSVGElement,
   id: string,
   img: SVGImageElement,
@@ -956,8 +958,8 @@ function applyNoComputerSeat(
   const escaped =
     typeof CSS !== "undefined" && CSS.escape ? CSS.escape(id) : id;
   const rect = svg.querySelector<SVGRectElement>(`rect[id="${escaped}"]`);
-  const on = getComponentStatus(id, "computer")?.status === "broken";
-  rect?.classList.toggle("seat-no-computer", on);
+  const on = getSeatSeverity(id) === "blocking";
+  rect?.classList.toggle("seat-broken", on);
 
   const ring = rings.get(id);
   const occupied = Boolean(
@@ -974,7 +976,7 @@ function applyNoComputerSeat(
   // The seat's own stroke sits under its avatar, so the red outline has to be
   // drawn above the <image> to stay visible when someone is seated.
   const created = document.createElementNS(SVG_NS, "rect");
-  created.setAttribute("class", "seat-no-computer-ring");
+  created.setAttribute("class", "seat-broken-ring");
   for (const name of ["x", "y", "width", "height", "rx", "transform"]) {
     const value = rect.getAttribute(name);
     if (value) created.setAttribute(name, value);
@@ -995,9 +997,14 @@ function applyWarningSeats(svg: SVGSVGElement): void {
     warningBadges.set(svg, badges);
   }
   for (const [id, img] of mapSeatIndex(svg)) {
-    applyNoComputerSeat(svg, id, img);
+    applyBrokenSeat(svg, id, img);
+    // Crossed (no computer) and broken (red-tinted) seats only show that: the
+    // triangle is reserved for seats with non-blocking defects.
+    const noComputer = getComponentStatus(id, "computer")?.status === "broken";
     const issues =
-      getSeatSeverity(id) === "blocking" ? [] : getMinorSeatIssues(id);
+      noComputer || getSeatSeverity(id) === "blocking"
+        ? []
+        : getMinorSeatIssues(id);
     const existing = badges.get(id);
     if (issues.length === 0) {
       if (existing) {
@@ -1205,7 +1212,7 @@ function applyMapOccupancy(): void {
   applyUsbcSeats(svg, byHost);
 
   // Red rings for seats with a reported broken component.
-  applyBrokenSeats(svg);
+  applyNoComputerCrosses(svg);
 
   // Warning triangle for non-blocking issues (keyboard, mouse scroll).
   applyWarningSeats(svg);
