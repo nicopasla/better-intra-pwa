@@ -8,6 +8,7 @@ import BUG_SVG from "../assets/bug.svg?raw";
 import USBC_SVG from "../assets/usbc.svg?raw";
 import WARNING_SVG from "../assets/triangle-exclamation.svg?raw";
 import MAP_SVG from "../assets/map.svg?raw";
+import CIRCLE_QUESTION_SVG from "../assets/circle-question-mark.svg?raw";
 import { currentTab } from "../shell.ts";
 import { getSession } from "../api.ts";
 import { getBlob } from "../data.ts";
@@ -90,6 +91,8 @@ let initialTabResolved = false;
 let focusSeat: string | null = null;
 /** The bug button arms the next seat tap for a report. */
 let reportMode = false;
+/** Legend popover over the map. */
+let legendOpen = false;
 /** Logins of the user's friends, used to highlight their seats. */
 let friends: Set<string> = new Set();
 
@@ -394,6 +397,59 @@ function toggleReportMode(): void {
   refresh();
 }
 
+/** Shows/hides the marker legend over the map. */
+function toggleLegend(): void {
+  legendOpen = !legendOpen;
+  refresh();
+}
+
+const LEGEND_ROWS = [
+  {
+    swatch:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 5 19 19 M19 5 5 19" fill="none" stroke="#d9453f" stroke-width="2.4" stroke-linecap="round"/></svg>',
+    label: "No computer",
+  },
+  {
+    swatch:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="3" fill="#d9453f" fill-opacity="0.22" stroke="#d9453f" stroke-width="1.5"/></svg>',
+    label: "Broken computer (Power / Network)",
+  },
+  {
+    swatch:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#df9539" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    label: "Keyboard or mouse scroll issue",
+  },
+  {
+    swatch:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="7" width="20" height="10" rx="5" fill="none" stroke="#38bdf8" stroke-width="1.6"/><rect x="7" y="11" width="10" height="2" rx="1" fill="#38bdf8"/></svg>',
+    label: "USB-C port reported",
+  },
+  {
+    swatch:
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="3" fill="var(--color-success)" fill-opacity="0.3" stroke="var(--color-success)" stroke-width="1.5"/></svg>',
+    label: "Newer computer",
+  },
+] as const;
+
+function legendPanel(): unknown {
+  return html`<div
+    class="absolute left-3 bottom-14 z-20 w-64 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
+  >
+    <div class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-60">
+      Markers
+    </div>
+    ${LEGEND_ROWS.map(
+      (row) => html`<div class="flex items-center gap-2 py-0.5">
+        <span
+          class="size-3.5 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+          >${unsafeHTML(row.swatch)}</span
+        >
+        <span class="text-[11px] leading-tight">${row.label}</span>
+      </div>`,
+    )}
+  </div>`;
+}
+
 const PLAN_CLUSTER_IDS = new Set(CLUSTER_MAPS.map((m) => m.id));
 
 /** Cluster id under a plan tap/keypress, if any. */
@@ -490,6 +546,19 @@ function mapView(map: ClusterMapDef): unknown {
                 MAXIMIZE_SVG.replace("<svg", '<svg width="18" height="18"'),
               )}
         </button>
+        <button
+          type="button"
+          class="btn btn-circle size-9 absolute bottom-3 left-14 z-10 border border-base-300/60 bg-base-100/80 text-base-content/80 shadow-lg shadow-base-content/5 backdrop-blur-md hover:bg-base-100/95 active:scale-95"
+          aria-label="What the markers mean"
+          title=${legendOpen ? "" : "Legend"}
+          aria-pressed=${legendOpen}
+          @click=${toggleLegend}
+        >
+          ${unsafeHTML(
+            CIRCLE_QUESTION_SVG.replace("<svg", '<svg width="18" height="18"'),
+          )}
+        </button>
+        ${legendOpen ? legendPanel() : ""}
         <button
           type="button"
           class="btn btn-circle size-9 absolute bottom-3 left-3 z-10 ${reportMode
