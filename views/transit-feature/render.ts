@@ -5,12 +5,7 @@ import type {
   TransitMode,
 } from "../../data.ts";
 import type { TransitFavorite } from "../../lib/prefs.ts";
-import {
-  arrivalLabel,
-  boardAge,
-  MODE_BADGE,
-  MODE_LABELS,
-} from "./format.ts";
+import { arrivalLabel, boardAge, MODE_BADGE, MODE_LABELS } from "./format.ts";
 
 /** Departures of one line towards one destination at a stop. */
 export interface LineGroup {
@@ -40,11 +35,6 @@ export interface PickerLine {
   next: string;
 }
 
-const MAIN_STATION = /gare\s+centrale|centraal\s+station/i;
-
-const isMainStation = (stop: { name: string }): boolean =>
-  MAIN_STATION.test(stop.name);
-
 export interface TransitViewProps {
   board: TransitBoard | null;
   favorites: TransitFavorite[];
@@ -68,8 +58,8 @@ function lineBadge(line: {
   if (line.color) {
     return html`<span
       class="badge h-9 min-w-9 flex-none justify-center rounded-full px-2 text-sm font-bold tabular-nums"
-      style="background:${line.color};border-color:${line.color};color:${line
-        .textColor ?? "#ffffff"}"
+      style="background:${line.color};border-color:${line.color};color:${line.textColor ??
+      "#ffffff"}"
       >${line.lineId}</span
     >`;
   }
@@ -172,31 +162,27 @@ export function transitView(props: TransitViewProps): unknown {
   return html`<div class="card bg-base-100 shadow-xl mb-4">
     <div class="card-body px-3 py-3 gap-2">
       <div class="flex items-center gap-2">
-        <h2 class="text-base font-semibold m-0">Transit</h2>
-        <span class="badge badge-ghost badge-sm">Gare Centrale</span>
-        ${loading
-          ? html`<button
-              type="button"
-              class="btn btn-xs btn-primary btn-outline"
-              aria-label="Refreshing"
-              title="Refreshing"
-              disabled
-            >
-              <span class="loading loading-dots loading-xs"></span>
-            </button>`
-          : board
-            ? html`<button
-                type="button"
-                class="btn btn-xs btn-primary btn-outline"
-                aria-label="Refresh departures — last update ${boardAge(
-                  board.updatedAt,
-                )}"
-                title="Refresh departures"
-                @click=${onRefresh}
-              >
-                ${boardAge(board.updatedAt)}
-              </button>`
-            : ""}
+        <button
+          type="button"
+          class="badge h-8 gap-1.5 rounded-full px-2.5 cursor-pointer"
+          aria-label="Transit departures — refresh${board
+            ? ` (last update ${boardAge(board.updatedAt)})`
+            : ""}"
+          title="Refresh departures"
+          ?disabled=${loading}
+          @click=${onRefresh}
+        >
+          <span class="text-xs font-semibold">Transit</span>
+          ${loading
+            ? html`<span
+                class="loading loading-dots loading-xs opacity-60"
+              ></span>`
+            : board
+              ? html`<span class="text-[11px] font-normal opacity-60"
+                  >${boardAge(board.updatedAt)}</span
+                >`
+              : ""}
+        </button>
         ${board
           ? html`<button
               type="button"
@@ -222,9 +208,8 @@ export function transitView(props: TransitViewProps): unknown {
           href="https://mobilitytwin.brussels/"
           target="_blank"
           rel="noreferrer noopener"
-          >MobilityTwin.Brussels</a
+          >mobilitytwin</a
         >
-        <span>· STIB</span>
       </div>
     </div>
   </div>`;
@@ -288,7 +273,8 @@ function selectedRows(
     }
   }
   return rows.sort(
-    (a, b) => Date.parse(a.line.departures[0].at) - Date.parse(b.line.departures[0].at),
+    (a, b) =>
+      Date.parse(a.line.departures[0].at) - Date.parse(b.line.departures[0].at),
   );
 }
 
@@ -297,7 +283,6 @@ function linePicker(
   favorites: TransitFavorite[],
   onToggleLine: (stopName: string, lineId: string, destination: string) => void,
 ): unknown {
-  const stopNames = [...new Set(lines.map((line) => line.stopName))];
   const chosen = new Set(
     favorites.map(
       (favorite) =>
@@ -309,38 +294,22 @@ function linePicker(
     <p class="text-[11px] uppercase tracking-wide opacity-50 px-1">
       Directions around Gare Centrale
     </p>
-    ${stopNames.map(
-      (stopName) => html`<div class="flex flex-col">
-        ${isMainStation({ name: stopName })
-          ? ""
-          : html`<div
-              class="px-1 pt-2 text-[10px] font-semibold uppercase tracking-wide opacity-50"
-            >
-              ${stopName}
-            </div>`}
-        ${lines
-          .filter((line) => line.stopName === stopName)
-          .map(
-            (line) => html`<label
-              class="flex items-center gap-2 px-1 py-1 min-h-11 cursor-pointer rounded-box hover:bg-base-200"
-            >
-              ${lineBadge(line)} ${lineLabel(line.destination, line)}
-              <input
-                type="checkbox"
-                class="toggle toggle-sm toggle-primary flex-none"
-                .checked=${chosen.has(
-                  `${line.stopName}\u0000${line.lineId}\u0000${line.destination}`,
-                )}
-                @change=${() =>
-                  onToggleLine(
-                    line.stopName,
-                    line.lineId,
-                    line.destination,
-                  )}
-              />
-            </label>`,
-          )}
-      </div>`,
+    ${lines.map(
+      (line) =>
+        html`<label
+          class="flex items-center gap-2 px-1 py-1 min-h-11 cursor-pointer rounded-box hover:bg-base-200"
+        >
+          ${lineBadge(line)} ${lineLabel(line.destination, line)}
+          <input
+            type="checkbox"
+            class="toggle toggle-sm toggle-primary flex-none"
+            .checked=${chosen.has(
+              `${line.stopName}\u0000${line.lineId}\u0000${line.destination}`,
+            )}
+            @change=${() =>
+              onToggleLine(line.stopName, line.lineId, line.destination)}
+          />
+        </label>`,
     )}
   </div>`;
 }
@@ -354,28 +323,22 @@ function lineLabel(
     <span class="truncate text-sm"
       >${destination || MODE_LABELS[line.mode]}</span
     >
-    ${isMainStation({ name: line.stopName })
-      ? ""
-      : html`<span
-          class="truncate text-[10px] uppercase tracking-wide opacity-40"
-          >${line.stopName}</span
-        >`}
+    <span class="truncate text-[10px] uppercase tracking-wide opacity-40"
+      >${line.stopName}</span
+    >
   </span>`;
 }
 
 /** Arrival time chip: the line's official colour, dimmed for later departures. */
-function timeBadge(
-  line: LineGroup,
-  time: string,
-  primary: boolean,
-): unknown {
-  const size = "badge h-8 flex-none justify-center rounded-full px-2.5 text-sm font-semibold tabular-nums";
+function timeBadge(line: LineGroup, time: string, primary: boolean): unknown {
+  const size =
+    "badge h-8 flex-none justify-center rounded-full px-2.5 text-sm font-semibold tabular-nums";
   const dim = primary ? "" : "opacity-60";
   if (line.color) {
     return html`<span
       class="${size} ${dim}"
-      style="background:${line.color};border-color:${line.color};color:${line
-        .textColor ?? "#ffffff"}"
+      style="background:${line.color};border-color:${line.color};color:${line.textColor ??
+      "#ffffff"}"
       >${time}</span
     >`;
   }
@@ -410,12 +373,13 @@ function isOld(board: TransitBoard): boolean {
 function loadingRows(): unknown {
   return html`<div class="flex flex-col gap-2 py-1">
     ${[0, 1, 2].map(
-      () => html`<div class="flex items-center gap-2">
-        <div class="skeleton size-6 rounded-full"></div>
-        <div class="skeleton h-6 w-9"></div>
-        <div class="skeleton h-4 flex-1"></div>
-        <div class="skeleton h-4 w-14"></div>
-      </div>`,
+      () =>
+        html`<div class="flex items-center gap-2">
+          <div class="skeleton size-6 rounded-full"></div>
+          <div class="skeleton h-6 w-9"></div>
+          <div class="skeleton h-4 flex-1"></div>
+          <div class="skeleton h-4 w-14"></div>
+        </div>`,
     )}
   </div>`;
 }
