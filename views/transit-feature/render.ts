@@ -29,8 +29,9 @@ export interface StopGroup {
   lines: LineGroup[];
 }
 
-/** One selectable line + direction of the picker. */
+/** One selectable line + direction of the picker, at one stop. */
 export interface PickerLine {
+  stopName: string;
   lineId: string;
   mode: TransitMode;
   color: string | null;
@@ -38,6 +39,11 @@ export interface PickerLine {
   destination: string;
   next: string;
 }
+
+const MAIN_STATION = /gare\s+centrale|centraal\s+station/i;
+
+const isMainStation = (stop: { name: string }): boolean =>
+  MAIN_STATION.test(stop.name);
 
 export interface TransitViewProps {
   board: TransitBoard | null;
@@ -121,16 +127,17 @@ export function groupStops(board: TransitBoard): StopGroup[] {
     .sort((a, b) => a.distanceM - b.distanceM);
 }
 
-/** Every direction of every line at the station, one entry per destination. */
+/** Every direction of every line around the station, one entry per stop. */
 export function pickerLines(stops: StopGroup[]): PickerLine[] {
   const byDirection = new Map<string, PickerLine>();
   for (const stop of stops) {
     for (const line of stop.lines) {
-      const key = `${line.lineId}\u0000${line.destination}`;
+      const key = `${stop.name}\u0000${line.lineId}\u0000${line.destination}`;
       const next = line.departures[0].at;
       const existing = byDirection.get(key);
       if (!existing) {
         byDirection.set(key, {
+          stopName: stop.name,
           lineId: line.lineId,
           mode: line.mode,
           color: line.color,
@@ -144,6 +151,12 @@ export function pickerLines(stops: StopGroup[]): PickerLine[] {
     }
   }
   return [...byDirection.values()].sort((a, b) => {
+    if (a.stopName !== b.stopName) {
+      return (
+        stops.findIndex((stop) => stop.name === a.stopName) -
+        stops.findIndex((stop) => stop.name === b.stopName)
+      );
+    }
     const mode = MODE_ORDER[a.mode] - MODE_ORDER[b.mode];
     if (mode !== 0) return mode;
     const line = a.lineId.localeCompare(b.lineId, undefined, { numeric: true });
@@ -228,7 +241,7 @@ function boardContent(props: TransitViewProps): unknown {
     </p>`;
   }
 
-  if (picking) return linePicker(stops, lines, favorites, onToggleLine);
+  if (picking) return linePicker(lines, favorites, onToggleLine);
 
   const selected = selectedRows(stops, favorites);
   if (selected.length === 0) {
@@ -280,43 +293,74 @@ function selectedRows(
 }
 
 function linePicker(
-  stops: StopGroup[],
   lines: PickerLine[],
   favorites: TransitFavorite[],
   onToggleLine: (stopName: string, lineId: string, destination: string) => void,
 ): unknown {
-  const station = stops[0];
+  const stopNames = [...new Set(lines.map((line) => line.stopName))];
   const chosen = new Set(
-    favorites
-      .filter((favorite) => favorite.stopName === station?.name)
-      .map((favorite) => `${favorite.lineId}\u0000${favorite.destination}`),
+    favorites.map(
+      (favorite) =>
+        `${favorite.stopName}\u0000${favorite.lineId}\u0000${favorite.destination}`,
+    ),
   );
 
   return html`<div class="flex flex-col">
     <p class="text-[11px] uppercase tracking-wide opacity-50 px-1">
-      Directions at ${station?.name ?? "the station"}
+      Directions around Gare Centrale
     </p>
-    <div class="flex flex-col">
-      ${lines.map(
-        (line) => html`<label
-          class="flex items-center gap-2 px-1 py-1 min-h-11 cursor-pointer rounded-box hover:bg-base-200"
-        >
-          ${lineBadge(line)}
-          <span class="flex-1 min-w-0 truncate text-sm"
-            >${line.destination || MODE_LABELS[line.mode]}</span
-          >
-          <input
-            type="checkbox"
-            class="toggle toggle-sm toggle-primary flex-none"
-            .checked=${chosen.has(`${line.lineId}\u0000${line.destination}`)}
-            @change=${() =>
-              station &&
-              onToggleLine(station.name, line.lineId, line.destination)}
-          />
-        </label>`,
-      )}
-    </div>
+    ${stopNames.map(
+      (stopName) => html`<div class="flex flex-col">
+        ${isMainStation({ name: stopName })
+          ? ""
+          : html`<div
+              class="px-1 pt-2 text-[10px] font-semibold uppercase tracking-wide opacity-50"
+            >
+              ${stopName}
+            </div>`}
+        ${lines
+          .filter((line) => line.stopName === stopName)
+          .map(
+            (line) => html`<label
+              class="flex items-center gap-2 px-1 py-1 min-h-11 cursor-pointer rounded-box hover:bg-base-200"
+            >
+              ${lineBadge(line)} ${lineLabel(line.destination, line)}
+              <input
+                type="checkbox"
+                class="toggle toggle-sm toggle-primary flex-none"
+                .checked=${chosen.has(
+                  `${line.stopName}\u0000${line.lineId}\u0000${line.destination}`,
+                )}
+                @change=${() =>
+                  onToggleLine(
+                    line.stopName,
+                    line.lineId,
+                    line.destination,
+                  )}
+              />
+            </label>`,
+          )}
+      </div>`,
+    )}
   </div>`;
+}
+
+/** Line + destination, with the stop name underneath for the nearby stops. */
+function lineLabel(
+  destination: string,
+  line: { stopName: string; mode: TransitMode },
+): unknown {
+  return html`<span class="flex-1 min-w-0 flex flex-col leading-tight">
+    <span class="truncate text-sm"
+      >${destination || MODE_LABELS[line.mode]}</span
+    >
+    ${isMainStation({ name: line.stopName })
+      ? ""
+      : html`<span
+          class="truncate text-[10px] uppercase tracking-wide opacity-40"
+          >${line.stopName}</span
+        >`}
+  </span>`;
 }
 
 /** Arrival time chip: the line's official colour, dimmed for later departures. */
@@ -352,9 +396,7 @@ function lineRow(stop: StopGroup, line: LineGroup): unknown {
     aria-label="${line.lineId} towards ${line.destination} at ${stop.name}"
   >
     ${lineBadge(line)}
-    <span class="flex-1 min-w-0 truncate text-sm"
-      >${line.destination || MODE_LABELS[line.mode]}</span
-    >
+    ${lineLabel(line.destination, { ...line, stopName: stop.name })}
     <span class="flex-none flex items-center gap-1">
       ${times.map((time, index) => timeBadge(line, time, index === 0))}
     </span>
