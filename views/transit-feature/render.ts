@@ -302,7 +302,7 @@ function linePicker(
           ${lineBadge(line)} ${lineLabel(line.destination, line)}
           <input
             type="checkbox"
-            class="toggle toggle-sm toggle-primary flex-none"
+            class="checkbox checkbox-sm checkbox-primary flex-none"
             .checked=${chosen.has(
               `${line.stopName}\u0000${line.lineId}\u0000${line.destination}`,
             )}
