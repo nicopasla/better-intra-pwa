@@ -1,12 +1,10 @@
 import { html } from "lit-html";
-import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import type {
   TransitBoard,
   TransitDeparture,
   TransitMode,
 } from "../../data.ts";
 import type { TransitFavorite } from "../../lib/prefs.ts";
-import MAP_PIN_SVG from "../../assets/map-pin.svg?raw";
 import {
   arrivalLabel,
   boardAge,
@@ -54,9 +52,6 @@ export interface TransitViewProps {
   onToggleLine(stopName: string, lineId: string, destination: string): void;
 }
 
-const icon = (raw: string, size: number): unknown =>
-  unsafeHTML(raw.replace("<svg", `<svg width="${size}" height="${size}"`));
-
 /** Line badge: official GTFS colour when known, mode colour otherwise. */
 function lineBadge(line: {
   lineId: string;
@@ -66,14 +61,14 @@ function lineBadge(line: {
 }): unknown {
   if (line.color) {
     return html`<span
-      class="badge h-10 min-w-10 flex-none justify-center rounded-full px-2 text-base font-bold tabular-nums"
+      class="badge h-9 min-w-9 flex-none justify-center rounded-full px-2 text-sm font-bold tabular-nums"
       style="background:${line.color};border-color:${line.color};color:${line
         .textColor ?? "#ffffff"}"
       >${line.lineId}</span
     >`;
   }
   return html`<span
-    class="badge h-10 min-w-10 flex-none justify-center rounded-full px-2 text-base font-bold tabular-nums ${MODE_BADGE[
+    class="badge h-9 min-w-9 flex-none justify-center rounded-full px-2 text-sm font-bold tabular-nums ${MODE_BADGE[
       line.mode
     ]}"
     >${line.lineId}</span
@@ -162,17 +157,14 @@ export function transitView(props: TransitViewProps): unknown {
     props;
 
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body py-3 gap-2">
+    <div class="card-body px-3 py-3 gap-2">
       <div class="flex items-center gap-2">
-        <span class="inline-flex flex-none opacity-70"
-          >${icon(MAP_PIN_SVG, 16)}</span
-        >
         <h2 class="text-base font-semibold m-0">Transit</h2>
         <span class="badge badge-ghost badge-sm">Gare Centrale</span>
         ${loading
           ? html`<button
               type="button"
-              class="btn btn-xs btn-primary btn-outline ml-auto"
+              class="btn btn-xs btn-primary btn-outline"
               aria-label="Refreshing"
               title="Refreshing"
               disabled
@@ -182,7 +174,7 @@ export function transitView(props: TransitViewProps): unknown {
           : board
             ? html`<button
                 type="button"
-                class="btn btn-xs btn-primary btn-outline ml-auto"
+                class="btn btn-xs btn-primary btn-outline"
                 aria-label="Refresh departures — last update ${boardAge(
                   board.updatedAt,
                 )}"
@@ -191,11 +183,13 @@ export function transitView(props: TransitViewProps): unknown {
               >
                 ${boardAge(board.updatedAt)}
               </button>`
-            : html`<span class="ml-auto"></span>`}
+            : ""}
         ${board
           ? html`<button
               type="button"
-              class="btn btn-xs ${picking ? "btn-success" : "btn-primary"}"
+              class="btn btn-xs ml-auto ${picking
+                ? "btn-success"
+                : "btn-primary"}"
               aria-pressed="${picking ? "true" : "false"}"
               @click=${onTogglePicker}
             >
