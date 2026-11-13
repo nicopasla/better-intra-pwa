@@ -67,6 +67,7 @@ views/               one module per tab
   students-feature/  controller.ts, data.ts, template.ts
   clusters.ts        Clusters tab (delegates to clusters-feature/)
   clusters-feature/  data.ts, maps.ts (cluster SVGs), render.ts, sort.ts, types.ts
+  transit-feature/   Home transit card: STIB board, render.ts, format.ts
   settings.ts        Settings tab
   eval-dialog.ts     evaluation detail dialog
   event-dialog.ts    42 event detail dialog

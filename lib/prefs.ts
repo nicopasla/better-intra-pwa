@@ -6,7 +6,8 @@ export type HomeCardId =
   | "upcoming"
   | "live"
   | "projects"
-  | "events";
+  | "events"
+  | "transit";
 
 export type HomeBadgeId =
   | "level"
@@ -36,6 +37,7 @@ export const HOME_CARDS: HomeCardId[] = [
   "live",
   "projects",
   "events",
+  "transit",
 ];
 
 export const HOME_BADGES: HomeBadgeId[] = [
@@ -54,8 +56,8 @@ export const BADGE_ROWS: Record<string, string[]> = {
   status: ["pool", "blackhole", "frozen", "alumni"],
 };
 
-/** Badges kept out of the home hero until the user turns them on. */
-const HIDDEN_BY_DEFAULT = new Set<string>(["pool", "blackhole"]);
+/** Badges and cards kept out of the home screen until the user turns them on. */
+const HIDDEN_BY_DEFAULT = new Set<string>(["pool", "blackhole", "transit"]);
 
 const defaults = (ids: readonly string[]): HomeLayoutItem[] =>
   ids.map((id) => ({ id, hidden: HIDDEN_BY_DEFAULT.has(id) }));
@@ -223,6 +225,63 @@ export function setClustersDefaultTab(tab: string | null): void {
   try {
     if (tab) localStorage.setItem(CLUSTERS_DEFAULT_TAB_KEY, tab);
     else localStorage.removeItem(CLUSTERS_DEFAULT_TAB_KEY);
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Transit favourites (per device)
+// ---------------------------------------------------------------------------
+
+/** A starred line and direction at a stop of the home transit board. */
+export interface TransitFavorite {
+  /** Stop name as published by the feed (stable across platform points). */
+  stopName: string;
+  lineId: string;
+  /** Destination as published by the feed: this is what picks a direction. */
+  destination: string;
+}
+
+const TRANSIT_FAVORITES_KEY = "ft_transit_favorites";
+const MAX_TRANSIT_FAVORITES = 30;
+
+export function getTransitFavorites(): TransitFavorite[] {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(TRANSIT_FAVORITES_KEY) || "[]",
+    ) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter(
+        (item): item is TransitFavorite =>
+          typeof (item as TransitFavorite)?.stopName === "string" &&
+          typeof (item as TransitFavorite)?.lineId === "string" &&
+          typeof (item as TransitFavorite)?.destination === "string",
+      )
+      .slice(0, MAX_TRANSIT_FAVORITES);
+  } catch {
+    return [];
+  }
+}
+
+/** Stars or unstars one direction of a line; the newest favourite pins first. */
+export function toggleTransitFavorite(
+  stopName: string,
+  lineId: string,
+  destination: string,
+): void {
+  const favorites = getTransitFavorites();
+  const index = favorites.findIndex(
+    (item) =>
+      item.stopName === stopName &&
+      item.lineId === lineId &&
+      item.destination === destination,
+  );
+  if (index === -1) favorites.unshift({ stopName, lineId, destination });
+  else favorites.splice(index, 1);
+  try {
+    localStorage.setItem(TRANSIT_FAVORITES_KEY, JSON.stringify(favorites));
   } catch {
     /* quota / private mode */
   }

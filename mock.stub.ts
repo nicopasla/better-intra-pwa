@@ -5,6 +5,14 @@
  */
 export const mockMode = false;
 export const mock: Record<string, unknown> = {};
+export const mockTransitBoard = (): Record<string, unknown> => ({
+  area: "gare-centrale",
+  label: "Gare Centrale",
+  updatedAt: Date.now(),
+  sourceUpdatedAt: null,
+  stops: [],
+  meta: { nearbyStops: 0, stops: 0, departures: 0, upstreamRows: 0 },
+});
 export const mockOccupancy = (): unknown[] => [];
 export const mockSeatReports = (): unknown[] => [];
 export const mockSeatHistory = (): unknown[] => [];

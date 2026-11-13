@@ -94,6 +94,7 @@ import { myCampus } from "./data.ts";
 import { SHOW_CUSTOM_AVATARS_KEY } from "./lib/avatar.ts";
 import { requestPersistentStorage } from "./lib/persist.ts";
 import { getLastTab, getRememberLastTab, setLastTab } from "./lib/prefs.ts";
+import { BELGIUM_CAMPUS } from "./lib/campus.ts";
 
 const app = () => document.getElementById("app")!;
 
@@ -126,7 +127,6 @@ function showDownScreen(forced: boolean): void {
   render(downView(forced ? previewStatus : downStatus(), retry, bypass), app());
 }
 
-const BELGIUM_CAMPUS = 12;
 const BELGIUM_TABS: Tab[] = ["students", "clusters"];
 
 /** Belgium-only features are gated by the caller's primary campus. The worker

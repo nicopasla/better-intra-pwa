@@ -1,4 +1,4 @@
-import type { StudentEntry, UserProfile } from "./data.ts";
+import type { StudentEntry, TransitBoard, UserProfile } from "./data.ts";
 import { catImage } from "./lib/cat-images.ts";
 import type { SeatComponentKey } from "./views/clusters-feature/components.ts";
 import type {
@@ -1307,8 +1307,120 @@ export function mockSeatHistory(host: string): SeatReportEvent[] {
     .map(({ host: _host, ...event }) => event);
 }
 
-/** Persists a submitted batch in mock mode so the reports stay coherent. */
-export function mockRecordSeatReports(
+/** STIB board around Gare Centrale, with times relative to now so the home
+ *  card can be exercised in `?mock` without the worker. */
+export function mockTransitBoard(): TransitBoard {
+  const now = Date.now();
+  const at = (minutes: number): string =>
+    new Date(now + minutes * 60_000).toISOString();
+
+  return {
+    area: "gare-centrale",
+    label: "Gare Centrale",
+    updatedAt: now,
+    sourceUpdatedAt: new Date(now - 20_000).toISOString(),
+    stops: [
+      {
+        id: "8022",
+        name: "GARE CENTRALE",
+        lat: 50.8459,
+        lon: 4.3571,
+        distanceM: 18,
+        departures: [
+          {
+            lineId: "1",
+            mode: "metro",
+            color: "#b5378c",
+            textColor: "#ffffff",
+            destination: "STOCKEL",
+            at: at(2),
+          },
+          {
+            lineId: "1",
+            mode: "metro",
+            color: "#b5378c",
+            textColor: "#ffffff",
+            destination: "STOCKEL",
+            at: at(9),
+          },
+          {
+            lineId: "5",
+            mode: "metro",
+            color: "#f6a90b",
+            textColor: "#ffffff",
+            destination: "HERRMANN-DEBROUX",
+            at: at(4),
+          },
+          {
+            lineId: "5",
+            mode: "metro",
+            color: "#f6a90b",
+            textColor: "#ffffff",
+            destination: "HERRMANN-DEBROUX",
+            at: at(12),
+          },
+        ],
+      },
+      {
+        id: "6444",
+        name: "GARE CENTRALE",
+        lat: 50.8456,
+        lon: 4.3566,
+        distanceM: 62,
+        departures: [
+          {
+            lineId: "38",
+            mode: "bus",
+            color: null,
+            textColor: null,
+            destination: "HEROS",
+            at: at(1),
+          },
+          {
+            lineId: "38",
+            mode: "bus",
+            color: null,
+            textColor: null,
+            destination: "HEROS",
+            at: at(11),
+          },
+          {
+            lineId: "71",
+            mode: "bus",
+            color: "#4c8b33",
+            textColor: "#ffffff",
+            destination: "DELTA",
+            at: at(5),
+          },
+          {
+            lineId: "71",
+            mode: "bus",
+            color: "#4c8b33",
+            textColor: "#ffffff",
+            destination: "DELTA",
+            at: at(17),
+          },
+          {
+            lineId: "95",
+            mode: "bus",
+            color: null,
+            textColor: null,
+            destination: "WIENER",
+            at: at(7),
+          },
+        ],
+      },
+    ],
+    meta: {
+      nearbyStops: 2,
+      stops: 2,
+      departures: 9,
+      upstreamRows: 1216,
+    },
+  };
+}
+
+/** Persists a submitted batch in mock mode so the reports stay coherent. */export function mockRecordSeatReports(
   seats: SeatReport[],
   host: string,
   entries: { component: SeatComponentKey; status: SeatComponentStatus }[],

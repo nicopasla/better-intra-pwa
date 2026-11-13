@@ -52,6 +52,12 @@ import { createSortable, moveItem } from "../lib/sortable.ts";
 import { readPushState, writePushState } from "../lib/push-state.ts";
 import type Sortable from "sortablejs";
 import { profileHero } from "./profile-hero.ts";
+import {
+  startTransitPoll,
+  stopTransitPoll,
+  transitCard,
+} from "./transit-feature/index.ts";
+import { BELGIUM_CAMPUS } from "../lib/campus.ts";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
 import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
@@ -69,15 +75,20 @@ const CARD_LABELS: Record<string, string> = {
   live: "Live events",
   projects: "Projects",
   events: "Events",
+  transit: "Transit",
 };
 
-const CARD_BUILDERS: Record<string, () => unknown> = {
+const CARD_BUILDERS: Record<
+  string,
+  (options?: { preview?: boolean }) => unknown
+> = {
   logtime: logtimeCard,
   week: weekCard,
   upcoming: upcomingCard,
   live: liveEventsCard,
   projects: projectsCard,
   events: eventsCard,
+  transit: transitCard,
 };
 
 let meData: Me | null = null;
@@ -149,6 +160,7 @@ export function dashboardView(): unknown {
     <div id="ft-home-cards">
       ${layout.cards
         .filter((item) => Boolean(CARD_BUILDERS[item.id]))
+        .filter((item) => item.id !== "transit" || transitAvailable())
         .filter((item) => editing || !item.hidden)
         .map((item) =>
           editing
@@ -246,6 +258,8 @@ function reorderBadgeRow(group: string[], rowIds: string[]): void {
 /** Wires the edit-mode drag & drop after every dashboard render. */
 export function dashboardAttachObservers(): void {
   scheduleEvalRefresh();
+  if (transitAvailable() && homeCardVisible("transit")) startTransitPoll();
+  else stopTransitPoll();
   cardSortable?.destroy();
   cardSortable = null;
   for (const instance of badgeSortables) instance.destroy();
@@ -363,7 +377,7 @@ function withMockData<T>(id: string, render: () => T): T {
 
 function editBlock(id: string, hidden: boolean) {
   const label = CARD_LABELS[id] ?? id;
-  const body = CARD_BUILDERS[id]();
+  const body = CARD_BUILDERS[id]({ preview: true });
   // Empty cards preview themselves; every body is inert while editing so the
   // card controls (expand, dismiss, links…) can't fire mid-layout.
   const content =
@@ -811,6 +825,11 @@ function weekCard() {
 
 function homeCardVisible(id: string): boolean {
   return getHomeLayout().cards.some((card) => card.id === id && !card.hidden);
+}
+
+/** The STIB card is Belgium-only, like the Clusters and Students tabs. */
+function transitAvailable(): boolean {
+  return meData?.campusId === BELGIUM_CAMPUS;
 }
 
 let upcomingTab: "evaluator" | "corrected" | null = null;

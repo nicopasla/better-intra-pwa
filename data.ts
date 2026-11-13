@@ -1,5 +1,6 @@
 import { getSession, workerFetch } from "./api.ts";
-import { mock, mockMode } from "./mock.ts";
+import { BELGIUM_CAMPUS } from "./lib/campus.ts";
+import { mock, mockMode, mockTransitBoard } from "./mock.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -195,7 +196,7 @@ export const myCampus = (): Promise<CampusAccess> =>
     ? Promise.resolve({
         campusId: mock.me.campusId,
         campusName: mock.me.campusName,
-        allowed: mock.me.campusId === 12,
+        allowed: mock.me.campusId === BELGIUM_CAMPUS,
       })
     : json<CampusAccess>("/api/v1/private/campus");
 
@@ -639,3 +640,51 @@ export async function studentsPage(
   if (!res.ok) throw new Error("HTTP " + res.status);
   return (await res.json()) as StudentsPageResponse;
 }
+
+// ---------------------------------------------------------------------------
+// Transit (STIB departures around Gare Centrale, proxied by the worker)
+// ---------------------------------------------------------------------------
+
+export type TransitMode = "metro" | "tram" | "bus";
+
+export interface TransitDeparture {
+  lineId: string;
+  mode: TransitMode;
+  /** Official GTFS line colour (`#rrggbb`), when the feed provides one. */
+  color: string | null;
+  textColor: string | null;
+  destination: string;
+  /** ISO 8601 instant of the expected arrival. */
+  at: string;
+}
+
+export interface TransitStop {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  distanceM: number;
+  departures: TransitDeparture[];
+}
+
+export interface TransitMeta {
+  nearbyStops: number;
+  stops: number;
+  departures: number;
+  upstreamRows: number;
+}
+
+export interface TransitBoard {
+  area: string;
+  label: string;
+  /** When the worker built the board, in ms since epoch. */
+  updatedAt: number;
+  sourceUpdatedAt: string | null;
+  stops: TransitStop[];
+  meta: TransitMeta;
+}
+
+export const transitBoard = (): Promise<TransitBoard> =>
+  mockMode
+    ? Promise.resolve(mockTransitBoard())
+    : json<TransitBoard>("/api/v1/public/transit/gare-centrale");
