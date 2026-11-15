@@ -442,6 +442,11 @@ function editBlock(id: string, hidden: boolean) {
             />
           </label>`
         : ""}
+      ${id === "transit"
+        ? html`<p class="px-1 mb-1 text-xs opacity-60">
+            Only visible while you are online at 42.
+          </p>`
+        : ""}
       <div
         inert
         class="pointer-events-none select-none ${hidden
