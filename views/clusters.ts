@@ -135,6 +135,7 @@ function switchTab(id: string): void {
   if (!staysOnMap) {
     mapExpanded = false;
     listExpanded = false;
+    fullscreenDismissed = false;
   }
   activeTab = id;
   refresh();
@@ -387,19 +388,23 @@ function connectionRow(entry: OccupancyEntry): unknown {
 
 let mapExpanded = false;
 let listExpanded = false;
-/** The full-screen preference only seeds the first map of the session, so
- *  minimizing a map afterwards is not undone on every tab switch. */
-let fullscreenSeeded = false;
+/** The user closed the full-screen map in this visit; leaving the maps clears
+ *  it so the preference applies again on the next cluster. */
+let fullscreenDismissed = false;
 
 function toggleMapExpanded(): void {
   mapExpanded = !mapExpanded;
   if (mapExpanded) listExpanded = false;
+  fullscreenDismissed = !mapExpanded;
   refresh();
 }
 
 function toggleListExpanded(): void {
   listExpanded = !listExpanded;
-  if (listExpanded) mapExpanded = false;
+  if (listExpanded) {
+    mapExpanded = false;
+    fullscreenDismissed = true;
+  }
   refresh();
 }
 
@@ -524,10 +529,7 @@ function planView(): unknown {
 }
 
 function mapView(map: ClusterMapDef): unknown {
-  if (!fullscreenSeeded) {
-    fullscreenSeeded = true;
-    if (getClusterFullscreen()) mapExpanded = true;
-  }
+  if (getClusterFullscreen() && !fullscreenDismissed) mapExpanded = true;
   ensureMap(map);
   const seated = seatedEntries(map);
   const connections = connectionList(seated);
