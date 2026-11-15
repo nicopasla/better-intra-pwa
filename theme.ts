@@ -82,10 +82,33 @@ function presetOrNull(value: unknown): string | null {
   return typeof value === "string" && THEME_PRESETS.has(value) ? value : null;
 }
 
+/** Wall-clock window used when a schedule keeps custom (mode-less) presets. */
+const FALLBACK_DARK_START_HOUR = 20;
+const FALLBACK_DARK_END_HOUR = 7;
+
+function clockMode(): "light" | "dark" {
+  const hour = new Date().getHours();
+  return hour >= FALLBACK_DARK_START_HOUR || hour < FALLBACK_DARK_END_HOUR
+    ? "dark"
+    : "light";
+}
+
+/** Day/night for the extension's schedule. The extension flips
+ *  `PROFILE_THEME_PRESET` to the active schedule preset, so the phone's own
+ *  appearance must never decide here. */
+function scheduledMode(settings: ThemeSettings): "light" | "dark" {
+  const preset = presetOrNull(settings.preset);
+  if (preset === presetOrNull(settings.scheduleDark)) return "dark";
+  if (preset === presetOrNull(settings.scheduleLight)) return "light";
+  if (preset === "dark" || preset === "light") return preset;
+  return clockMode();
+}
+
 function settingsMode(settings: ThemeSettings): "light" | "dark" {
   if (settings.mode === "dark") return "dark";
   if (settings.mode === "light") return "light";
-  // `system`, `schedule` and unknown values follow the phone's appearance.
+  if (settings.mode === "schedule") return scheduledMode(settings);
+  // `system` and unknown values follow the phone's appearance.
   return media().matches ? "dark" : "light";
 }
 
