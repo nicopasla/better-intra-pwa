@@ -26,6 +26,8 @@ let hydrated = false;
 let loading = false;
 let error = "";
 let lastAttempt = 0;
+/** False once a request failed at the network level (offline, no route). */
+let reachable = true;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 /** The line picker replaced the departure list. */
 let picking = false;
@@ -46,12 +48,14 @@ export function loadTransit(silent = false): void {
 
   void transitBoard()
     .then((next) => {
+      reachable = true;
       board = next;
       error = "";
       const session = getSession();
       if (session) writeCache(CACHE_KEY, { ...next, login: session.login });
     })
     .catch((e: unknown) => {
+      if (e instanceof TypeError) reachable = false;
       error = e instanceof Error ? e.message : String(e);
     })
     .finally(() => {
@@ -98,6 +102,8 @@ function togglePicker(): void {
 
 export function transitCard(options: { preview?: boolean } = {}): unknown {
   hydrate();
+  // Hidden while offline, but still previewed in the home editor.
+  if (!options.preview && (!navigator.onLine || !reachable)) return "";
   return transitView({
     board: board ?? (options.preview ? previewBoard() : null),
     favorites: getTransitFavorites(),
