@@ -165,6 +165,7 @@ export function dashboardView(): unknown {
             item.id !== "transit" ||
             (transitAvailable() && (editing || navigator.onLine)),
         )
+        .filter((item) => editing || item.id !== "logtime")
         .filter((item) => editing || !item.hidden)
         .map((item) =>
           editing
@@ -382,11 +383,13 @@ function withMockData<T>(id: string, render: () => T): T {
 
 function editBlock(id: string, hidden: boolean) {
   const label = CARD_LABELS[id] ?? id;
-  const body = CARD_BUILDERS[id]({ preview: true });
+  const unavailable = id === "logtime";
+  const body = unavailable ? "" : CARD_BUILDERS[id]({ preview: true });
   // Empty cards preview themselves; every body is inert while editing so the
   // card controls (expand, dismiss, links…) can't fire mid-layout.
-  const content =
-    body === "" ? withMockData(id, () => CARD_BUILDERS[id]()) : body;
+  const content = unavailable
+    ? unavailableCard()
+    : body === "" ? withMockData(id, () => CARD_BUILDERS[id]()) : body;
   return html`
     <div data-card-id="${id}">
       <div
@@ -400,14 +403,18 @@ function editBlock(id: string, hidden: boolean) {
             : "opacity-60"}"
           >${label}</span
         >
-        <button
-          type="button"
-          class="btn btn-ghost btn-xs ${hidden ? "text-success" : "text-error"}"
-          aria-label="${hidden ? "Show" : "Hide"} ${label}"
-          @click=${() => toggleCard(id)}
-        >
-          ${svg18(hidden ? EYE_SVG : EYE_SLASH_SVG)}
-        </button>
+        ${unavailable
+          ? ""
+          : html`<button
+              type="button"
+              class="btn btn-ghost btn-xs ${hidden
+                ? "text-success"
+                : "text-error"}"
+              aria-label="${hidden ? "Show" : "Hide"} ${label}"
+              @click=${() => toggleCard(id)}
+            >
+              ${svg18(hidden ? EYE_SVG : EYE_SLASH_SVG)}
+            </button>`}
       </div>
       ${id === "week"
         ? html`<label
@@ -441,6 +448,16 @@ function editBlock(id: string, hidden: boolean) {
       </div>
     </div>
   `;
+}
+
+/** Greyed stand-in for a card that is temporarily disabled. */
+function unavailableCard() {
+  return html`<div class="card bg-base-100 shadow-xl mb-4 opacity-40 grayscale">
+    <div class="card-body py-4 items-center text-center gap-1">
+      <span class="text-sm font-semibold">Logtime</span>
+      <span class="text-xs opacity-70">Temporarily unavailable</span>
+    </div>
+  </div>`;
 }
 
 function staleBanner() {

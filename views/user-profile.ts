@@ -119,7 +119,7 @@ export function userProfileView(login: string): unknown {
                 refresh();
               },
             })}
-            ${logtimeCard(s.profile)} ${projectsSection(s.profile)}
+            ${projectsSection(s.profile)}
             ${evaluationsSection(s.stats)}
           `
         : s.loading
