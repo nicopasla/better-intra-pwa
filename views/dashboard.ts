@@ -1177,11 +1177,11 @@ function eventRow(e: CalendarEvent) {
   const startTime = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
 
   return html`<li
-    class="list-row px-0 py-2 cursor-pointer hover:bg-base-200 transition-colors"
+    class="list-row px-0 py-3 cursor-pointer hover:bg-base-200 transition-colors"
     @click=${() => openEventDialog(e)}
   >
     <div
-      class="w-10 self-stretch flex-none border-2 flex flex-col items-center justify-center ${isExam
+      class="w-11 self-stretch flex-none border-2 flex flex-col items-center justify-center ${isExam
         ? "border-error text-error"
         : "border-primary text-primary"}"
       style="border-radius: var(--badge-radius);"
@@ -1194,7 +1194,7 @@ function eventRow(e: CalendarEvent) {
       >
     </div>
     <div class="min-w-0 flex flex-col justify-center leading-tight">
-      <div class="truncate text-base ${isExam ? "text-error" : ""}">
+      <div class="truncate text-lg ${isExam ? "text-error" : ""}">
         ${e.name}
       </div>
       <div class="flex items-center gap-2 text-xs opacity-60 min-w-0">
