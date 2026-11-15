@@ -316,7 +316,7 @@ function staleBanner() {
 
 function errorCard(message: string) {
   return html`<div class="card bg-base-100 shadow-xl">
-    <div class="card-body items-center gap-3">
+    <div class="card-body px-3 items-center gap-3">
       <p class="text-sm opacity-70">Couldn't load this profile.</p>
       ${message ? html`<p class="text-xs text-error">${message}</p>` : ""}
       <button
@@ -331,7 +331,7 @@ function errorCard(message: string) {
 
 function card(content: unknown, title?: string) {
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body">
+    <div class="card-body px-3">
       ${title ? html`<h2 class="card-title text-base">${title}</h2>` : ""}
       ${content}
     </div>
@@ -387,7 +387,7 @@ function toggleLogtime(): void {
 function logtimeCard(p: UserProfile) {
   const s = state!;
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body py-3 gap-1">
+    <div class="card-body px-3 py-3 gap-1">
       <div
         class="flex items-center gap-2 w-full text-left cursor-pointer select-none"
         role="button"

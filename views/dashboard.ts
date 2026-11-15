@@ -136,7 +136,7 @@ export function dashboardView(): unknown {
   if (error) {
     return html`
       <div class="card bg-base-100 shadow-xl">
-        <div class="card-body items-center gap-3">
+        <div class="card-body px-3 items-center gap-3">
           <p class="text-sm opacity-70">Couldn't load your dashboard.</p>
           <p class="text-xs text-error">${error}</p>
           <button
@@ -460,7 +460,7 @@ function editBlock(id: string, hidden: boolean) {
 /** Greyed stand-in for a card that is temporarily disabled. */
 function unavailableCard() {
   return html`<div class="card bg-base-100 shadow-xl mb-4 opacity-40 grayscale">
-    <div class="card-body py-4 items-center text-center gap-1">
+    <div class="card-body px-3 py-4 items-center text-center gap-1">
       <span class="text-sm font-semibold">Logtime</span>
       <span class="text-xs opacity-70">Temporarily unavailable</span>
     </div>
@@ -480,7 +480,7 @@ function staleBanner() {
 function card(content: unknown, title?: string) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body">
+      <div class="card-body px-3">
         ${title ? html`<h2 class="card-title text-base">${title}</h2>` : ""}
         ${content}
       </div>
@@ -537,7 +537,7 @@ function projectsCard() {
       navigate("profile");
     }}
   >
-    <div class="card-body">
+    <div class="card-body px-3">
       <h2 class="card-title text-base">Projects</h2>
       <div class="flex gap-2">
         ${projectStat("Completed", p.validated)}
@@ -563,7 +563,7 @@ function projectStat(label: string, value: number) {
 
 function logtimeCard() {
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body py-3 gap-1">
+    <div class="card-body px-3 py-3 gap-1">
       <div
         class="flex items-center gap-2 w-full text-left cursor-pointer select-none"
         role="button"
@@ -1145,7 +1145,7 @@ function eventsCard() {
     : upcoming.slice(0, EVENTS_COLLAPSED_ROWS);
 
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body gap-2">
+    <div class="card-body px-3 py-3 gap-2">
       <h2 class="card-title text-base">Events</h2>
       <ul class="list flex flex-col gap-3">
         ${rows.map(eventRow)}
@@ -1186,18 +1186,18 @@ function eventRow(e: CalendarEvent) {
         : "border-primary text-primary"}"
       style="border-radius: var(--badge-radius);"
     >
-      <span class="text-[9px] font-semibold uppercase leading-none opacity-70"
+      <span class="text-[10px] font-semibold uppercase leading-none opacity-70"
         >${weekday}</span
       >
-      <span class="text-sm font-bold leading-none mt-0.5"
+      <span class="text-base font-bold leading-none mt-0.5"
         >${start.getDate()}</span
       >
     </div>
     <div class="min-w-0 flex flex-col justify-center leading-tight">
-      <div class="truncate text-sm ${isExam ? "text-error" : ""}">
+      <div class="truncate text-base ${isExam ? "text-error" : ""}">
         ${e.name}
       </div>
-      <div class="flex items-center gap-2 text-[11px] opacity-50 min-w-0">
+      <div class="flex items-center gap-2 text-xs opacity-60 min-w-0">
         <span class="flex-none flex items-center gap-1 tabular-nums"
           >${svg16(CALENDAR_CLOCK_SVG)}${startTime}</span
         >

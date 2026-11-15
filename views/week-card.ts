@@ -43,7 +43,7 @@ export interface WeekViewProps {
 function card(content: unknown) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body">${content}</div>
+      <div class="card-body px-3">${content}</div>
     </div>
   `;
 }
