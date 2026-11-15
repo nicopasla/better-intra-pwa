@@ -4,7 +4,6 @@ export type HomeCardId =
   | "logtime"
   | "week"
   | "upcoming"
-  | "live"
   | "projects"
   | "events"
   | "transit";
@@ -34,7 +33,6 @@ export const HOME_CARDS: HomeCardId[] = [
   "week",
   "logtime",
   "upcoming",
-  "live",
   "projects",
   "events",
   "transit",

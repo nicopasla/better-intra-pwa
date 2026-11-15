@@ -56,10 +56,9 @@ import {
   transitCard,
 } from "./transit-feature/index.ts";
 import { BELGIUM_CAMPUS } from "../lib/campus.ts";
+import CALENDAR_CLOCK_SVG from "../assets/calendar-clock.svg?raw";
 import MAP_PIN_SVG from "../assets/map-pin.svg?raw";
-import CLOCK_SVG from "../assets/clock.svg?raw";
 import CHECK_SVG from "../assets/check.svg?raw";
-import X_SVG from "../assets/x.svg?raw";
 import INFO_SVG from "../assets/info.svg?raw";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 import GRIP_SVG from "../assets/grip.svg?raw";
@@ -70,7 +69,6 @@ const CARD_LABELS: Record<string, string> = {
   logtime: "Logtime",
   week: "This week",
   upcoming: "Evaluations",
-  live: "Live events",
   projects: "Projects",
   events: "Events",
   transit: "Transit",
@@ -83,7 +81,6 @@ const CARD_BUILDERS: Record<
   logtime: logtimeCard,
   week: weekCard,
   upcoming: upcomingCard,
-  live: liveEventsCard,
   projects: projectsCard,
   events: eventsCard,
   transit: transitCard,
@@ -262,6 +259,7 @@ function reorderBadgeRow(group: string[], rowIds: string[]): void {
 /** Wires the edit-mode drag & drop after every dashboard render. */
 export function dashboardAttachObservers(): void {
   scheduleEvalRefresh();
+  scheduleEventsRefresh();
   if (
     transitAvailable() &&
     transitOnlineAt42() &&
@@ -374,7 +372,7 @@ function withMockData<T>(id: string, render: () => T): T {
     if (id === "upcoming" && upcoming.items.length === 0) {
       upcoming = { items: MOCK_EVALS, tracked: true };
     }
-    if ((id === "live" || id === "events") && allEvents.length === 0) {
+    if (id === "events" && allEvents.length === 0) {
       allEvents = [MOCK_EVENT];
     }
     return render();
@@ -779,6 +777,30 @@ let upcomingTab: "evaluator" | "corrected" | null = null;
 const EVAL_CHECK_GRACE_MS = 24 * 60 * 60 * 1000;
 
 let evalRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let eventsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Repaints the events list when one starts or ends, so the statuses and the
+ *  "now" chip never lag behind the clock. */
+function scheduleEventsRefresh(): void {
+  if (eventsRefreshTimer !== null) {
+    clearTimeout(eventsRefreshTimer);
+    eventsRefreshTimer = null;
+  }
+  const now = Date.now();
+  let next = Infinity;
+  for (const event of allEvents) {
+    for (const iso of [event.beginAt, event.endAt]) {
+      const at = Date.parse(iso);
+      if (Number.isFinite(at) && at > now && at < next) next = at;
+    }
+  }
+  if (!Number.isFinite(next)) return;
+  const delay = Math.min(next - now + 1000, 60_000);
+  eventsRefreshTimer = setTimeout(() => {
+    eventsRefreshTimer = null;
+    if (currentTab() === "dashboard") refresh();
+  }, delay);
+}
 
 /** Repaints the dashboard when the next evaluation starts, so its "done" check
  *  appears without a manual refresh. */
@@ -1079,138 +1101,65 @@ async function refreshPushState(): Promise<void> {
   refresh();
 }
 
-function eventsCard() {
-  if (allEvents.length === 0) return "";
-  return card(
-    html`<ul class="list">
-      ${allEvents.map(eventRow)}
-    </ul>`,
-    "Events",
-  );
+let eventsExpanded = false;
+
+function toggleEventsExpanded(): void {
+  eventsExpanded = !eventsExpanded;
+  refresh();
 }
+
+const EVENTS_COLLAPSED_ROWS = 5;
 
 const svg16 = (raw: string) =>
   unsafeHTML(raw.replace("<svg", '<svg width="16" height="16"'));
 
-const DISMISSED_EVENTS_KEY = "ft_dismissed_events";
-
-function getDismissedEvents(): Set<string> {
-  try {
-    const raw = localStorage.getItem(DISMISSED_EVENTS_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function dismissEvent(id: number | null): void {
-  if (id == null) return;
-  const set = getDismissedEvents();
-  set.add(String(id));
-  try {
-    localStorage.setItem(DISMISSED_EVENTS_KEY, JSON.stringify([...set]));
-  } catch {
-    /* ignore */
-  }
-  refresh();
-}
-
-/** Events that are ongoing, start soon, or happen today/tomorrow. */
-function isCloseEvent(e: CalendarEvent): boolean {
+/** Live state of an event, shown as a chip on its row. */
+function eventStatus(
+  start: Date,
+  end: Date,
+): { text: string; cls: string } | null {
   const now = new Date();
-  if (new Date(e.endAt).getTime() <= now.getTime()) return false;
-  const endOfTomorrow = new Date(now);
-  endOfTomorrow.setDate(now.getDate() + 2);
-  endOfTomorrow.setHours(0, 0, 0, 0);
-  return new Date(e.beginAt).getTime() < endOfTomorrow.getTime();
-}
-
-function closeStatus(start: Date, end: Date): { text: string; cls: string } {
-  const now = new Date();
-  if (now >= start && now < end)
-    return { text: "Happening now", cls: "badge-success" };
+  if (now >= start && now < end) return { text: "now", cls: "badge-success" };
   if (start.toDateString() === now.toDateString()) {
     const mins = Math.max(
       1,
       Math.round((start.getTime() - now.getTime()) / 60000),
     );
     return {
-      text:
-        mins < 60
-          ? `Starts in ${mins} min`
-          : `Starts in ${Math.floor(mins / 60)}h`,
+      text: mins < 60 ? `in ${mins} min` : `in ${Math.floor(mins / 60)}h`,
       cls: "badge-warning",
     };
   }
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  if (start.toDateString() === tomorrow.toDateString())
-    return { text: "Tomorrow", cls: "badge-info" };
-  return { text: "Soon", cls: "badge-info" };
+  return null;
 }
 
-/** Highlights events that are ongoing or happening today/tomorrow, above the Upcoming card. */
-function liveEventsCard(): unknown {
-  const dismissed = getDismissedEvents();
-  const live = allEvents.filter(
-    (e) => isCloseEvent(e) && !dismissed.has(String(e.id)),
-  );
-  if (live.length === 0) return "";
-  return html`<div class="flex flex-col gap-3 mb-4">
-    ${live.map((e) => {
-      const start = new Date(e.beginAt);
-      const end = new Date(e.endAt);
-      const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
-      const status = closeStatus(start, end);
-      const inner = html`
-        <div class="card-body p-4 gap-2">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="badge ${status.cls} badge-sm font-semibold"
-                >${status.text}</span
-              >
-            </div>
-            <button
-              type="button"
-              class="badge badge-lg badge-outline badge-error text-error cursor-pointer shrink-0 -mr-1 -mt-1"
-              title="Hide this event"
-              @click=${(ev: Event) => {
-                ev.preventDefault();
-                ev.stopPropagation();
-                dismissEvent(e.id);
-              }}
-            >
-              ${svg18(X_SVG)}
-            </button>
-          </div>
-          <div class="font-semibold leading-snug ${isExam ? "text-error" : ""}">
-            ${e.name}
-          </div>
-          <div
-            class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs opacity-60"
+function eventsCard() {
+  const now = Date.now();
+  const upcoming = allEvents.filter((event) => {
+    const end = Date.parse(event.endAt);
+    return !Number.isFinite(end) || end > now;
+  });
+  if (upcoming.length === 0) return "";
+  const rows = eventsExpanded
+    ? upcoming
+    : upcoming.slice(0, EVENTS_COLLAPSED_ROWS);
+
+  return html`<div class="card bg-base-100 shadow-xl mb-4">
+    <div class="card-body gap-2">
+      <h2 class="card-title text-base">Events</h2>
+      <ul class="list flex flex-col gap-3">
+        ${rows.map(eventRow)}
+      </ul>
+      ${upcoming.length > EVENTS_COLLAPSED_ROWS
+        ? html`<button
+            type="button"
+            class="btn btn-xs btn-ghost self-start"
+            @click=${toggleEventsExpanded}
           >
-            <span class="flex items-center gap-1"
-              >${svg16(CLOCK_SVG)}${pad2(start.getHours())}:${pad2(
-                start.getMinutes(),
-              )}–${pad2(end.getHours())}:${pad2(end.getMinutes())}</span
-            >
-            ${e.location
-              ? html`<span class="flex items-center gap-1"
-                  >${svg16(MAP_PIN_SVG)}${e.location}</span
-                >`
-              : ""}
-          </div>
-        </div>
-      `;
-      return html`<div
-        class="card bg-base-100 shadow-xl border-2 cursor-pointer hover:brightness-105 transition-all ${isExam
-          ? "border-error"
-          : "border-primary"}"
-        @click=${() => openEventDialog(e)}
-      >
-        ${inner}
-      </div>`;
-    })}
+            ${eventsExpanded ? "Show less" : `Show all ${upcoming.length}`}
+          </button>`
+        : ""}
+    </div>
   </div>`;
 }
 
@@ -1218,50 +1167,58 @@ function eventRow(e: CalendarEvent) {
   const start = new Date(e.beginAt);
   const end = new Date(e.endAt);
   const isExam = (e.url ?? "").includes("/exams/") || /^exam/i.test(e.name);
-  const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
-  const day = String(start.getDate());
-  const timeRange = `${pad2(start.getHours())}:${pad2(start.getMinutes())}–${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
+  const status = eventStatus(start, end);
+  const joined =
+    e.subscribers != null && e.maxSubscribers != null
+      ? `${e.subscribers}/${e.maxSubscribers}`
+      : null;
 
-  const content = html`
-    <div
-      class="w-12 self-stretch flex-none rounded-box border-2 flex flex-col items-center justify-center ${isExam
-        ? "border-error text-error"
-        : "border-primary text-primary"}"
-    >
-      <span class="text-[10px] font-semibold uppercase leading-none opacity-70"
-        >${weekday}</span
-      >
-      <span class="text-lg font-bold leading-none">${day}</span>
-    </div>
-    <div class="min-w-0 flex flex-col justify-center gap-0.5 min-h-[3.5rem]">
-      <div class="font-semibold truncate ${isExam ? "text-error" : ""}">
-        ${e.name}
-      </div>
-      <div class="flex items-center gap-1 text-xs opacity-60 min-w-0">
-        ${svg16(CLOCK_SVG)}${timeRange} · ${formatDuration(start, end)}
-      </div>
-      ${e.location
-        ? html`<div class="flex items-center gap-1 text-xs opacity-60 min-w-0">
-            ${svg16(MAP_PIN_SVG)}<span class="truncate">${e.location}</span>
-          </div>`
-        : ""}
-    </div>
-  `;
+  const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
+  const startTime = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
 
   return html`<li
-    class="list-row px-0 cursor-pointer hover:bg-base-200 transition-colors"
+    class="list-row px-0 py-1 cursor-pointer hover:bg-base-200 transition-colors"
     @click=${() => openEventDialog(e)}
   >
-    ${content}
+    <div
+      class="w-10 self-stretch flex-none border-2 flex flex-col items-center justify-center ${isExam
+        ? "border-error text-error"
+        : "border-primary text-primary"}"
+      style="border-radius: var(--badge-radius);"
+    >
+      <span class="text-[9px] font-semibold uppercase leading-none opacity-70"
+        >${weekday}</span
+      >
+      <span class="text-sm font-bold leading-none mt-0.5"
+        >${start.getDate()}</span
+      >
+    </div>
+    <div class="min-w-0 flex flex-col justify-center leading-tight">
+      <div class="truncate text-sm ${isExam ? "text-error" : ""}">
+        ${e.name}
+      </div>
+      <div class="flex items-center gap-2 text-[11px] opacity-50 min-w-0">
+        <span class="flex-none flex items-center gap-1 tabular-nums"
+          >${svg16(CALENDAR_CLOCK_SVG)}${startTime}</span
+        >
+        ${e.location
+          ? html`<span class="flex items-center gap-1 min-w-0"
+              >${svg16(MAP_PIN_SVG)}<span class="truncate"
+                >${e.location}</span
+              ></span
+            >`
+          : ""}
+        ${joined
+          ? html`<span class="flex-none tabular-nums">${joined}</span>`
+          : ""}
+      </div>
+    </div>
+    ${status
+      ? html`<span class="badge ${status.cls} badge-sm self-center flex-none"
+          >${status.text}</span
+        >`
+      : ""}
   </li>`;
-}
-
-function formatDuration(start: Date, end: Date): string {
-  const min = Math.round((end.getTime() - start.getTime()) / 60000);
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m ? `${h}h${m}m` : `${h}h`;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
