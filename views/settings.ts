@@ -74,12 +74,13 @@ import CALENDAR_PLUS_SVG from "../assets/calendar-plus.svg?raw";
 import CALENDAR_SVG from "../assets/calendar.svg?raw";
 import CIRCLE_CHECK_SVG from "../assets/circle-check.svg?raw";
 import CLUSTERS_SVG from "../assets/clusters.svg?raw";
-import GITHUB_SVG from "../assets/github.svg?raw";
 import HOME_SVG from "../assets/home.svg?raw";
 import ISSUES_SVG from "../assets/issues.svg?raw";
+import LOGO_SVG from "../assets/logo-mono.svg?raw";
 import PALETTE_SVG from "../assets/palette.svg?raw";
 import PLUS_SVG from "../assets/plus.svg?raw";
 import PR_SVG from "../assets/pr.svg?raw";
+import SCALE_SVG from "../assets/scale.svg?raw";
 import SETTINGS_GEAR_SVG from "../assets/settings_gear.svg?raw";
 import STAR_SVG from "../assets/star.svg?raw";
 import USER_SVG from "../assets/user.svg?raw";
@@ -101,7 +102,6 @@ const sectionIcon = (raw: string) =>
   );
 
 const QUICK_LINKS = [
-  { href: REPO_URL, svg: GITHUB_SVG, label: "GitHub", color: "btn-primary" },
   {
     href: `${REPO_URL}/issues`,
     svg: ISSUES_SVG,
@@ -839,26 +839,26 @@ function aboutSection(): TemplateResult {
   const version =
     typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
   return html`
-    <div class="flex items-center gap-3">
-      <img src="/icons/icon-192.png" alt="" class="h-12 w-12 rounded-2xl" />
+    <a
+      class="flex items-center gap-3 rounded-box border border-base-300 p-3 transition-colors hover:bg-base-200/60"
+      href=${PWA_REPO_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span
+        class="size-12 flex-none flex items-center justify-center text-primary"
+      >
+        ${svgIcon(LOGO_SVG, 40)}
+      </span>
       <div class="min-w-0">
         <div class="flex items-center gap-2">
           <span class="text-lg font-bold">Better Intra PWA</span>
-          <a
-            class="badge badge-ghost tabular-nums"
-            href=${PWA_REPO_URL + "/releases"}
-            target="_blank"
-            rel="noopener noreferrer"
-            >v${version}</a
-          >
+          <span class="badge badge-ghost tabular-nums">v${version}</span>
         </div>
-        <p class="text-xs opacity-60">
-          Mobile dashboard for 42 Intra, from Better Intra.
-        </p>
       </div>
-    </div>
+    </a>
 
-    <div class="flex flex-wrap justify-center gap-2">
+    <div class="flex flex-wrap items-center justify-center gap-2">
       <a
         class="btn btn-sm gap-1.5"
         href=${PWA_REPO_URL}
@@ -899,9 +899,20 @@ function aboutSection(): TemplateResult {
       </a>
     </div>
 
-    <div class="divider my-0 opacity-20"></div>
-
     <div class="join w-full">
+      <a
+        href=${PWA_REPO_URL + "/blob/main/LICENSE"}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="join-item btn btn-primary btn-sm flex-1 gap-1.5"
+        title="MIT License"
+        aria-label="MIT License"
+      >
+        <span class="size-4 flex items-center justify-center">
+          ${svgIcon(SCALE_SVG)}
+        </span>
+        <span class="text-sm font-semibold">MIT</span>
+      </a>
       ${QUICK_LINKS.map(
         (link) =>
           html`<a
@@ -917,15 +928,6 @@ function aboutSection(): TemplateResult {
           </a>`,
       )}
     </div>
-    <p class="text-center text-xs opacity-50">
-      <a
-        class="link"
-        href=${PWA_REPO_URL + "/blob/main/LICENSE"}
-        target="_blank"
-        rel="noopener noreferrer"
-        >MIT License</a
-      >
-    </p>
   `;
 }
 
