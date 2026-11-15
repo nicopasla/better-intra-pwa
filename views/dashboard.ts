@@ -161,7 +161,8 @@ export function dashboardView(): unknown {
         .filter(
           (item) =>
             item.id !== "transit" ||
-            (transitAvailable() && (editing || navigator.onLine)),
+            (transitAvailable() &&
+              (editing || (transitOnlineAt42() && navigator.onLine && !stale))),
         )
         .filter((item) => editing || item.id !== "logtime")
         .filter((item) => editing || !item.hidden)
@@ -261,7 +262,12 @@ function reorderBadgeRow(group: string[], rowIds: string[]): void {
 /** Wires the edit-mode drag & drop after every dashboard render. */
 export function dashboardAttachObservers(): void {
   scheduleEvalRefresh();
-  if (transitAvailable() && navigator.onLine && homeCardVisible("transit"))
+  if (
+    transitAvailable() &&
+    transitOnlineAt42() &&
+    navigator.onLine &&
+    homeCardVisible("transit")
+  )
     startTransitPoll();
   else stopTransitPoll();
   cardSortable?.destroy();
@@ -754,6 +760,11 @@ function homeCardVisible(id: string): boolean {
 /** The STIB card is Belgium-only, like the Clusters and Students tabs. */
 function transitAvailable(): boolean {
   return meData?.campusId === BELGIUM_CAMPUS;
+}
+
+/** 42 "online": an active cluster session. The board is only useful there. */
+function transitOnlineAt42(): boolean {
+  return Boolean(meData?.location);
 }
 
 let upcomingTab: "evaluator" | "corrected" | null = null;
