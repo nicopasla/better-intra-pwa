@@ -151,6 +151,18 @@ export function userProfileView(login: string): unknown {
                 refresh();
               },
             })}
+            ${weekCardView({
+              start: week?.login === s.login ? week.start : weekKey(),
+              days: week?.login === s.login ? week.days : null,
+              total: week?.login === s.login ? week.total : 0,
+              color: accentFor(s.profile),
+              error:
+                week?.login === s.login || weekFailedFor !== s.login
+                  ? ""
+                  : "failed",
+              stale: week?.login === s.login ? Boolean(week.stale) : false,
+              onRetry: () => void loadWeekFor(s.login, true),
+            })}
             ${projectsSection(s.profile)}
             ${evaluationsSection(s.stats)}
           `

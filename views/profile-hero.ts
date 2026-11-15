@@ -413,7 +413,7 @@ function avatarBlock(p: UserProfile, opts: ProfileHeroOptions): TemplateResult {
 }
 
 export function accentFor(p: UserProfile | null): string {
-  const color = p?.visuals.profileColor ?? "";
+  const color = p?.visuals?.profileColor ?? "";
   return /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_ACCENT;
 }
 
