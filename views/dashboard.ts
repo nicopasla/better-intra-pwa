@@ -32,9 +32,7 @@ import { dashboardSkeleton, heroSkeleton } from "../lib/skeletons.ts";
 import { dateTimeShort, evalCountdown, relativeTime } from "../lib/format.ts";
 import { activeLabelBadge, logtimeSection } from "./logtime-feature/index.ts";
 import { logtimeSettingsFromBlob } from "./logtime-feature/config.ts";
-import { MAX_INTENSITY_SECS } from "./logtime-feature/constants.ts";
-import { contrastText, toRgba } from "./logtime-feature/color.ts";
-import { fmtHours } from "./logtime-feature/format.ts";
+import { weekCard as weekCardView, weekKey } from "./week-card.ts";
 import { getDoneEvals, markEvalDone, mergeEvals } from "../lib/evals.ts";
 import { openEvalDialog } from "./eval-dialog.ts";
 import { openEventDialog } from "./event-dialog.ts";
@@ -700,24 +698,6 @@ let weekFetchedAt: number | null = null;
 /** Re-read the week when the card is refreshed after this long. */
 const WEEK_REFRESH_MS = 60_000;
 
-const dayKey = (date: Date): string =>
-  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-
-function weekKey(date = new Date()): string {
-  const startDow = getWeekStart() === "saturday" ? 6 : 1;
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  const offset = (day.getDay() - startDow + 7) % 7;
-  day.setDate(day.getDate() - offset);
-  return dayKey(day);
-}
-
-function shiftKey(key: string, days: number): string {
-  const date = new Date(`${key}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  return dayKey(date);
-}
-
 async function loadWeekLogtime(force = false): Promise<void> {
   if (weekLoading) return;
   const start = weekKey();
@@ -755,94 +735,16 @@ async function loadWeekLogtime(force = false): Promise<void> {
   }
 }
 
-/** Card heading: "This week", with the total as a badge on the right. */
-function weekHeading() {
-  return html`<div class="flex items-center justify-between gap-2 -mt-1">
-    <h2 class="card-title text-base">This week</h2>
-    ${weekDays === null
-      ? ""
-      : html`<span
-          class="badge badge-lg border-2 tabular-nums"
-          style="border-color:${profileColor};background:color-mix(in oklab, ${profileColor} 12%, transparent);"
-          data-tip=${weekStale ? "Couldn't refresh · showing cached data" : ""}
-          >${fmtHours(weekTotal)}</span
-        >`}
-  </div>`;
-}
-
 function weekCard() {
-  if (weekDays === null) {
-    if (weekError) {
-      return card(
-        html`${weekHeading()}
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-sm opacity-70">Couldn't load this week.</p>
-            <button
-              class="btn btn-xs btn-outline"
-              @click=${() => void loadWeekLogtime(true)}
-            >
-              Retry
-            </button>
-          </div>`,
-      );
-    }
-    return card(
-      html`${weekHeading()}
-        <div class="grid grid-cols-7 gap-1.5">
-          ${Array.from(
-            { length: 7 },
-            () => html`<div class="skeleton aspect-square rounded-md"></div>`,
-          )}
-        </div>`,
-    );
-  }
-
-  const days = weekDays;
-  // Same accent as the project card: the user's custom colour when enabled.
-  const color = profileColor;
-  const today = dayKey(new Date());
-
-  const cells = Array.from({ length: 7 }, (_, i) => {
-    const key = shiftKey(weekStartDate, i);
-    const date = new Date(`${key}T00:00:00`);
-    const secs = days[key] ?? 0;
-    const future = key > today;
-    const isToday = key === today;
-    const alpha = Math.min(secs / MAX_INTENSITY_SECS, 1);
-    const bg = secs > 0 ? toRgba(color, alpha) : "";
-    const fg = secs > 0 && alpha > 0.45 ? contrastText(color) : "";
-    const weekday = date.toLocaleDateString("en-GB", { weekday: "short" });
-    const tooltip = `${weekday} ${date.getDate()} ${date.toLocaleDateString(
-      "en-GB",
-      { month: "short" },
-    )} · ${secs > 0 ? fmtHours(secs) : "no logtime"}`;
-    return html`<div
-      class="aspect-square rounded-md flex flex-col items-center justify-center leading-none ${future
-        ? "opacity-40"
-        : ""} ${secs > 0 ? "" : "bg-base-300/40"} ${isToday
-        ? "outline outline-2 outline-primary -outline-offset-2"
-        : ""}"
-      style=${bg ? `background:${bg};${fg ? `color:${fg};` : ""}` : ""}
-      data-tip=${tooltip}
-    >
-      <span class="text-[10px] uppercase tracking-wide opacity-70"
-        >${date.toLocaleDateString("en-GB", { weekday: "narrow" })}</span
-      >
-      <span class="text-sm font-bold tabular-nums mt-0.5"
-        >${date.getDate()}</span
-      >
-    </div>`;
+  return weekCardView({
+    start: weekStartDate || weekKey(),
+    days: weekDays,
+    total: weekTotal,
+    color: profileColor,
+    error: weekError,
+    stale: weekStale,
+    onRetry: () => void loadWeekLogtime(true),
   });
-
-  return card(
-    html`${weekHeading()}
-      <div class="grid grid-cols-7 gap-1.5">${cells}</div>
-      ${weekStale
-        ? html`<p class="text-[11px] text-warning mt-1">
-            Couldn't refresh · showing cached data
-          </p>`
-        : ""}`,
-  );
 }
 
 function homeCardVisible(id: string): boolean {

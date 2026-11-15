@@ -2,8 +2,10 @@ import { html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import {
   logtimeHistory,
+  logtimeWeek,
   profileStatsFor,
   userProfile,
+  type LogtimeWeek,
   type ProfileStats,
   type UserProfile,
   type UserRecentProject,
@@ -21,6 +23,7 @@ import {
   removeFriend,
 } from "./friends-feature/friends.ts";
 import { accentFor, profileHero } from "./profile-hero.ts";
+import { weekCard as weekCardView, weekKey } from "./week-card.ts";
 import CHEVRON_DOWN_SVG from "../assets/chevron-down.svg?raw";
 
 const CACHE_TTL = 5 * 60_000;
@@ -52,6 +55,34 @@ interface ProfileState {
 }
 
 let state: ProfileState | null = null;
+
+/** This week of the profile currently shown (loaded with the profile). */
+let week: (LogtimeWeek & { login: string }) | null = null;
+/** Login whose week fetch failed and has no cached copy to fall back to. */
+let weekFailedFor: string | null = null;
+/** Last fetch attempt, so reopening the same profile does not refetch. */
+let weekAttempt: { login: string; at: number } | null = null;
+
+/** Loads "This week" for the profile being viewed (cached for a minute). */
+async function loadWeekFor(login: string, force = false): Promise<void> {
+  if (
+    !force &&
+    weekAttempt?.login === login &&
+    Date.now() - weekAttempt.at < 60_000
+  ) {
+    return;
+  }
+  weekAttempt = { login, at: Date.now() };
+  const data = await logtimeWeek(weekKey(), login).catch(() => null);
+  if (!state || state.login !== login) return;
+  if (data) {
+    week = { ...data, login };
+    weekFailedFor = null;
+  } else if (week?.login !== login) {
+    weekFailedFor = login;
+  }
+  refresh();
+}
 
 const cache = new Map<
   string,
@@ -93,6 +124,7 @@ export function userProfileView(login: string): unknown {
       friendBusy: false,
     };
     void syncFriendState(target);
+    void loadWeekFor(target);
     if (!fresh) void loadUserProfile(target, true);
   }
   const s = state;
@@ -180,6 +212,7 @@ export async function loadUserProfile(
     state.error = "";
     refresh();
   }
+  void loadWeekFor(target);
 
   try {
     const [profile, stats] = await Promise.all([

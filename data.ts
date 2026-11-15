@@ -369,9 +369,13 @@ export interface LogtimeWeek {
  * can still change (today, a running session's start day, yesterday once, and
  * the gap since the last sync) and answers with exactly seven days.
  */
-export const logtimeWeek = (start: string): Promise<LogtimeWeek> => {
+export const logtimeWeek = (
+  start: string,
+  login?: string,
+): Promise<LogtimeWeek> => {
+  const target = login?.trim().toLowerCase();
   if (mockMode) {
-    const source = mock.logtime("me").days;
+    const source = mock.logtime(target ?? "me").days;
     const days: Record<string, number> = {};
     let total = 0;
     for (let i = 0; i < 7; i++) {
@@ -388,10 +392,13 @@ export const logtimeWeek = (start: string): Promise<LogtimeWeek> => {
     return Promise.resolve({ start, days, total });
   }
   const session = getSession();
-  if (!session) return Promise.reject(new Error("not_authenticated"));
+  const user = target ?? session?.login;
+  if (!session || !user) {
+    return Promise.reject(new Error("not_authenticated"));
+  }
   return json<LogtimeWeek>(
     `/api/v1/private/logtime/week?user=${encodeURIComponent(
-      session.login,
+      user,
     )}&start=${encodeURIComponent(start)}`,
   );
 };
