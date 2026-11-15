@@ -14,6 +14,7 @@ import { getSession } from "../api.ts";
 import { getBlob } from "../data.ts";
 import { refresh } from "../refresh.ts";
 import {
+  getClusterFullscreen,
   getClustersDefaultTab,
   getOpenDefaultCluster,
   setClustersDefaultTab,
@@ -125,8 +126,16 @@ function switchTab(id: string): void {
   if (currentMap) resetMapZoom(currentMap);
   focusSeat = null;
   reportMode = false;
-  mapExpanded = false;
-  listExpanded = false;
+  // Room to room keeps the full-screen map; leaving the maps closes it.
+  const staysOnMap =
+    activeTab !== "active" &&
+    activeTab !== "plan" &&
+    id !== "active" &&
+    id !== "plan";
+  if (!staysOnMap) {
+    mapExpanded = false;
+    listExpanded = false;
+  }
   activeTab = id;
   refresh();
 }
@@ -378,6 +387,9 @@ function connectionRow(entry: OccupancyEntry): unknown {
 
 let mapExpanded = false;
 let listExpanded = false;
+/** The full-screen preference only seeds the first map of the session, so
+ *  minimizing a map afterwards is not undone on every tab switch. */
+let fullscreenSeeded = false;
 
 function toggleMapExpanded(): void {
   mapExpanded = !mapExpanded;
@@ -435,17 +447,20 @@ function legendPanel(): unknown {
   return html`<div
     class="absolute left-3 top-14 z-20 w-64 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
   >
-    <div class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-60">
+    <div
+      class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-60"
+    >
       Markers
     </div>
     ${LEGEND_ROWS.map(
-      (row) => html`<div class="flex items-center gap-2 py-0.5">
-        <span
-          class="size-3.5 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-          >${unsafeHTML(row.swatch)}</span
-        >
-        <span class="text-[11px] leading-tight">${row.label}</span>
-      </div>`,
+      (row) =>
+        html`<div class="flex items-center gap-2 py-0.5">
+          <span
+            class="size-3.5 shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+            >${unsafeHTML(row.swatch)}</span
+          >
+          <span class="text-[11px] leading-tight">${row.label}</span>
+        </div>`,
     )}
   </div>`;
 }
@@ -509,6 +524,10 @@ function planView(): unknown {
 }
 
 function mapView(map: ClusterMapDef): unknown {
+  if (!fullscreenSeeded) {
+    fullscreenSeeded = true;
+    if (getClusterFullscreen()) mapExpanded = true;
+  }
   ensureMap(map);
   const seated = seatedEntries(map);
   const connections = connectionList(seated);
@@ -999,7 +1018,9 @@ function applyUsbcSeats(
 
 let warningTemplate: Element | null = null;
 
-/** One shared parse of the warning asset, cloned per seat. */function warningGlyph(size: number): SVGSVGElement {
+/** One shared parse of the warning asset, cloned per seat. */ function warningGlyph(
+  size: number,
+): SVGSVGElement {
   warningTemplate ??= new DOMParser().parseFromString(
     WARNING_SVG,
     "image/svg+xml",

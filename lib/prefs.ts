@@ -190,6 +190,7 @@ export function setWeekStart(value: WeekStart): void {
 }
 
 const OPEN_DEFAULT_CLUSTER_KEY = "ft_open_default_cluster";
+const CLUSTER_FULLSCREEN_KEY = "ft_cluster_fullscreen";
 const CLUSTERS_DEFAULT_TAB_KEY = "ft_clusters_default_tab";
 
 /** Per-device: open the cluster set as default in the extension on the first
@@ -205,6 +206,25 @@ export function getOpenDefaultCluster(): boolean {
 export function setOpenDefaultCluster(on: boolean): void {
   try {
     localStorage.setItem(OPEN_DEFAULT_CLUSTER_KEY, on ? "1" : "0");
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/** Per-device: open cluster maps full screen the first time one is shown.
+ *  Defaults to off. */
+export function getClusterFullscreen(): boolean {
+  try {
+    return localStorage.getItem(CLUSTER_FULLSCREEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setClusterFullscreen(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(CLUSTER_FULLSCREEN_KEY, "1");
+    else localStorage.removeItem(CLUSTER_FULLSCREEN_KEY);
   } catch {
     /* quota / private mode */
   }

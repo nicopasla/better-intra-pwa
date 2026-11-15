@@ -1,7 +1,13 @@
 import { html, type TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { until } from "lit-html/directives/until.js";
-import { clearSession, getDeviceName, getSession, WORKER_URL, workerUrl } from "../api.ts";
+import {
+  clearSession,
+  getDeviceName,
+  getSession,
+  WORKER_URL,
+  workerUrl,
+} from "../api.ts";
 import {
   SessionItem,
   createCalendarToken,
@@ -56,8 +62,10 @@ import {
 import { presetLabel } from "../lib/theme-presets.ts";
 import { setShowCustomAvatars, showCustomAvatars } from "../lib/avatar.ts";
 import {
+  getClusterFullscreen,
   getOpenDefaultCluster,
   getRememberLastTab,
+  setClusterFullscreen,
   setOpenDefaultCluster,
   setRememberLastTab,
 } from "../lib/prefs.ts";
@@ -75,7 +83,6 @@ import PR_SVG from "../assets/pr.svg?raw";
 import SETTINGS_GEAR_SVG from "../assets/settings_gear.svg?raw";
 import STAR_SVG from "../assets/star.svg?raw";
 import USER_SVG from "../assets/user.svg?raw";
-import USER_GROUP_SVG from "../assets/user-round-group.svg?raw";
 import USERS_SVG from "../assets/users.svg?raw";
 import FOLLOW_SVG from "../assets/person-follow.svg?raw";
 
@@ -247,7 +254,6 @@ export function settingsView(): TemplateResult {
     ${isStandalone() ? "" : section("Install", PLUS_SVG, installSection())}
     ${section("Theme", PALETTE_SVG, themeSection())}
     ${section("Navigation", HOME_SVG, navigationSection())}
-    ${section("Avatars", USER_GROUP_SVG, avatarsSection())}
     ${section("Clusters", CLUSTERS_SVG, clustersSection())}
     ${section("Calendar", CALENDAR_SVG, calendarSection())}
     ${section("Account", USER_SVG, accountSection(session?.login ?? ""))}
@@ -319,36 +325,13 @@ function navigationSection() {
   `;
 }
 
-function avatarsSection() {
-  return html`
-    <label class="flex items-center justify-between gap-3 cursor-pointer">
-      <span class="flex flex-col">
-        <span>Show custom avatars in clusters</span>
-        <span class="text-xs opacity-60"
-          >Clusters show original 42 photos when this is off.</span
-        >
-      </span>
-      <input
-        type="checkbox"
-        class="toggle toggle-primary"
-        .checked=${showCustomAvatars()}
-        @change=${(e: Event) => {
-          setShowCustomAvatars((e.target as HTMLInputElement).checked);
-          refresh();
-        }}
-      />
-    </label>
-  `;
-}
-
 function clustersSection() {
   return html`
     <label class="flex items-center justify-between gap-3 cursor-pointer">
       <span class="flex flex-col">
         <span>Open my default cluster</span>
         <span class="text-xs opacity-60"
-          >Uses the default cluster synced from the extension. The campus plan
-          is used when none is set.</span
+          >Uses the default cluster synced from the extension.</span
         >
       </span>
       <input
@@ -357,6 +340,37 @@ function clustersSection() {
         .checked=${getOpenDefaultCluster()}
         @change=${(e: Event) => {
           setOpenDefaultCluster((e.target as HTMLInputElement).checked);
+          refresh();
+        }}
+      />
+    </label>
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="flex flex-col">
+        <span>Open cluster maps full screen</span>
+        <span class="text-xs opacity-60"
+          >The map fills the tab until you minimize it.</span
+        >
+      </span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${getClusterFullscreen()}
+        @change=${(e: Event) => {
+          setClusterFullscreen((e.target as HTMLInputElement).checked);
+          refresh();
+        }}
+      />
+    </label>
+    <label class="flex items-center justify-between gap-3 cursor-pointer">
+      <span class="flex flex-col">
+        <span>Show custom avatars in clusters</span>
+      </span>
+      <input
+        type="checkbox"
+        class="toggle toggle-primary"
+        .checked=${showCustomAvatars()}
+        @change=${(e: Event) => {
+          setShowCustomAvatars((e.target as HTMLInputElement).checked);
           refresh();
         }}
       />
@@ -604,7 +618,9 @@ function notifyRow(row: {
         class="toggle toggle-sm toggle-primary"
         .checked=${notifyTypes[row.key] !== false}
         ?disabled=${row.disabled === true}
-        @change=${row.disabled ? undefined : () => void toggleNotifyType(row.key)}
+        @change=${row.disabled
+          ? undefined
+          : () => void toggleNotifyType(row.key)}
       />
     </label>
   `;
