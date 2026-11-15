@@ -160,7 +160,7 @@ export function transitView(props: TransitViewProps): unknown {
     props;
 
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body px-3 py-3 gap-2">
+    <div class="card-body ft-card-tight py-3 gap-2">
       <div class="flex items-center gap-2">
         <button
           type="button"

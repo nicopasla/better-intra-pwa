@@ -1038,6 +1038,12 @@ html.ft-friends-empty body {
   padding-inline: var(--card-p, 1.5rem);
 }
 
+/* Tighter card padding for the home/profile cards. Sets the variable daisyUI
+   reads, so full-bleed sections and inset rows stay aligned with the body. */
+.ft-card-tight {
+  --card-p: 0.75rem;
+}
+
 
 /* Home edit mode: tappable hero badges. */
 .ft-badge-toggle {

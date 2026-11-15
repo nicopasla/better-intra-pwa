@@ -136,7 +136,7 @@ export function dashboardView(): unknown {
   if (error) {
     return html`
       <div class="card bg-base-100 shadow-xl">
-        <div class="card-body px-3 items-center gap-3">
+        <div class="card-body ft-card-tight items-center gap-3">
           <p class="text-sm opacity-70">Couldn't load your dashboard.</p>
           <p class="text-xs text-error">${error}</p>
           <button
@@ -460,7 +460,7 @@ function editBlock(id: string, hidden: boolean) {
 /** Greyed stand-in for a card that is temporarily disabled. */
 function unavailableCard() {
   return html`<div class="card bg-base-100 shadow-xl mb-4 opacity-40 grayscale">
-    <div class="card-body px-3 py-4 items-center text-center gap-1">
+    <div class="card-body ft-card-tight py-4 items-center text-center gap-1">
       <span class="text-sm font-semibold">Logtime</span>
       <span class="text-xs opacity-70">Temporarily unavailable</span>
     </div>
@@ -480,7 +480,7 @@ function staleBanner() {
 function card(content: unknown, title?: string) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body px-3">
+      <div class="card-body ft-card-tight">
         ${title ? html`<h2 class="card-title text-base">${title}</h2>` : ""}
         ${content}
       </div>
@@ -537,7 +537,7 @@ function projectsCard() {
       navigate("profile");
     }}
   >
-    <div class="card-body px-3">
+    <div class="card-body ft-card-tight">
       <h2 class="card-title text-base">Projects</h2>
       <div class="flex gap-2">
         ${projectStat("Completed", p.validated)}
@@ -563,7 +563,7 @@ function projectStat(label: string, value: number) {
 
 function logtimeCard() {
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body px-3 py-3 gap-1">
+    <div class="card-body ft-card-tight py-3 gap-1">
       <div
         class="flex items-center gap-2 w-full text-left cursor-pointer select-none"
         role="button"
@@ -1145,9 +1145,9 @@ function eventsCard() {
     : upcoming.slice(0, EVENTS_COLLAPSED_ROWS);
 
   return html`<div class="card bg-base-100 shadow-xl mb-4">
-    <div class="card-body px-3 py-3 gap-2">
+    <div class="card-body ft-card-tight py-3 gap-2">
       <h2 class="card-title text-base">Events</h2>
-      <ul class="list flex flex-col gap-3">
+      <ul class="list flex flex-col">
         ${rows.map(eventRow)}
       </ul>
       ${upcoming.length > EVENTS_COLLAPSED_ROWS
@@ -1177,7 +1177,7 @@ function eventRow(e: CalendarEvent) {
   const startTime = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
 
   return html`<li
-    class="list-row px-0 py-1 cursor-pointer hover:bg-base-200 transition-colors"
+    class="list-row px-0 py-2 cursor-pointer hover:bg-base-200 transition-colors"
     @click=${() => openEventDialog(e)}
   >
     <div

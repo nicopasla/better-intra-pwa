@@ -43,7 +43,7 @@ export interface WeekViewProps {
 function card(content: unknown) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body px-3">${content}</div>
+      <div class="card-body ft-card-tight">${content}</div>
     </div>
   `;
 }
@@ -82,7 +82,7 @@ export function weekCard(props: WeekViewProps): unknown {
     }
     return card(
       html`${heading(props)}
-        <div class="grid grid-cols-7 gap-1.5">
+        <div class="grid grid-cols-7 gap-3">
           ${Array.from(
             { length: 7 },
             () => html`<div class="skeleton aspect-square rounded-md"></div>`,
@@ -125,7 +125,7 @@ export function weekCard(props: WeekViewProps): unknown {
   });
 
   return card(html`${heading(props)}
-    <div class="grid grid-cols-7 gap-1.5">${cells}</div>
+    <div class="grid grid-cols-7 gap-3">${cells}</div>
     ${stale
       ? html`<p class="text-[11px] text-warning mt-1">
           Couldn't refresh · showing cached data

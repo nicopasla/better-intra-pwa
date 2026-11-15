@@ -73,7 +73,7 @@ export function profileView(): unknown {
   if (loading && !meData) return profileTabSkeleton("Loading your profile");
   if (!meData) {
     return html`<div class="card bg-base-100 shadow-xl">
-      <div class="card-body px-3 items-center gap-3">
+      <div class="card-body ft-card-tight items-center gap-3">
         <p class="text-sm opacity-70">Couldn't load your profile.</p>
         <p class="text-xs text-error">${error}</p>
         <button
@@ -254,7 +254,7 @@ export async function loadProfile(force = false): Promise<void> {
 function card(content: unknown, title?: string) {
   return html`
     <div class="card bg-base-100 shadow-xl mb-4">
-      <div class="card-body px-3">
+      <div class="card-body ft-card-tight">
         ${title ? html`<h2 class="card-title text-base">${title}</h2>` : ""}
         ${content}
       </div>
@@ -487,7 +487,7 @@ function evaluationsTab() {
       <div
         class="flex-60 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
-        <div class="card-body px-3 min-h-0">
+        <div class="card-body ft-card-tight min-h-0">
           <h2 class="card-title text-base">Evaluations</h2>
           <div class="flex items-stretch justify-center gap-2">
             ${g?.successPercentage != null
@@ -568,7 +568,7 @@ function evaluationsTab() {
       <div
         class="flex-40 min-h-0 flex flex-col card bg-base-100 shadow-xl overflow-hidden"
       >
-        <div class="card-body px-3 min-h-0">
+        <div class="card-body ft-card-tight min-h-0">
           <h2 class="card-title text-base">Roulette history</h2>
           <div class="flex items-stretch justify-center gap-2">
             ${pill("wins", String(entries.length), "rgb(59,130,246)", "flex-1")}
