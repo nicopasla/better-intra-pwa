@@ -2,10 +2,7 @@ import type { TransitBoard } from "../../data.ts";
 import { transitBoard } from "../../data.ts";
 import { getSession } from "../../api.ts";
 import { readScopedCache, writeCache } from "../../lib/cache.ts";
-import {
-  getTransitFavorites,
-  toggleTransitFavorite,
-} from "../../lib/prefs.ts";
+import { getTransitFavorites, toggleTransitFavorite } from "../../lib/prefs.ts";
 import { refresh } from "../../refresh.ts";
 import { currentTab } from "../../shell.ts";
 import { transitView } from "./render.ts";
@@ -66,7 +63,7 @@ export function loadTransit(silent = false): void {
 /** Loads the board at most once per refresh window (used on each render). */
 export function ensureTransitFresh(): void {
   hydrate();
-  if (loading) return;
+  if (loading || !navigator.onLine) return;
   if (!board || Date.now() - lastAttempt >= POLL_MS) loadTransit(true);
 }
 

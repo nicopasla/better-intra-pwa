@@ -160,7 +160,11 @@ export function dashboardView(): unknown {
     <div id="ft-home-cards">
       ${layout.cards
         .filter((item) => Boolean(CARD_BUILDERS[item.id]))
-        .filter((item) => item.id !== "transit" || transitAvailable())
+        .filter(
+          (item) =>
+            item.id !== "transit" ||
+            (transitAvailable() && (editing || navigator.onLine)),
+        )
         .filter((item) => editing || !item.hidden)
         .map((item) =>
           editing
@@ -258,7 +262,8 @@ function reorderBadgeRow(group: string[], rowIds: string[]): void {
 /** Wires the edit-mode drag & drop after every dashboard render. */
 export function dashboardAttachObservers(): void {
   scheduleEvalRefresh();
-  if (transitAvailable() && homeCardVisible("transit")) startTransitPoll();
+  if (transitAvailable() && navigator.onLine && homeCardVisible("transit"))
+    startTransitPoll();
   else stopTransitPoll();
   cardSortable?.destroy();
   cardSortable = null;
