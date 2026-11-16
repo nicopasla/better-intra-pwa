@@ -113,9 +113,16 @@ export function openEventDialog(e: CalendarEvent): void {
     render(
       html`
         <div
-          class="relative bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
+          class="bg-base-100 text-base-content rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
         >
-          <div class="absolute right-2 top-2 z-10 flex items-center gap-1">
+          <div class="flex-none flex items-start gap-2 px-4 pt-4">
+            <h2
+              class="flex-1 min-w-0 text-lg font-bold leading-snug ${isExam
+                ? "text-error"
+                : ""}"
+            >
+              ${e.name}
+            </h2>
             <button
               type="button"
               class="btn btn-ghost btn-sm shrink-0"
@@ -125,14 +132,7 @@ export function openEventDialog(e: CalendarEvent): void {
               ${unsafeHTML(X_SVG.replace("<svg", '<svg width="18" height="18"'))}
             </button>
           </div>
-          <div class="px-4 py-3 flex flex-col gap-3 overflow-y-auto min-h-0">
-            <h2
-              class="pr-20 text-lg font-bold leading-snug ${isExam
-                ? "text-error"
-                : ""}"
-            >
-              ${e.name}
-            </h2>
+          <div class="flex-none px-4 pt-2 pb-3 flex flex-col gap-2">
             <div class="flex flex-col gap-2">
               <div class="grid grid-cols-[3fr_2fr] gap-2">
                 ${detailBadge("var(--color-info)", CALENDAR_SVG, when)}
@@ -164,6 +164,8 @@ export function openEventDialog(e: CalendarEvent): void {
                   </div>`
                 : ""}
             </div>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-3 pt-1">
             ${e.description
               ? html`<p class="text-sm whitespace-pre-wrap wrap-break-word opacity-90">${e.description.trim()}</p>`
               : html`<p class="text-sm opacity-60">No description.</p>`}
