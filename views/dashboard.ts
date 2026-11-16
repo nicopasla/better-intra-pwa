@@ -1174,6 +1174,9 @@ function eventRow(e: CalendarEvent) {
       : null;
 
   const weekday = start.toLocaleDateString("en-GB", { weekday: "short" });
+  const month = start
+    .toLocaleDateString("en-GB", { month: "short" })
+    .toUpperCase();
   const startTime = `${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
 
   return html`<li
@@ -1181,7 +1184,7 @@ function eventRow(e: CalendarEvent) {
     @click=${() => openEventDialog(e)}
   >
     <div
-      class="w-11 self-stretch flex-none border-2 flex flex-col items-center justify-center ${isExam
+      class="w-12 min-h-14 self-stretch flex-none border-2 flex flex-col items-center justify-center ${isExam
         ? "border-error text-error"
         : "border-primary text-primary"}"
       style="border-radius: var(--badge-radius);"
@@ -1191,6 +1194,9 @@ function eventRow(e: CalendarEvent) {
       >
       <span class="text-base font-bold leading-none mt-0.5"
         >${start.getDate()}</span
+      >
+      <span class="text-[9px] font-semibold uppercase leading-none opacity-60 mt-0.5"
+        >${month}</span
       >
     </div>
     <div class="min-w-0 flex flex-col justify-center leading-tight">
